@@ -37,7 +37,11 @@
           "skipTypeCheck": true,
           "stripLeadingPaths": true,
           "assets": [
-            "LICENSE"
+            {
+              "input": ".",
+              "glob": "LICENSE",
+              "output": "../"
+            }
           ]
         }
       }
