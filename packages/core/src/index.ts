@@ -2,3 +2,8 @@ export * from './lib/types.js';
 export * from './lib/duration.js';
 export * from './lib/lang.js';
 export * from './lib/data-wrapper.js';
+export * from './lib/filters.js';
+export * from './lib/time.js';
+export * from './lib/backoff.js';
+export * from './lib/task-pool.js';
+export * from './lib/poller.js';
