@@ -1,3 +1,13 @@
+## 0.2.0 (2025-11-25)
+
+### 🚀 Features
+
+- implement DataWrapper and StrictDataWrapper classes with utility methods; add lodash dependency ([8b2de74](https://github.com/rtpaulino/libs/commit/8b2de74))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.1.5 (2025-11-25)
 
 This was a version bump only, there were no code changes.
