@@ -10,8 +10,10 @@
     "@nx/eslint-plugin": "22.1.1",
     "@nx/js": "22.1.1",
     "@nx/vite": "22.1.1",
+    "@nx/vitest": "22.1.1",
     "@nx/web": "22.1.1",
     "@swc-node/register": "^1.11.1",
+    "@swc/cli": "~0.6.0",
     "@swc/core": "^1.15.3",
     "@swc/helpers": "~0.5.11",
     "@types/node": "^24.10.1",
@@ -27,7 +29,7 @@
     "typescript-eslint": "^8.48.0",
     "verdaccio": "^6.0.5",
     "vite": "^7.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.2.4"
   },
   "workspaces": [
     "packages/*"
@@ -44,5 +46,6 @@
         }
       }
     }
-  }
+  },
+  "dependencies": {}
 }
