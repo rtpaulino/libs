@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Poller } from './poller';
+import { Duration } from './duration';
 import type { Logger } from './types';
 
 describe('Poller', () => {
@@ -14,7 +15,9 @@ describe('Poller', () => {
   describe('basic polling', () => {
     it('should execute poll callback at specified intervals', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       poller.start();
 
@@ -53,7 +56,9 @@ describe('Poller', () => {
 
     it('should handle custom poll intervals', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 500 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(500),
+      });
 
       poller.start();
 
@@ -70,7 +75,9 @@ describe('Poller', () => {
   describe('start and stop', () => {
     it('should not execute callback before start is called', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       await vi.advanceTimersByTimeAsync(2000);
       expect(mockCallback).not.toHaveBeenCalled();
@@ -84,7 +91,9 @@ describe('Poller', () => {
 
     it('should stop executing callback after stop is called', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       poller.start();
 
@@ -145,7 +154,9 @@ describe('Poller', () => {
 
     it('should clear timeout when stopped', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       poller.start();
       poller.stop();
@@ -191,7 +202,7 @@ describe('Poller', () => {
       const mockCallback = vi.fn().mockRejectedValue(error);
       const mockOnError = vi.fn();
       const poller = new Poller(mockCallback, {
-        pollIntervalMs: 1000,
+        pollInterval: Duration.millis(1000),
         onError: mockOnError,
       });
 
@@ -215,7 +226,7 @@ describe('Poller', () => {
       });
       const mockOnError = vi.fn();
       const poller = new Poller(mockCallback, {
-        pollIntervalMs: 1000,
+        pollInterval: Duration.millis(1000),
         onError: mockOnError,
       });
 
@@ -238,7 +249,7 @@ describe('Poller', () => {
       const mockCallback = vi.fn().mockRejectedValue('string error');
       const mockOnError = vi.fn();
       const poller = new Poller(mockCallback, {
-        pollIntervalMs: 1000,
+        pollInterval: Duration.millis(1000),
         onError: mockOnError,
       });
 
@@ -253,7 +264,9 @@ describe('Poller', () => {
 
     it('should not throw if onError is not provided', async () => {
       const mockCallback = vi.fn().mockRejectedValue(new Error('Test error'));
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       poller.start();
 
@@ -274,7 +287,7 @@ describe('Poller', () => {
         warn: vi.fn(),
       };
       const poller = new Poller(mockCallback, {
-        pollIntervalMs: 1000,
+        pollInterval: Duration.millis(1000),
         logger: mockLogger,
       });
 
@@ -293,7 +306,9 @@ describe('Poller', () => {
         // Simulate async work that takes 500ms
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       poller.start();
 
@@ -312,7 +327,9 @@ describe('Poller', () => {
   describe('restart scenarios', () => {
     it('should allow restart after stop', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 1000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(1000),
+      });
 
       // First cycle
       poller.start();
@@ -335,7 +352,9 @@ describe('Poller', () => {
   describe('edge cases', () => {
     it('should handle very short poll intervals', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 10 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(10),
+      });
 
       poller.start();
 
@@ -350,7 +369,9 @@ describe('Poller', () => {
 
     it('should handle very long poll intervals', async () => {
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 60000 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(60000),
+      });
 
       poller.start();
 
@@ -367,7 +388,9 @@ describe('Poller', () => {
       // Zero interval creates very fast polling
       // Testing actual execution with zero timers is complex with fake timers
       const mockCallback = vi.fn().mockResolvedValue(undefined);
-      const poller = new Poller(mockCallback, { pollIntervalMs: 0 });
+      const poller = new Poller(mockCallback, {
+        pollInterval: Duration.millis(0),
+      });
 
       expect(poller).toBeDefined();
       expect(poller.isActive).toBe(false);

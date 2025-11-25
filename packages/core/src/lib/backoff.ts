@@ -1,8 +1,9 @@
+import { Duration } from './duration.js';
 import { wait } from './time.js';
 
 export type BackoffConfig = {
-  initialDelayMs?: number;
-  maxDelayMs?: number;
+  initialDelay?: Duration;
+  maxDelay?: Duration;
   factor?: number;
   jitter?: boolean;
 };
@@ -12,8 +13,8 @@ export function backoff<T>(
   config: BackoffConfig = {},
 ) {
   const {
-    initialDelayMs = 100,
-    maxDelayMs = 60000,
+    initialDelay = Duration.millis(100),
+    maxDelay = Duration.minutes(1),
     factor = 2,
     jitter = true,
   } = config;
@@ -22,11 +23,13 @@ export function backoff<T>(
 
   return async (): Promise<T> => {
     const delay =
-      Math.min(initialDelayMs * Math.pow(factor, attempt - 1), maxDelayMs) *
-      (jitter ? 0.5 + Math.random() * 0.5 : 1);
+      Math.min(
+        initialDelay.inMillis * Math.pow(factor, attempt - 1),
+        maxDelay.inMillis,
+      ) * (jitter ? 0.5 + Math.random() * 0.5 : 1);
 
     if (delay > 0) {
-      await wait(delay);
+      await wait(Duration.millis(delay));
     }
 
     try {

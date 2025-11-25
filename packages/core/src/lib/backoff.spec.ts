@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { backoff } from './backoff.js';
 import * as timeModule from './time.js';
+import { Duration } from './duration.js';
 
 vi.mock('./time.js');
 
@@ -17,13 +18,16 @@ describe('backoff', () => {
 
   it('should execute the function and apply delay on first attempt', async () => {
     const fn = vi.fn().mockResolvedValue('success');
-    const backoffFn = backoff(fn, { initialDelayMs: 100, jitter: false });
+    const backoffFn = backoff(fn, {
+      initialDelay: Duration.millis(100),
+      jitter: false,
+    });
 
     const result = await backoffFn();
 
     expect(result).toBe('success');
     expect(fn).toHaveBeenCalledWith(0);
-    expect(timeModule.wait).toHaveBeenCalledWith(50); // 100 * 2^(-1) = 50
+    expect(timeModule.wait).toHaveBeenCalledWith(Duration.millis(50)); // 100 * 2^(-1) = 50
   });
 
   it('should retry after failure and wait between attempts', async () => {
@@ -32,18 +36,21 @@ describe('backoff', () => {
       .mockRejectedValueOnce(new Error('fail1'))
       .mockResolvedValueOnce('success');
 
-    const backoffFn = backoff(fn, { initialDelayMs: 100, jitter: false });
+    const backoffFn = backoff(fn, {
+      initialDelay: Duration.millis(100),
+      jitter: false,
+    });
 
     // First attempt - fails
     await expect(backoffFn()).rejects.toThrow('fail1');
     expect(fn).toHaveBeenCalledWith(0);
-    expect(timeModule.wait).toHaveBeenCalledWith(50); // 100 * 2^(-1) = 50
+    expect(timeModule.wait).toHaveBeenCalledWith(Duration.millis(50)); // 100 * 2^(-1) = 50
 
     // Second attempt - succeeds
     const result = await backoffFn();
     expect(result).toBe('success');
     expect(fn).toHaveBeenCalledWith(1);
-    expect(timeModule.wait).toHaveBeenCalledWith(100); // 100 * 2^0 = 100
+    expect(timeModule.wait).toHaveBeenCalledWith(Duration.millis(100)); // 100 * 2^0 = 100
   });
 
   it('should reset attempt counter on success', async () => {
@@ -68,19 +75,25 @@ describe('backoff', () => {
       .mockRejectedValueOnce(new Error('fail2'))
       .mockResolvedValueOnce('success');
 
-    const backoffFn = backoff(fn, { initialDelayMs: 100, jitter: false });
+    const backoffFn = backoff(fn, {
+      initialDelay: Duration.millis(100),
+      jitter: false,
+    });
 
     await expect(backoffFn()).rejects.toThrow();
     await expect(backoffFn()).rejects.toThrow();
     await backoffFn();
 
-    // First call (attempt 0): 100 * 2^(-1) = 50
-    // Second call (attempt 1): 100 * 2^0 = 100
-    // Third call (attempt 2): 100 * 2^1 = 200
     const waitMock = vi.mocked(timeModule.wait);
-    expect(waitMock.mock.calls[0][0]).toBe(50);
-    expect(waitMock.mock.calls[1][0]).toBe(100);
-    expect(waitMock.mock.calls[2][0]).toBe(200);
+    expect((waitMock.mock.calls[0][0] as unknown as Duration).inMillis).toBe(
+      50,
+    ); // 100 * 2^(-1) = 50
+    expect((waitMock.mock.calls[1][0] as unknown as Duration).inMillis).toBe(
+      100,
+    ); // 100 * 2^0 = 100
+    expect((waitMock.mock.calls[2][0] as unknown as Duration).inMillis).toBe(
+      200,
+    ); // 100 * 2^1 = 200
   });
 
   it('should respect maxDelayMs cap', async () => {
@@ -92,8 +105,8 @@ describe('backoff', () => {
       .mockResolvedValueOnce('success');
 
     const backoffFn = backoff(fn, {
-      initialDelayMs: 100,
-      maxDelayMs: 150,
+      initialDelay: Duration.millis(100),
+      maxDelay: Duration.millis(150),
       jitter: false,
     });
 
@@ -103,10 +116,18 @@ describe('backoff', () => {
     await backoffFn();
 
     const waitMock = vi.mocked(timeModule.wait);
-    expect(waitMock.mock.calls[0][0]).toBe(50); // 100 * 2^(-1) = 50
-    expect(waitMock.mock.calls[1][0]).toBe(100); // 100 * 2^0 = 100
-    expect(waitMock.mock.calls[2][0]).toBe(150); // min(100 * 2^1, 150) = 150
-    expect(waitMock.mock.calls[3][0]).toBe(150); // min(100 * 2^2, 150) = 150
+    expect((waitMock.mock.calls[0][0] as unknown as Duration).inMillis).toBe(
+      50,
+    ); // 100 * 2^(-1) = 50
+    expect((waitMock.mock.calls[1][0] as unknown as Duration).inMillis).toBe(
+      100,
+    ); // 100 * 2^0 = 100
+    expect((waitMock.mock.calls[2][0] as unknown as Duration).inMillis).toBe(
+      150,
+    ); // min(100 * 2^1, 150) = 150
+    expect((waitMock.mock.calls[3][0] as unknown as Duration).inMillis).toBe(
+      150,
+    ); // min(100 * 2^2, 150) = 150
   });
 
   it('should apply jitter when enabled', async () => {
@@ -115,13 +136,16 @@ describe('backoff', () => {
       .mockRejectedValueOnce(new Error('fail'))
       .mockResolvedValueOnce('success');
 
-    const backoffFn = backoff(fn, { initialDelayMs: 100, jitter: true });
+    const backoffFn = backoff(fn, {
+      initialDelay: Duration.millis(100),
+      jitter: true,
+    });
 
     await expect(backoffFn()).rejects.toThrow();
     await backoffFn();
 
     const waitMock = vi.mocked(timeModule.wait);
-    const delay = waitMock.mock.calls[0][0] as number;
+    const delay = (waitMock.mock.calls[0][0] as unknown as Duration).inMillis;
     // With jitter on attempt 0: 50 * (0.5 + Math.random() * 0.5), range [25, 50]
     expect(delay).toBeGreaterThanOrEqual(25);
     expect(delay).toBeLessThanOrEqual(50);
@@ -133,13 +157,16 @@ describe('backoff', () => {
       .mockRejectedValueOnce(new Error('fail'))
       .mockResolvedValueOnce('success');
 
-    const backoffFn = backoff(fn, { initialDelayMs: 100, jitter: false });
+    const backoffFn = backoff(fn, {
+      initialDelay: Duration.millis(100),
+      jitter: false,
+    });
 
     await expect(backoffFn()).rejects.toThrow();
     await backoffFn();
 
     const waitMock = vi.mocked(timeModule.wait);
-    const delay = waitMock.mock.calls[0][0] as number;
+    const delay = (waitMock.mock.calls[0][0] as unknown as Duration).inMillis;
     expect(delay).toBe(50); // 100 * 2^(-1) = 50
   });
 
@@ -151,7 +178,7 @@ describe('backoff', () => {
       .mockResolvedValueOnce('success');
 
     const backoffFn = backoff(fn, {
-      initialDelayMs: 100,
+      initialDelay: Duration.millis(100),
       factor: 3,
       jitter: false,
     });
@@ -165,9 +192,15 @@ describe('backoff', () => {
     // attempt 0: 100 * 3^(-1) = 33.33...
     // attempt 1: 100 * 3^0 = 100
     // attempt 2: 100 * 3^1 = 300
-    expect(waitMock.mock.calls[0][0]).toBeCloseTo(33.33, 1);
-    expect(waitMock.mock.calls[1][0]).toBe(100);
-    expect(waitMock.mock.calls[2][0]).toBe(300);
+    expect(
+      (waitMock.mock.calls[0][0] as unknown as Duration).inMillis,
+    ).toBeCloseTo(33.33, 1);
+    expect((waitMock.mock.calls[1][0] as unknown as Duration).inMillis).toBe(
+      100,
+    );
+    expect((waitMock.mock.calls[2][0] as unknown as Duration).inMillis).toBe(
+      300,
+    );
   });
 
   it('should pass attempt number to the function', async () => {

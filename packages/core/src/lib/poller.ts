@@ -1,3 +1,4 @@
+import { Duration } from './duration';
 import { Logger } from './types';
 
 /**
@@ -5,10 +6,10 @@ import { Logger } from './types';
  */
 export interface PollerConfig {
   /**
-   * Time to wait between polling cycles (in milliseconds)
-   * @default 1000
+   * Time to wait between polling cycles
+   * @default one second
    */
-  pollIntervalMs?: number;
+  pollInterval?: Duration;
 
   /**
    * Name for the logger
@@ -32,7 +33,7 @@ export class Poller {
   /**
    * Polling interval in milliseconds
    */
-  private pollIntervalMs: number;
+  private pollInterval: Duration;
 
   /**
    * Flag indicating if polling is currently active
@@ -64,7 +65,7 @@ export class Poller {
 
     this.pollCallback = pollCallback;
 
-    this.pollIntervalMs = config?.pollIntervalMs ?? 1000;
+    this.pollInterval = config?.pollInterval ?? Duration.seconds(1);
 
     this.onError = config?.onError;
   }
@@ -119,7 +120,7 @@ export class Poller {
         .finally(() => {
           this.schedulePoll();
         });
-    }, this.pollIntervalMs);
+    }, this.pollInterval.inMillis);
   }
 
   /**

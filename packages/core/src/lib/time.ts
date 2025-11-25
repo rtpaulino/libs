@@ -1,36 +1,28 @@
-export function wait(millis: number) {
-  return new Promise((resolve) => setTimeout(resolve, millis));
+import { Duration } from './duration';
+
+export function wait(duration: Duration) {
+  return new Promise((resolve) => setTimeout(resolve, duration.inMillis));
 }
 
-export async function waitFor<T>(
-  action: () => Promise<T>,
-  condition: (result: T) => boolean,
+export async function waitUntil(
+  condition: () => boolean | Promise<boolean>,
   options: {
-    timeoutMs: number;
-    intervalMs?: number;
-    timeoutAction?: 'throw' | 'returnNull' | 'returnResult';
+    timeout: Duration;
+    interval?: Duration;
+    throwOnTimeout?: boolean;
   },
-): Promise<T | null> {
-  const intervalMs = options.intervalMs ?? 5000;
-  const timeoutAt = Date.now() + options.timeoutMs;
-  const timeoutAction = options.timeoutAction ?? 'throw';
+): Promise<void> {
+  const intervalMs = options.interval ?? Duration.millis(500);
+  const timeoutAt = Date.now() + options.timeout.inMillis;
+  const throwOnTimeout = options.throwOnTimeout ?? true;
 
   // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const result = await action();
-
-    if (condition(result)) {
-      return result;
-    }
-
+  while (!(await condition())) {
     if (Date.now() >= timeoutAt) {
-      switch (timeoutAction) {
-        case 'throw':
-          throw new Error('waitFor: timeout exceeded');
-        case 'returnResult':
-          return result;
-        default:
-          return null;
+      if (throwOnTimeout) {
+        throw new Error('waitUntil: timeout exceeded');
+      } else {
+        return;
       }
     }
 
