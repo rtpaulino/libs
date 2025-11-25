@@ -1,0 +1,2 @@
+- This project use `nx`
+- To run tests: `nx test <project>`
