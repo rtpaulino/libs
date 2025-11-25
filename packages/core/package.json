@@ -35,14 +35,7 @@
           "main": "packages/core/src/index.ts",
           "tsConfig": "packages/core/tsconfig.lib.json",
           "skipTypeCheck": true,
-          "stripLeadingPaths": true,
-          "assets": [
-            {
-              "input": ".",
-              "glob": "LICENSE",
-              "output": "../"
-            }
-          ]
+          "stripLeadingPaths": true
         }
       }
     }
