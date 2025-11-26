@@ -1,3 +1,13 @@
+## 0.9.2 (2025-11-26)
+
+### 🩹 Fixes
+
+- update StagingItem to allow nullable Blob type ([4c6646b](https://github.com/rtpaulino/libs/commit/4c6646b))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.9.1 (2025-11-26)
 
 ### 🩹 Fixes
