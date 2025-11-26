@@ -185,4 +185,112 @@ export class GitLib {
       new Ref({ name: refName, commitRef: commit.hash }),
     );
   }
+
+  /**
+   * Garbage collection: removes orphaned commits, trees, and blobs that are not reachable from any ref.
+   * This traverses all refs, collects all reachable objects, and deletes unreachable ones.
+   * @returns An object containing the counts of deleted commits, trees, and blobs
+   */
+  async gc(): Promise<{ commits: number; trees: number; blobs: number }> {
+    const reachableCommits = new Set<string>();
+    const reachableTrees = new Set<string>();
+    const reachableBlobs = new Set<string>();
+
+    // Collect all refs
+    const refNames = await this.storage.ref.listAll();
+
+    // Traverse from each ref to collect all reachable objects
+    for (const refName of refNames) {
+      const ref = await this.storage.ref.load(refName);
+      if (!ref) continue;
+
+      // Traverse commit chain
+      let commit = await this.storage.commit.load(ref.commitRef);
+      while (commit && !reachableCommits.has(commit.hash)) {
+        reachableCommits.add(commit.hash);
+
+        // Traverse tree from this commit
+        if (commit.treeRef) {
+          await this.traverseTree(
+            commit.treeRef,
+            reachableTrees,
+            reachableBlobs,
+          );
+        }
+
+        // Move to previous commit
+        if (commit.previousCommitRef) {
+          commit = await this.storage.commit.load(commit.previousCommitRef);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // Collect all stored objects
+    const allCommits = await this.storage.commit.listAll();
+    const allTrees = await this.storage.tree.listAll();
+    const allBlobs = await this.storage.blob.listAll();
+
+    // Delete unreachable objects
+    let deletedCommits = 0;
+    let deletedTrees = 0;
+    let deletedBlobs = 0;
+
+    for (const commitHash of allCommits) {
+      if (!reachableCommits.has(commitHash)) {
+        await this.storage.commit.delete(commitHash);
+        deletedCommits++;
+      }
+    }
+
+    for (const treeHash of allTrees) {
+      if (!reachableTrees.has(treeHash)) {
+        await this.storage.tree.deleteNode(treeHash);
+        deletedTrees++;
+      }
+    }
+
+    for (const blobHash of allBlobs) {
+      if (!reachableBlobs.has(blobHash)) {
+        await this.storage.blob.delete(blobHash);
+        deletedBlobs++;
+      }
+    }
+
+    return {
+      commits: deletedCommits,
+      trees: deletedTrees,
+      blobs: deletedBlobs,
+    };
+  }
+
+  /**
+   * Helper method to recursively traverse a tree and collect all reachable trees and blobs.
+   */
+  private async traverseTree(
+    treeHash: string,
+    reachableTrees: Set<string>,
+    reachableBlobs: Set<string>,
+  ): Promise<void> {
+    if (reachableTrees.has(treeHash)) {
+      return; // Already visited
+    }
+
+    const node = await this.storage.tree.loadNode(treeHash);
+    if (!node) {
+      return; // Node not found (shouldn't happen in a valid repository)
+    }
+
+    reachableTrees.add(treeHash);
+
+    if (node.isLeaf()) {
+      reachableBlobs.add(node.blobRef);
+    } else if (node.isInternal()) {
+      // Recursively traverse child trees
+      for (const childRef of node.childrenRefs) {
+        await this.traverseTree(childRef, reachableTrees, reachableBlobs);
+      }
+    }
+  }
 }

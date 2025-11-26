@@ -5,24 +5,28 @@ export interface GitLibBlobStorage {
   load(hash: string): Promise<Nullable<Blob>>;
   save(blob: Blob): Promise<void>;
   delete(hash: string): Promise<void>;
+  listAll(): Promise<string[]>;
 }
 
 export interface GitLibTreeStorage {
   loadNode(hash: string): Promise<Nullable<TreeNode>>;
   saveNode(node: TreeNode): Promise<void>;
   deleteNode(hash: string): Promise<void>;
+  listAll(): Promise<string[]>;
 }
 
 export interface GitLibCommitStorage {
   load(hash: string): Promise<Nullable<Commit>>;
   save(commit: Commit): Promise<void>;
   delete(hash: string): Promise<void>;
+  listAll(): Promise<string[]>;
 }
 
 export interface GitLibRefStorage {
   load(refName: string): Promise<Nullable<Ref>>;
   save(ref: Ref): Promise<void>;
   delete(refName: string): Promise<void>;
+  listAll(): Promise<string[]>;
 
   /**
    * Atomically update a ref only if it currently points to the expected commit.

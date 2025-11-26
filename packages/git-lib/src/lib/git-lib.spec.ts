@@ -410,4 +410,181 @@ describe('GitLib', () => {
     const stagingItems = await storage.staging.load();
     expect(stagingItems).toHaveLength(0);
   });
+
+  it('should delete orphaned records with garbage collection', async () => {
+    const storage = {
+      blob: new InMemoryBlobStorage(),
+      tree: new InMemoryTreeStorage(),
+      commit: new InMemoryCommitStorage(),
+      ref: new InMemoryRefStorage(),
+      staging: new InMemoryStagingStorage(),
+    };
+
+    const gitLib = new GitLib({ storage });
+
+    // Create first commit on main
+    const blob1 = new Blob(Buffer.from('content 1'));
+    await gitLib.add(
+      'main',
+      new StagingItem({ path: ['file1.txt'], blob: blob1 }),
+    );
+    await gitLib.commit('main', 'First commit');
+
+    // Create second commit on main
+    const blob2 = new Blob(Buffer.from('content 2'));
+    await gitLib.add(
+      'main',
+      new StagingItem({ path: ['file2.txt'], blob: blob2 }),
+    );
+    await gitLib.commit('main', 'Second commit');
+
+    // Create third commit on main
+    const blob3 = new Blob(Buffer.from('content 3'));
+    await gitLib.add(
+      'main',
+      new StagingItem({ path: ['file3.txt'], blob: blob3 }),
+    );
+    await gitLib.commit('main', 'Third commit');
+
+    const mainCommits = await gitLib.log('main');
+    expect(mainCommits).toHaveLength(3);
+
+    // Create a branch that points to the second commit
+    await gitLib.reset('dev', mainCommits[1].hash);
+
+    // Count objects before GC
+    const allCommitsBefore = await storage.commit.listAll();
+    const allTreesBefore = await storage.tree.listAll();
+    const allBlobsBefore = await storage.blob.listAll();
+    expect(allCommitsBefore.length).toBeGreaterThan(0);
+    expect(allTreesBefore.length).toBeGreaterThan(0);
+    expect(allBlobsBefore.length).toBeGreaterThan(0);
+
+    // Run GC - nothing should be deleted since all commits are reachable
+    const result1 = await gitLib.gc();
+    expect(result1.commits).toBe(0);
+    expect(result1.trees).toBe(0);
+    expect(result1.blobs).toBe(0);
+
+    // Now reset main to the first commit, making the third commit orphaned
+    await gitLib.reset('main', mainCommits[2].hash); // Point to first commit
+
+    // Run GC - should delete orphaned commits/trees/blobs
+    const result2 = await gitLib.gc();
+
+    // The third commit is no longer reachable
+    // We expect it to be deleted, but first and second are still reachable
+    expect(result2.commits).toBeGreaterThan(0);
+    expect(result2.trees).toBeGreaterThan(0);
+    expect(result2.blobs).toBeGreaterThan(0);
+
+    // Verify we can still access commits from both refs
+    const mainCommit = await gitLib.getCommitFromRef('main');
+    const devCommit = await gitLib.getCommitFromRef('dev');
+    expect(mainCommit).toBeDefined();
+    expect(devCommit).toBeDefined();
+
+    // Delete dev ref, making the second commit orphaned
+    await storage.ref.delete('dev');
+
+    // Run GC again
+    const result3 = await gitLib.gc();
+    expect(result3.commits).toBeGreaterThan(0);
+
+    // Verify we can still access the main commit
+    const finalMainCommit = await gitLib.getCommitFromRef('main');
+    expect(finalMainCommit).toBeDefined();
+    expect(finalMainCommit?.message).toBe('First commit');
+  });
+
+  it('should handle GC with no orphaned objects', async () => {
+    const storage = {
+      blob: new InMemoryBlobStorage(),
+      tree: new InMemoryTreeStorage(),
+      commit: new InMemoryCommitStorage(),
+      ref: new InMemoryRefStorage(),
+      staging: new InMemoryStagingStorage(),
+    };
+
+    const gitLib = new GitLib({ storage });
+
+    // Create a single commit
+    const blob1 = new Blob(Buffer.from('content 1'));
+    await gitLib.add(
+      'main',
+      new StagingItem({ path: ['file1.txt'], blob: blob1 }),
+    );
+    await gitLib.commit('main', 'First commit');
+
+    // Run GC - nothing should be deleted
+    const result = await gitLib.gc();
+    expect(result.commits).toBe(0);
+    expect(result.trees).toBe(0);
+    expect(result.blobs).toBe(0);
+
+    // Verify commit is still accessible
+    const commit = await gitLib.getCommitFromRef('main');
+    expect(commit).toBeDefined();
+  });
+
+  it('should handle GC with empty repository', async () => {
+    const storage = {
+      blob: new InMemoryBlobStorage(),
+      tree: new InMemoryTreeStorage(),
+      commit: new InMemoryCommitStorage(),
+      ref: new InMemoryRefStorage(),
+      staging: new InMemoryStagingStorage(),
+    };
+
+    const gitLib = new GitLib({ storage });
+
+    // Run GC on empty repository
+    const result = await gitLib.gc();
+    expect(result.commits).toBe(0);
+    expect(result.trees).toBe(0);
+    expect(result.blobs).toBe(0);
+  });
+
+  it('should handle GC with shared blobs across commits', async () => {
+    const storage = {
+      blob: new InMemoryBlobStorage(),
+      tree: new InMemoryTreeStorage(),
+      commit: new InMemoryCommitStorage(),
+      ref: new InMemoryRefStorage(),
+      staging: new InMemoryStagingStorage(),
+    };
+
+    const gitLib = new GitLib({ storage });
+
+    // Create first commit with a file
+    const blob1 = new Blob(Buffer.from('shared content'));
+    await gitLib.add(
+      'main',
+      new StagingItem({ path: ['file1.txt'], blob: blob1 }),
+    );
+    await gitLib.commit('main', 'First commit');
+
+    // Create second commit with same blob (simulating unchanged file)
+    const blob2 = new Blob(Buffer.from('new content'));
+    await gitLib.add(
+      'main',
+      new StagingItem({ path: ['file2.txt'], blob: blob2 }),
+    );
+    await gitLib.commit('main', 'Second commit');
+
+    const commits = await gitLib.log('main');
+
+    // Reset to first commit, making second commit orphaned
+    await gitLib.reset('main', commits[1].hash);
+
+    // Run GC
+    const result = await gitLib.gc();
+
+    // Second commit should be deleted, but blob1 should remain
+    expect(result.commits).toBeGreaterThan(0);
+
+    // Verify blob1 still exists (it's used by the first commit)
+    const remainingBlob = await storage.blob.load(blob1.hash);
+    expect(remainingBlob).toBeDefined();
+  });
 });

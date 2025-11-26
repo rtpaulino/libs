@@ -22,6 +22,10 @@ export class InMemoryBlobStorage implements GitLibBlobStorage {
   async delete(hash: string): Promise<void> {
     this.blobs.delete(hash);
   }
+
+  async listAll(): Promise<string[]> {
+    return Array.from(this.blobs.keys());
+  }
 }
 
 export class InMemoryTreeStorage implements GitLibTreeStorage {
@@ -37,6 +41,10 @@ export class InMemoryTreeStorage implements GitLibTreeStorage {
 
   async deleteNode(hash: string): Promise<void> {
     this.nodes.delete(hash);
+  }
+
+  async listAll(): Promise<string[]> {
+    return Array.from(this.nodes.keys());
   }
 }
 
@@ -54,6 +62,10 @@ export class InMemoryCommitStorage implements GitLibCommitStorage {
   async delete(hash: string): Promise<void> {
     this.commits.delete(hash);
   }
+
+  async listAll(): Promise<string[]> {
+    return Array.from(this.commits.keys());
+  }
 }
 
 export class InMemoryRefStorage implements GitLibRefStorage {
@@ -69,6 +81,10 @@ export class InMemoryRefStorage implements GitLibRefStorage {
 
   async delete(refName: string): Promise<void> {
     this.refs.delete(refName);
+  }
+
+  async listAll(): Promise<string[]> {
+    return Array.from(this.refs.keys());
   }
 
   async compareAndSwap(
