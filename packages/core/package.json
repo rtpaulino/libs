@@ -23,6 +23,9 @@
     "access": "public"
   },
   "nx": {
+    "tags": [
+      "scope:core"
+    ],
     "sourceRoot": "packages/core/src",
     "targets": {
       "build": {
