@@ -31,15 +31,15 @@ export class InMemoryBlobStorage implements GitLibBlobStorage {
 export class InMemoryTreeStorage implements GitLibTreeStorage {
   private nodes: Map<string, TreeNode> = new Map();
 
-  async loadNode(hash: string): Promise<Nullable<TreeNode>> {
+  async load(hash: string): Promise<Nullable<TreeNode>> {
     return this.nodes.get(hash) ?? null;
   }
 
-  async saveNode(node: TreeNode): Promise<void> {
+  async save(node: TreeNode): Promise<void> {
     this.nodes.set(node.hash, node);
   }
 
-  async deleteNode(hash: string): Promise<void> {
+  async delete(hash: string): Promise<void> {
     this.nodes.delete(hash);
   }
 

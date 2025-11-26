@@ -9,9 +9,9 @@ export interface GitLibBlobStorage {
 }
 
 export interface GitLibTreeStorage {
-  loadNode(hash: string): Promise<Nullable<TreeNode>>;
-  saveNode(node: TreeNode): Promise<void>;
-  deleteNode(hash: string): Promise<void>;
+  load(hash: string): Promise<Nullable<TreeNode>>;
+  save(node: TreeNode): Promise<void>;
+  delete(hash: string): Promise<void>;
   listAll(): Promise<string[]>;
 }
 

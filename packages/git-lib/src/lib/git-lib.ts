@@ -19,14 +19,14 @@ export class GitLib {
   }
 
   async treeLookup(ref: string, path: string[]): Promise<Nullable<TreeNode>> {
-    let node = await this.storage.tree.loadNode(ref);
+    let node = await this.storage.tree.load(ref);
     for (let i = 0; node && i < path.length; i++) {
       const part = path[i];
       if (node.isInternal()) {
         const children = (
           await Promise.all(
             node.childrenRefs.map((childRef) =>
-              this.storage.tree.loadNode(childRef),
+              this.storage.tree.load(childRef),
             ),
           )
         ).filter(excludeNil);
@@ -103,7 +103,7 @@ export class GitLib {
     const expectedCommitHash = headCommit?.hash ?? null;
 
     const headNode = headCommit?.treeRef
-      ? await this.storage.tree.loadNode(headCommit.treeRef)
+      ? await this.storage.tree.load(headCommit.treeRef)
       : null;
 
     ok(!headNode || headNode.isInternal(), 'Head tree node must be internal');
@@ -246,7 +246,7 @@ export class GitLib {
 
     for (const treeHash of allTrees) {
       if (!reachableTrees.has(treeHash)) {
-        await this.storage.tree.deleteNode(treeHash);
+        await this.storage.tree.delete(treeHash);
         deletedTrees++;
       }
     }
@@ -277,7 +277,7 @@ export class GitLib {
       return; // Already visited
     }
 
-    const node = await this.storage.tree.loadNode(treeHash);
+    const node = await this.storage.tree.load(treeHash);
     if (!node) {
       return; // Node not found (shouldn't happen in a valid repository)
     }

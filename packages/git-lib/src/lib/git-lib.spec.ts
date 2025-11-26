@@ -52,7 +52,7 @@ describe('GitLib', () => {
 
     // Verify the tree exists
     expect(commit?.treeRef).toBeDefined();
-    const treeNode = await storage.tree.loadNode(commit!.treeRef!);
+    const treeNode = await storage.tree.load(commit!.treeRef!);
     expect(treeNode).toBeDefined();
     expect(treeNode?.isInternal()).toBe(true);
 

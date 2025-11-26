@@ -100,7 +100,7 @@ export class TreeChangeNode {
 
     this.children = await Promise.all(
       this.existing.childrenRefs.map(async (child) => {
-        const node = await this.storage.loadNode(child);
+        const node = await this.storage.load(child);
         ok(node, `Child node ${child} not found in storage`);
         return TreeChangeNode.fromExisting({
           storage: this.storage,
@@ -205,7 +205,7 @@ export class TreeChangeNode {
 
   async persist(): Promise<Nullable<TreeNode>> {
     const treeNode = await this.toTreeNode();
-    const existing = await this.storage.loadNode(treeNode.hash);
+    const existing = await this.storage.load(treeNode.hash);
     if (existing) {
       return existing;
     }
@@ -221,7 +221,7 @@ export class TreeChangeNode {
       }
     }
 
-    await this.storage.saveNode(treeNode);
+    await this.storage.save(treeNode);
 
     return treeNode;
   }
