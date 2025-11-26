@@ -1,3 +1,18 @@
+## 0.4.0 (2025-11-26)
+
+### 🚀 Features
+
+- implement sha1 hashing function and corresponding tests ([108744a](https://github.com/rtpaulino/libs/commit/108744a))
+- implement in-memory storage for GitLib, including blob, tree, commit, ref, and staging storage feat: enhance GitLib with tree lookup, commit handling, and staging changes management feat: add model classes for Blob, TreeNode, Commit, Ref, and StagingItem with serialization support feat: implement tree change management for internal and leaf nodes in GitLib chore: update ESLint configuration to reflect new scope tags for core and git-lib modules chore: add references in tsconfig for core library ([8686f75](https://github.com/rtpaulino/libs/commit/8686f75))
+
+### 🩹 Fixes
+
+- update package.json to set access to public and remove private flag ([3cc35c6](https://github.com/rtpaulino/libs/commit/3cc35c6))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.3.0 (2025-11-25)
 
 ### 🚀 Features
