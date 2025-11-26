@@ -33,6 +33,9 @@
         "outputs": [
           "{options.outputPath}"
         ],
+        "dependsOn": [
+          "typecheck"
+        ],
         "options": {
           "outputPath": "packages/git-lib/dist",
           "main": "packages/git-lib/src/index.ts",

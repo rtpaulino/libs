@@ -1,5 +1,11 @@
 import { ok } from 'assert';
-import { TreeNodeType, Blob, TreeNode, LeafNode, InternalNode } from './model.js';
+import {
+  TreeNodeType,
+  Blob,
+  TreeNode,
+  LeafNode,
+  InternalNode,
+} from './model.js';
 import { GitLibTreeStorage } from './storage.js';
 import { Nullable } from '@rtpaulino/core';
 
