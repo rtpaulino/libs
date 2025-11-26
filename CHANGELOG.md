@@ -1,3 +1,13 @@
+## 0.4.1 (2025-11-26)
+
+### 🚀 Features
+
+- implement garbage collection for orphaned commits, trees, and blobs ([4e45981](https://github.com/rtpaulino/libs/commit/4e45981))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.4.0 (2025-11-26)
 
 ### 🚀 Features
