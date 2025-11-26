@@ -1,3 +1,14 @@
+## 0.9.1 (2025-11-26)
+
+### 🩹 Fixes
+
+- ensure package is marked as private in package.json ([13bf116](https://github.com/rtpaulino/libs/commit/13bf116))
+- replace lodash with lodash-es in dependencies and update package-lock.json ([8d1b4eb](https://github.com/rtpaulino/libs/commit/8d1b4eb))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.9.0 (2025-11-26)
 
 This was a version bump only, there were no code changes.
