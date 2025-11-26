@@ -177,9 +177,9 @@ export class Ref {
 
 export class StagingItem {
   readonly path: string[];
-  readonly blob?: Blob;
+  readonly blob?: Nullable<Blob>;
 
-  constructor(data: { path: string[]; blob?: Blob }) {
+  constructor(data: { path: string[]; blob?: Nullable<Blob> }) {
     this.path = data.path;
     this.blob = data.blob;
   }
