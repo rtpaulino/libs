@@ -48,9 +48,9 @@
   },
   "dependencies": {
     "@swc/helpers": "~0.5.11",
-    "lodash": "^4.17.21"
+    "lodash-es": "^4.17.21"
   },
   "devDependencies": {
-    "@types/lodash": "^4.17.21"
+    "@types/lodash-es": "^4.17.12"
   }
 }
