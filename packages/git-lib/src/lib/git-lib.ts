@@ -6,9 +6,9 @@ import {
   StagingChangeType,
   StagingItem,
   TreeNode,
-} from './model';
-import { GitLibStorage } from './storage';
-import { TreeChangeNode } from './tree-change';
+} from './model.js';
+import { GitLibStorage } from './storage.js';
+import { TreeChangeNode } from './tree-change.js';
 import { ok } from 'assert';
 
 export class GitLib {

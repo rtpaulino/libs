@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Poller } from './poller';
-import { Duration } from './duration';
-import type { Logger } from './types';
+import { Poller } from './poller.js';
+import { Duration } from './duration.js';
+import type { Logger } from './types.js';
 
 describe('Poller', () => {
   beforeEach(() => {

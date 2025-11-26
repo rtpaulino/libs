@@ -1,4 +1,4 @@
-import { Duration } from './duration';
+import { Duration } from './duration.js';
 
 export function wait(duration: Duration) {
   return new Promise((resolve) => setTimeout(resolve, duration.inMillis));

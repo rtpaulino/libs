@@ -1,12 +1,12 @@
 import { Nullable } from '@rtpaulino/core';
-import { Blob, Commit, Ref, StagingItem, TreeNode } from './model';
+import { Blob, Commit, Ref, StagingItem, TreeNode } from './model.js';
 import {
   GitLibBlobStorage,
   GitLibCommitStorage,
   GitLibRefStorage,
   GitLibStagingStorage,
   GitLibTreeStorage,
-} from './storage';
+} from './storage.js';
 
 export class InMemoryBlobStorage implements GitLibBlobStorage {
   private blobs: Map<string, Blob> = new Map();

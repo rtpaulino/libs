@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sync } from './sync';
+import { sync } from './sync.js';
 
 describe('sync', () => {
   describe('basic synchronization', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { plural, join } from './lang';
+import { plural, join } from './lang.js';
 
 describe('lang', () => {
   describe('plural', () => {

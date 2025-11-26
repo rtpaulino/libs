@@ -1,7 +1,7 @@
-import { Logger } from './types';
-import { waitUntil } from './time';
+import { Logger } from './types.js';
+import { waitUntil } from './time.js';
 import { ok } from 'assert';
-import { Duration } from './duration';
+import { Duration } from './duration.js';
 
 export type TaskPoolConfig<T> = {
   size: number;

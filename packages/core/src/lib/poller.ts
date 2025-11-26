@@ -1,5 +1,5 @@
-import { Duration } from './duration';
-import { Logger } from './types';
+import { Duration } from './duration.js';
+import { Logger } from './types.js';
 
 /**
  * Configuration options for the polling mechanism

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { excludeNil } from './filters';
+import { excludeNil } from './filters.js';
 
 describe('excludeNil', () => {
   it('should return true for truthy values', () => {

@@ -1,7 +1,7 @@
 {
   "name": "@rtpaulino/core",
   "version": "0.7.0",
-  "type": "commonjs",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

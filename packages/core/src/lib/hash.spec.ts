@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sha1 } from './hash';
+import { sha1 } from './hash.js';
 
 describe('sha1', () => {
   it('should return a hex encoded string for a buffer', () => {

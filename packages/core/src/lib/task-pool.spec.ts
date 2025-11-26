@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { TaskPool, TaskPoolFullError, TaskPoolBlockedError } from './task-pool';
-import { Duration } from './duration';
-import type { Logger } from './types';
+import {
+  TaskPool,
+  TaskPoolFullError,
+  TaskPoolBlockedError,
+} from './task-pool.js';
+import { Duration } from './duration.js';
+import type { Logger } from './types.js';
 
 describe('TaskPool', () => {
   beforeEach(() => {

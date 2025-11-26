@@ -1,5 +1,5 @@
 import { Nullable } from '@rtpaulino/core';
-import { Blob, Commit, Ref, StagingItem, TreeNode } from './model';
+import { Blob, Commit, Ref, StagingItem, TreeNode } from './model.js';
 
 export interface GitLibBlobStorage {
   load(hash: string): Promise<Nullable<Blob>>;

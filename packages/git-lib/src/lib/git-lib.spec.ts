@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, it, expect } from 'vitest';
-import { GitLib } from './git-lib';
-import { Blob, StagingItem } from './model';
+import { GitLib } from './git-lib.js';
+import { Blob, StagingItem } from './model.js';
 import {
   InMemoryBlobStorage,
   InMemoryCommitStorage,
   InMemoryRefStorage,
   InMemoryStagingStorage,
   InMemoryTreeStorage,
-} from './in-memory-storage';
+} from './in-memory-storage.js';
 import { ok } from 'assert';
 
 describe('GitLib', () => {

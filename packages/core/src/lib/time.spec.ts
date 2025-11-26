@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { wait, waitUntil } from './time';
-import { Duration } from './duration';
+import { wait, waitUntil } from './time.js';
+import { Duration } from './duration.js';
 
 describe('time', () => {
   beforeEach(() => {
