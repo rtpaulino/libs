@@ -26,7 +26,7 @@ describe('GitLib', () => {
 
     // Create a string blob
     const stringContent = 'hello world';
-    const blob = new Blob(Buffer.from(stringContent));
+    const blob = new Blob({ content: Buffer.from(stringContent) });
 
     // Stage the blob with a path
     const stagingItem = new StagingItem({
@@ -86,9 +86,9 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Stage multiple files
-    const file1 = new Blob(Buffer.from('content 1'));
-    const file2 = new Blob(Buffer.from('content 2'));
-    const file3 = new Blob(Buffer.from('content 3'));
+    const file1 = new Blob({ content: Buffer.from('content 1') });
+    const file2 = new Blob({ content: Buffer.from('content 2') });
+    const file3 = new Blob({ content: Buffer.from('content 3') });
 
     await gitLib.add(
       'main',
@@ -132,7 +132,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // First commit - add a file
-    const blob1 = new Blob(Buffer.from('version 1'));
+    const blob1 = new Blob({ content: Buffer.from('version 1') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file1.txt'], blob: blob1 }),
@@ -140,7 +140,7 @@ describe('GitLib', () => {
     await gitLib.commit('main', 'First commit');
 
     // Second commit - add a different file (don't touch file1)
-    const blob2 = new Blob(Buffer.from('new file'));
+    const blob2 = new Blob({ content: Buffer.from('new file') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file2.txt'], blob: blob2 }),
@@ -148,7 +148,7 @@ describe('GitLib', () => {
     await gitLib.commit('main', 'Second commit');
 
     // Third commit - add yet another file
-    const blob3 = new Blob(Buffer.from('another file'));
+    const blob3 = new Blob({ content: Buffer.from('another file') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file3.txt'], blob: blob3 }),
@@ -180,7 +180,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Initial commit
-    const blob1 = new Blob(Buffer.from('original content'));
+    const blob1 = new Blob({ content: Buffer.from('original content') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file.txt'], blob: blob1 }),
@@ -194,7 +194,7 @@ describe('GitLib', () => {
     const initialBlobRef = node1?.isLeaf() ? node1.blobRef : null;
 
     // Update the file
-    const blob2 = new Blob(Buffer.from('updated content'));
+    const blob2 = new Blob({ content: Buffer.from('updated content') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file.txt'], blob: blob2 }),
@@ -224,9 +224,9 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Initial commit with three files
-    const blob1 = new Blob(Buffer.from('file 1'));
-    const blob2 = new Blob(Buffer.from('file 2'));
-    const blob3 = new Blob(Buffer.from('file 3'));
+    const blob1 = new Blob({ content: Buffer.from('file 1') });
+    const blob2 = new Blob({ content: Buffer.from('file 2') });
+    const blob3 = new Blob({ content: Buffer.from('file 3') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file1.txt'], blob: blob1 }),
@@ -291,7 +291,7 @@ describe('GitLib', () => {
     };
 
     const mainGit = new GitLib({ storage: mainStorage });
-    const blob1 = new Blob(Buffer.from('main content'));
+    const blob1 = new Blob({ content: Buffer.from('main content') });
     await mainGit.add(
       'main',
       new StagingItem({ path: ['main.txt'], blob: blob1 }),
@@ -308,7 +308,7 @@ describe('GitLib', () => {
     };
 
     const featureGit = new GitLib({ storage: featureStorage });
-    const blob2 = new Blob(Buffer.from('feature content'));
+    const blob2 = new Blob({ content: Buffer.from('feature content') });
     await featureGit.add(
       'feature',
       new StagingItem({ path: ['feature.txt'], blob: blob2 }),
@@ -336,7 +336,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // First commit
-    const blob1 = new Blob(Buffer.from('v1'));
+    const blob1 = new Blob({ content: Buffer.from('v1') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file.txt'], blob: blob1 }),
@@ -347,7 +347,7 @@ describe('GitLib', () => {
     const commit1Hash = ref1!.commitRef;
 
     // Second commit
-    const blob2 = new Blob(Buffer.from('v2'));
+    const blob2 = new Blob({ content: Buffer.from('v2') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file.txt'], blob: blob2 }),
@@ -393,7 +393,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Initial commit
-    const blob1 = new Blob(Buffer.from('content'));
+    const blob1 = new Blob({ content: Buffer.from('content') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file.txt'], blob: blob1 }),
@@ -423,7 +423,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Create first commit on main
-    const blob1 = new Blob(Buffer.from('content 1'));
+    const blob1 = new Blob({ content: Buffer.from('content 1') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file1.txt'], blob: blob1 }),
@@ -431,7 +431,7 @@ describe('GitLib', () => {
     await gitLib.commit('main', 'First commit');
 
     // Create second commit on main
-    const blob2 = new Blob(Buffer.from('content 2'));
+    const blob2 = new Blob({ content: Buffer.from('content 2') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file2.txt'], blob: blob2 }),
@@ -439,7 +439,7 @@ describe('GitLib', () => {
     await gitLib.commit('main', 'Second commit');
 
     // Create third commit on main
-    const blob3 = new Blob(Buffer.from('content 3'));
+    const blob3 = new Blob({ content: Buffer.from('content 3') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file3.txt'], blob: blob3 }),
@@ -509,7 +509,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Create a single commit
-    const blob1 = new Blob(Buffer.from('content 1'));
+    const blob1 = new Blob({ content: Buffer.from('content 1') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file1.txt'], blob: blob1 }),
@@ -557,7 +557,7 @@ describe('GitLib', () => {
     const gitLib = new GitLib({ storage });
 
     // Create first commit with a file
-    const blob1 = new Blob(Buffer.from('shared content'));
+    const blob1 = new Blob({ content: Buffer.from('shared content') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file1.txt'], blob: blob1 }),
@@ -565,7 +565,7 @@ describe('GitLib', () => {
     await gitLib.commit('main', 'First commit');
 
     // Create second commit with same blob (simulating unchanged file)
-    const blob2 = new Blob(Buffer.from('new content'));
+    const blob2 = new Blob({ content: Buffer.from('new content') });
     await gitLib.add(
       'main',
       new StagingItem({ path: ['file2.txt'], blob: blob2 }),

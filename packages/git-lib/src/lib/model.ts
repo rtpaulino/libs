@@ -3,9 +3,11 @@ import { ok } from 'assert';
 
 export class Blob {
   readonly hash: string;
+  readonly content: Buffer;
 
-  constructor(readonly content: Buffer) {
-    this.hash = sha1(content);
+  constructor(data: { content: Buffer; hash?: string }) {
+    this.content = data.content;
+    this.hash = data.hash ?? sha1(data.content);
   }
 }
 
@@ -73,10 +75,12 @@ export class LeafNode extends TreeNode {
 
   readonly blobRef: string;
 
-  constructor(data: { name: string; blobRef: string }) {
+  constructor(data: { name: string; blobRef: string; hash?: string }) {
     super(data.name);
     this.blobRef = data.blobRef;
-    this._hash = sha1(Buffer.from(`${this.type}:${data.name}:${data.blobRef}`));
+    this._hash =
+      data.hash ??
+      sha1(Buffer.from(`${this.type}:${data.name}:${data.blobRef}`));
   }
 
   toJSON() {
@@ -93,12 +97,14 @@ export class InternalNode extends TreeNode {
 
   readonly childrenRefs: string[];
 
-  constructor(data: { name: string; childrenRefs: string[] }) {
+  constructor(data: { name: string; childrenRefs: string[]; hash?: string }) {
     super(data.name);
     this.childrenRefs = data.childrenRefs.slice().sort();
-    this._hash = sha1(
-      Buffer.from(`${this.type}:${this.name}:${this.childrenRefs.join(',')}`),
-    );
+    this._hash =
+      data.hash ??
+      sha1(
+        Buffer.from(`${this.type}:${this.name}:${this.childrenRefs.join(',')}`),
+      );
   }
 
   toJSON() {
@@ -120,15 +126,18 @@ export class Commit {
     message: string;
     treeRef: Nullable<string>;
     previousCommitRef?: Nullable<string>;
+    hash?: string;
   }) {
     this.message = data.message;
     this.treeRef = data.treeRef;
     this.previousCommitRef = data.previousCommitRef;
-    this.hash = sha1(
-      Buffer.from(
-        `${this.message}:${this.treeRef ?? ''}:${this.previousCommitRef ?? ''}`,
-      ),
-    );
+    this.hash =
+      data.hash ??
+      sha1(
+        Buffer.from(
+          `${this.message}:${this.treeRef ?? ''}:${this.previousCommitRef ?? ''}`,
+        ),
+      );
   }
 
   toJSON() {
