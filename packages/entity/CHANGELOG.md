@@ -1,3 +1,9 @@
+## 0.10.11 (2025-12-31)
+
+### 🧱 Updated Dependencies
+
+- Updated @rtpaulino/core to 0.10.2
+
 ## 0.10.9 (2025-12-31)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
