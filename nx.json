@@ -57,6 +57,16 @@
     "projects": ["*", "!utils", "!@org/source"],
     "version": {
       "preVersionCommand": "npx nx run-many -t build"
+    },
+    "git": {
+      "tag": true,
+      "commit": true
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "createRelease": "github"
+      },
+      "projectChangelogs": true
     }
   },
   "targetDefaults": {
