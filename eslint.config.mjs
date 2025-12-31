@@ -29,6 +29,10 @@ export default [
               sourceTag: 'scope:git-lib',
               onlyDependOnLibsWithTags: ['scope:core', 'scope:git-lib'],
             },
+            {
+              sourceTag: 'scope:entity',
+              onlyDependOnLibsWithTags: ['scope:core', 'scope:entity'],
+            },
           ],
         },
       ],

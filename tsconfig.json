@@ -8,6 +8,9 @@
     },
     {
       "path": "./packages/git-lib"
+    },
+    {
+      "path": "./packages/entity"
     }
   ]
 }
