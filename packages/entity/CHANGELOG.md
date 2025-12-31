@@ -1,3 +1,9 @@
+## 0.10.13 (2025-12-31)
+
+### 🧱 Updated Dependencies
+
+- Updated @rtpaulino/core to 0.10.4
+
 ## 0.10.11 (2025-12-31)
 
 ### 🧱 Updated Dependencies
