@@ -25,7 +25,7 @@ import {
 export function Property<T = any>(
   options?: PropertyOptions<T>,
 ): PropertyDecorator {
-  return (target: Object, propertyKey: string | symbol): void => {
+  return (target: object, propertyKey: string | symbol): void => {
     // Only support string property keys
     if (typeof propertyKey !== 'string') {
       return;

@@ -13,6 +13,7 @@ import { ENTITY_METADATA_KEY } from './types.js';
  * ```
  */
 export function Entity(): ClassDecorator {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   return function (target: Function) {
     // Store metadata on the class constructor
     Reflect.defineMetadata(ENTITY_METADATA_KEY, true, target);

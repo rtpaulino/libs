@@ -27,7 +27,7 @@ export class EntityUtils {
    * console.log(EntityUtils.isEntity({})); // false
    * ```
    */
-  static isEntity(obj: unknown): obj is Object {
+  static isEntity(obj: unknown): obj is object {
     if (obj == null) {
       return false;
     }
@@ -46,7 +46,7 @@ export class EntityUtils {
     return Reflect.hasMetadata(ENTITY_METADATA_KEY, constructor);
   }
 
-  static sameEntity(a: Object, b: Object): boolean {
+  static sameEntity(a: object, b: object): boolean {
     if (!this.isEntity(a) || !this.isEntity(b)) {
       return false;
     }
@@ -54,7 +54,7 @@ export class EntityUtils {
     return Object.getPrototypeOf(a) === Object.getPrototypeOf(b);
   }
 
-  static getPropertyKeys(target: Object): string[] {
+  static getPropertyKeys(target: object): string[] {
     // Determine if we're dealing with a prototype or an instance
     let currentProto: any;
 
@@ -91,7 +91,7 @@ export class EntityUtils {
   }
 
   static getPropertyOptions(
-    target: Object,
+    target: object,
     propertyKey: string,
   ): PropertyOptions | undefined {
     // Determine if we're dealing with a prototype or an instance
