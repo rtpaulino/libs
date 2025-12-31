@@ -1,3 +1,32 @@
+## 0.9.3 (2025-12-31)
+
+### 🚀 Features
+
+- implement DataWrapper and StrictDataWrapper classes with utility methods; add lodash dependency ([8b2de74](https://github.com/rtpaulino/libs/commit/8b2de74))
+- add wait and waitFor utility functions with corresponding tests ([7cbe1f6](https://github.com/rtpaulino/libs/commit/7cbe1f6))
+- implement backoff function with configuration options and tests ([3e54b7d](https://github.com/rtpaulino/libs/commit/3e54b7d))
+- add excludeNil function with unit tests ([a307a78](https://github.com/rtpaulino/libs/commit/a307a78))
+- implement Poller class with configuration options and unit tests ([2f73608](https://github.com/rtpaulino/libs/commit/2f73608))
+- refactor backoff and poller to use Duration type for delays and intervals ([eed85ed](https://github.com/rtpaulino/libs/commit/eed85ed))
+- implement TaskPool class with task execution, error handling, and heartbeat functionality ([9448b9d](https://github.com/rtpaulino/libs/commit/9448b9d))
+- export additional modules from core library ([33623ad](https://github.com/rtpaulino/libs/commit/33623ad))
+- implement sync function for handling item synchronization with create, update, delete, and unchanged logic ([0550515](https://github.com/rtpaulino/libs/commit/0550515))
+- implement sha1 hashing function and corresponding tests ([108744a](https://github.com/rtpaulino/libs/commit/108744a))
+- implement in-memory storage for GitLib, including blob, tree, commit, ref, and staging storage feat: enhance GitLib with tree lookup, commit handling, and staging changes management feat: add model classes for Blob, TreeNode, Commit, Ref, and StagingItem with serialization support feat: implement tree change management for internal and leaf nodes in GitLib chore: update ESLint configuration to reflect new scope tags for core and git-lib modules chore: add references in tsconfig for core library ([8686f75](https://github.com/rtpaulino/libs/commit/8686f75))
+- implement garbage collection for orphaned commits, trees, and blobs ([4e45981](https://github.com/rtpaulino/libs/commit/4e45981))
+
+### 🩹 Fixes
+
+- update package.json to set access to public and remove private flag ([3cc35c6](https://github.com/rtpaulino/libs/commit/3cc35c6))
+- ensure package is marked as private in package.json ([13bf116](https://github.com/rtpaulino/libs/commit/13bf116))
+- replace lodash with lodash-es in dependencies and update package-lock.json ([8d1b4eb](https://github.com/rtpaulino/libs/commit/8d1b4eb))
+- update StagingItem to allow nullable Blob type ([4c6646b](https://github.com/rtpaulino/libs/commit/4c6646b))
+- remove references from tsconfig.lib.json ([5ba0516](https://github.com/rtpaulino/libs/commit/5ba0516))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.9.2 (2025-11-26)
 
 ### 🩹 Fixes
