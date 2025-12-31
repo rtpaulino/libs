@@ -8,3 +8,4 @@ export * from './lib/backoff.js';
 export * from './lib/task-pool.js';
 export * from './lib/poller.js';
 export * from './lib/hash.js';
+export * from './lib/type.js';

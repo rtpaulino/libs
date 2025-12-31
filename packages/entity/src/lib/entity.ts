@@ -1,7 +1,20 @@
-import { PROPERTY_METADATA_KEY } from './types.js';
+import { ENTITY_METADATA_KEY } from './types.js';
 
-export class EntityUtils {
-  getPropertyKeys(target: Object): string[] {
-    return Reflect.getMetadata(PROPERTY_METADATA_KEY, target) || [];
-  }
+/**
+ * Decorator that marks a class as an Entity.
+ * This allows us to identify entity instances later.
+ *
+ * @example
+ * ```typescript
+ * @Entity()
+ * class User {
+ *   name: string;
+ * }
+ * ```
+ */
+export function Entity(): ClassDecorator {
+  return function (target: Function) {
+    // Store metadata on the class constructor
+    Reflect.defineMetadata(ENTITY_METADATA_KEY, true, target);
+  };
 }
