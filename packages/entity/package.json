@@ -1,6 +1,6 @@
 {
   "name": "@rtpaulino/entity",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
