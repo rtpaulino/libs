@@ -1,3 +1,17 @@
+## 0.10.16 (2026-01-02)
+
+### 🚀 Features
+
+- add findDuplicates function and corresponding tests; enhance entity equality check ([aa0a7c3](https://github.com/rtpaulino/libs/commit/aa0a7c3))
+
+### 🧱 Updated Dependencies
+
+- Updated @rtpaulino/core to 0.11.0
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.10.15 (2025-12-31)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
