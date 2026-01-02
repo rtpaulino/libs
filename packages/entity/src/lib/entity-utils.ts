@@ -133,7 +133,19 @@ export class EntityUtils {
         const diff = this.diff(val1, val2);
 
         return diff.length === 0;
+      } else if (
+        val1 != null &&
+        val2 != null &&
+        typeof val1 === 'object' &&
+        !Array.isArray(val1) &&
+        typeof val2 === 'object' &&
+        !Array.isArray(val2) &&
+        'equals' in val1 &&
+        typeof val1.equals === 'function'
+      ) {
+        return val1.equals(val2);
       }
+
       return undefined;
     });
   }

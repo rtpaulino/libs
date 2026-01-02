@@ -595,6 +595,169 @@ describe('EntityUtils', () => {
 
       expect(EntityUtils.equals(user1, user2)).toBe(true);
     });
+
+    it('should use custom equals method for non-entity objects', () => {
+      class CustomObject {
+        constructor(public value: number) {}
+
+        equals(other: CustomObject): boolean {
+          return this.value === other.value;
+        }
+      }
+
+      const obj1 = new CustomObject(42);
+      const obj2 = new CustomObject(42);
+      const obj3 = new CustomObject(43);
+
+      expect(EntityUtils.equals(obj1, obj2)).toBe(true);
+      expect(EntityUtils.equals(obj1, obj3)).toBe(false);
+    });
+
+    it('should use custom equals method in nested objects', () => {
+      class Point {
+        constructor(
+          public x: number,
+          public y: number,
+        ) {}
+
+        equals(other: Point): boolean {
+          return this.x === other.x && this.y === other.y;
+        }
+      }
+
+      const obj1 = { location: new Point(10, 20), name: 'A' };
+      const obj2 = { location: new Point(10, 20), name: 'A' };
+      const obj3 = { location: new Point(15, 20), name: 'A' };
+
+      expect(EntityUtils.equals(obj1, obj2)).toBe(true);
+      expect(EntityUtils.equals(obj1, obj3)).toBe(false);
+    });
+
+    it('should use custom equals method in arrays', () => {
+      class Value {
+        constructor(public data: string) {}
+
+        equals(other: Value): boolean {
+          return this.data === other.data;
+        }
+      }
+
+      const arr1 = [new Value('a'), new Value('b')];
+      const arr2 = [new Value('a'), new Value('b')];
+      const arr3 = [new Value('a'), new Value('c')];
+
+      expect(EntityUtils.equals(arr1, arr2)).toBe(true);
+      expect(EntityUtils.equals(arr1, arr3)).toBe(false);
+    });
+
+    it('should use custom equals method within entity properties', () => {
+      class Timestamp {
+        constructor(public ms: number) {}
+
+        equals(other: Timestamp): boolean {
+          return this.ms === other.ms;
+        }
+      }
+
+      @Entity()
+      class Event {
+        @Property()
+        name!: string;
+
+        @Property()
+        timestamp!: Timestamp;
+      }
+
+      const event1 = new Event();
+      event1.name = 'Login';
+      event1.timestamp = new Timestamp(1000);
+
+      const event2 = new Event();
+      event2.name = 'Login';
+      event2.timestamp = new Timestamp(1000);
+
+      const event3 = new Event();
+      event3.name = 'Login';
+      event3.timestamp = new Timestamp(2000);
+
+      expect(EntityUtils.equals(event1, event2)).toBe(true);
+      expect(EntityUtils.equals(event1, event3)).toBe(false);
+    });
+
+    it('should not use equals method if one value is null or undefined', () => {
+      class CustomObject {
+        constructor(public value: number) {}
+
+        equals(other: CustomObject): boolean {
+          return this.value === other.value;
+        }
+      }
+
+      const obj = new CustomObject(42);
+
+      expect(EntityUtils.equals(obj, null)).toBe(false);
+      expect(EntityUtils.equals(null, obj)).toBe(false);
+      expect(EntityUtils.equals(obj, undefined)).toBe(false);
+      expect(EntityUtils.equals(undefined, obj)).toBe(false);
+    });
+
+    it('should handle objects with equals method that is not a function', () => {
+      const obj1 = { value: 42, equals: 'not a function' };
+      const obj2 = { value: 42, equals: 'not a function' };
+
+      // Should fall back to default comparison
+      expect(EntityUtils.equals(obj1, obj2)).toBe(true);
+    });
+
+    it('should not use equals method for arrays', () => {
+      // Arrays should not be treated as objects with equals method
+      const arr1: any = [1, 2, 3];
+      const arr2: any = [1, 2, 3];
+
+      // Add equals method to arrays (which shouldn't be called)
+      arr1.equals = () => false;
+      arr2.equals = () => false;
+
+      // Should use array comparison, not the equals method
+      expect(EntityUtils.equals(arr1, arr2)).toBe(true);
+    });
+
+    it('should use custom equals with complex nested structures', () => {
+      class Coordinate {
+        constructor(
+          public x: number,
+          public y: number,
+        ) {}
+
+        equals(other: Coordinate): boolean {
+          return this.x === other.x && this.y === other.y;
+        }
+      }
+
+      const obj1 = {
+        points: [
+          { coord: new Coordinate(1, 2), label: 'A' },
+          { coord: new Coordinate(3, 4), label: 'B' },
+        ],
+      };
+
+      const obj2 = {
+        points: [
+          { coord: new Coordinate(1, 2), label: 'A' },
+          { coord: new Coordinate(3, 4), label: 'B' },
+        ],
+      };
+
+      const obj3 = {
+        points: [
+          { coord: new Coordinate(1, 2), label: 'A' },
+          { coord: new Coordinate(5, 6), label: 'B' },
+        ],
+      };
+
+      expect(EntityUtils.equals(obj1, obj2)).toBe(true);
+      expect(EntityUtils.equals(obj1, obj3)).toBe(false);
+    });
   });
 
   describe('changes', () => {
