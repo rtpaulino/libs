@@ -157,9 +157,17 @@ export class EntityUtils {
 
       // Check if there's a custom equals function for this property
       const propertyOptions = this.getPropertyOptions(oldEntity, key);
-      const areEqual = propertyOptions?.equals
-        ? propertyOptions.equals(oldValue, newValue)
-        : this.equals(oldValue, newValue);
+
+      let areEqual: boolean;
+      if (oldValue == null && newValue == null) {
+        areEqual = oldValue === newValue;
+      } else if (oldValue == null || newValue == null) {
+        areEqual = false;
+      } else {
+        areEqual = propertyOptions?.equals
+          ? propertyOptions.equals(oldValue, newValue)
+          : this.equals(oldValue, newValue);
+      }
 
       if (!areEqual) {
         diffs.push({ property: key, oldValue, newValue });
