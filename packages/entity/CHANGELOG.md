@@ -1,3 +1,17 @@
+## 0.11.2 (2026-01-21)
+
+### 🚀 Features
+
+- enhance equals method to support custom equality checks for non-entity objects ([072d1f6](https://github.com/rtpaulino/libs/commit/072d1f6))
+
+### 🧱 Updated Dependencies
+
+- Updated @rtpaulino/core to 0.12.1
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.11.1 (2026-01-21)
 
 ### 🚀 Features
