@@ -1,3 +1,13 @@
+## 0.13.0 (2026-01-21)
+
+### 🚀 Features
+
+- add enum utility functions and corresponding tests ([1240858](https://github.com/rtpaulino/libs/commit/1240858))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.12.1 (2026-01-21)
 
 This was a version bump only for @rtpaulino/core to align it with other projects, there were no code changes.
