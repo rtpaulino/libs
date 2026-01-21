@@ -10,3 +10,4 @@ export * from './lib/poller.js';
 export * from './lib/hash.js';
 export * from './lib/type.js';
 export * from './lib/string.js';
+export * from './lib/enum.js';
