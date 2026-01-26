@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ENTITY_METADATA_KEY,
   PROPERTY_METADATA_KEY,
@@ -200,5 +201,334 @@ export class EntityUtils {
       (acc as any)[property] = newValue;
       return acc;
     }, {} as Partial<T>);
+  }
+
+  /**
+   * Serializes an entity to a plain object, converting only properties decorated with @Property()
+   *
+   * @param entity - The entity instance to serialize
+   * @returns A plain object containing only the serialized decorated properties
+   *
+   * @remarks
+   * Serialization rules:
+   * - Only properties decorated with @Property() are included
+   * - If a property has a custom toJSON() method, it will be used
+   * - Nested entities are recursively serialized using EntityUtils.toJSON()
+   * - Arrays are mapped with toJSON() applied to each element
+   * - Date objects are serialized to ISO strings
+   * - bigint values are serialized to strings
+   * - undefined values are excluded from the output
+   * - null values are included in the output
+   * - Circular references are not supported (will cause stack overflow)
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class Address {
+   *   @Property() street: string;
+   *   @Property() city: string;
+   * }
+   *
+   * @Entity()
+   * class User {
+   *   @Property() name: string;
+   *   @Property() address: Address;
+   *   @Property() createdAt: Date;
+   *   undecorated: string; // Will not be serialized
+   * }
+   *
+   * const user = new User();
+   * user.name = 'John';
+   * user.address = new Address();
+   * user.address.street = '123 Main St';
+   * user.address.city = 'Boston';
+   * user.createdAt = new Date('2024-01-01');
+   * user.undecorated = 'ignored';
+   *
+   * const json = EntityUtils.toJSON(user);
+   * // {
+   * //   name: 'John',
+   * //   address: { street: '123 Main St', city: 'Boston' },
+   * //   createdAt: '2024-01-01T00:00:00.000Z'
+   * // }
+   * ```
+   */
+  static toJSON<T extends object>(entity: T): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    const keys = this.getPropertyKeys(entity);
+
+    for (const key of keys) {
+      const value = (entity as any)[key];
+
+      // Skip undefined values
+      if (value === undefined) {
+        continue;
+      }
+
+      result[key] = this.serializeValue(value);
+    }
+
+    return result;
+  }
+
+  /**
+   * Serializes a single value according to the toJSON rules
+   * @private
+   */
+  private static serializeValue(value: unknown): unknown {
+    if (value === null) {
+      return null;
+    }
+
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.serializeValue(item));
+    }
+
+    if (
+      value != null &&
+      typeof value === 'object' &&
+      'toJSON' in value &&
+      typeof value.toJSON === 'function'
+    ) {
+      return value.toJSON();
+    }
+
+    if (this.isEntity(value)) {
+      return this.toJSON(value);
+    }
+
+    if (typeof value === 'object') {
+      // TODO: log a warning that plain objects are being serialized as-is
+      return value;
+    }
+
+    return value;
+  }
+
+  /**
+   * Deserializes a plain object to an entity instance
+   *
+   * @param entityClass - The entity class constructor
+   * @param plainObject - The plain object to deserialize
+   * @returns A new instance of the entity with deserialized values
+   *
+   * @remarks
+   * Deserialization rules:
+   * - All @Property() decorators must include type metadata for parse() to work
+   * - Properties without type metadata will throw an error
+   * - Required properties (optional !== true) must be present and not null/undefined
+   * - Optional properties (optional === true) can be undefined or null
+   * - Arrays are supported with the array: true option
+   * - Nested entities are recursively deserialized
+   * - Type conversion is strict (no coercion)
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class User {
+   *   @Property({ type: () => String }) name!: string;
+   *   @Property({ type: () => Number }) age!: number;
+   *   @Property({ type: () => String, optional: true }) email?: string;
+   * }
+   *
+   * const json = { name: 'John', age: 30 };
+   * const user = EntityUtils.parse(User, json);
+   * // user is a properly typed User instance
+   * ```
+   */
+  static parse<T extends object>(
+    entityClass: new () => T,
+    plainObject: Record<string, unknown>,
+  ): T {
+    const instance = new entityClass();
+    const keys = this.getPropertyKeys(instance);
+
+    for (const key of keys) {
+      const options = this.getPropertyOptions(instance, key);
+
+      if (!options || !options.type) {
+        throw new Error(
+          `Property '${key}' requires type metadata for parsing. Use @Property({ type: () => TypeName })`,
+        );
+      }
+
+      // Validate sparse option is only used with arrays
+      if (options.sparse === true && options.array !== true) {
+        throw new Error(
+          `Property '${key}' has sparse: true but array is not true. The sparse option only applies to arrays.`,
+        );
+      }
+
+      const value = plainObject[key];
+      const isOptional = options.optional === true;
+
+      if (!(key in plainObject)) {
+        if (!isOptional) {
+          throw new Error(
+            `Property '${key}' is required but missing from input`,
+          );
+        }
+        continue;
+      }
+
+      if (value === null || value === undefined) {
+        if (!isOptional) {
+          throw new Error(`Property '${key}' cannot be null or undefined`);
+        }
+        (instance as any)[key] = value;
+        continue;
+      }
+
+      (instance as any)[key] = this.deserializeValue(value, options, key);
+    }
+
+    return instance;
+  }
+
+  /**
+   * Deserializes a single value according to the type metadata
+   * @private
+   */
+  private static deserializeValue(
+    value: unknown,
+    options: PropertyOptions,
+    propertyKey: string,
+  ): unknown {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const typeConstructor = options.type!();
+    const isArray = options.array === true;
+    const isSparse = options.sparse === true;
+
+    // Handle arrays
+    if (isArray) {
+      if (!Array.isArray(value)) {
+        throw new Error(
+          `Property '${propertyKey}' expects an array but received ${typeof value}`,
+        );
+      }
+
+      return value.map((item, index) => {
+        if (item === null || item === undefined) {
+          if (!isSparse) {
+            throw new Error(
+              `Property '${propertyKey}[${index}]' cannot be null or undefined. Use sparse: true to allow null/undefined elements in arrays.`,
+            );
+          }
+          return item;
+        }
+        return this.deserializeSingleValue(
+          item,
+          typeConstructor,
+          `${propertyKey}[${index}]`,
+        );
+      });
+    }
+
+    return this.deserializeSingleValue(value, typeConstructor, propertyKey);
+  }
+
+  /**
+   * Deserializes a single non-array value
+   * @private
+   */
+  private static deserializeSingleValue(
+    value: unknown,
+    typeConstructor: any,
+    propertyKey: string,
+  ): unknown {
+    // Handle primitives
+    if (typeConstructor === String) {
+      if (typeof value !== 'string') {
+        throw new Error(
+          `Property '${propertyKey}' expects a string but received ${typeof value}`,
+        );
+      }
+      return value;
+    }
+
+    if (typeConstructor === Number) {
+      if (typeof value !== 'number') {
+        throw new Error(
+          `Property '${propertyKey}' expects a number but received ${typeof value}`,
+        );
+      }
+      return value;
+    }
+
+    if (typeConstructor === Boolean) {
+      if (typeof value !== 'boolean') {
+        throw new Error(
+          `Property '${propertyKey}' expects a boolean but received ${typeof value}`,
+        );
+      }
+      return value;
+    }
+
+    // Handle BigInt
+    if (typeConstructor === BigInt) {
+      if (typeof value === 'bigint') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        try {
+          return BigInt(value);
+        } catch (err) {
+          throw new Error(
+            `Property '${propertyKey}' cannot parse '${value}' as BigInt`,
+          );
+        }
+      }
+      throw new Error(
+        `Property '${propertyKey}' expects a bigint or string but received ${typeof value}`,
+      );
+    }
+
+    // Handle Date
+    if (typeConstructor === Date) {
+      if (value instanceof Date) {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+          throw new Error(
+            `Property '${propertyKey}' cannot parse '${value}' as Date`,
+          );
+        }
+        return date;
+      }
+      throw new Error(
+        `Property '${propertyKey}' expects a Date or ISO string but received ${typeof value}`,
+      );
+    }
+
+    // Handle nested entities
+    if (this.isEntity(typeConstructor)) {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        throw new Error(
+          `Property '${propertyKey}' expects an object but received ${typeof value}`,
+        );
+      }
+      return this.parse(
+        typeConstructor as new () => object,
+        value as Record<string, unknown>,
+      );
+    }
+
+    // Unknown type - return as-is but log warning
+    // TODO: Consider throwing error for unknown types in strict mode
+    return value;
   }
 }

@@ -1,7 +1,16 @@
 import 'reflect-metadata';
 import { describe, it, expect } from 'vitest';
 import { EntityUtils } from './entity-utils.js';
-import { Property } from './property.js';
+import {
+  Property,
+  StringProperty,
+  NumberProperty,
+  BooleanProperty,
+  DateProperty,
+  BigIntProperty,
+  EntityProperty,
+  ArrayProperty,
+} from './property.js';
 import { Entity } from './entity.js';
 
 describe('EntityUtils', () => {
@@ -1287,6 +1296,1670 @@ describe('EntityUtils', () => {
 
       // Should detect no differences because custom equals only compares date (not time)
       expect(diffs).toEqual([]);
+    });
+  });
+
+  describe('toJSON', () => {
+    describe('simple entities', () => {
+      it('should serialize only @Property decorated properties', () => {
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() age!: number;
+          undecorated!: string;
+        }
+
+        const user = new User();
+        user.name = 'John';
+        user.age = 30;
+        user.undecorated = 'should not appear';
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          age: 30,
+        });
+        expect(json).not.toHaveProperty('undecorated');
+      });
+
+      it('should exclude undefined values', () => {
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() age?: number;
+          @Property() email?: string;
+        }
+
+        const user = new User();
+        user.name = 'John';
+        // age and email are undefined
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+        });
+        expect(json).not.toHaveProperty('age');
+        expect(json).not.toHaveProperty('email');
+      });
+
+      it('should include null values', () => {
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() age!: number | null;
+          @Property() email!: string | null;
+        }
+
+        const user = new User();
+        user.name = 'John';
+        user.age = null;
+        user.email = null;
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          age: null,
+          email: null,
+        });
+      });
+
+      it('should serialize primitives correctly', () => {
+        @Entity()
+        class Data {
+          @Property() str!: string;
+          @Property() num!: number;
+          @Property() bool!: boolean;
+          @Property() zero!: number;
+          @Property() empty!: string;
+        }
+
+        const data = new Data();
+        data.str = 'test';
+        data.num = 42;
+        data.bool = true;
+        data.zero = 0;
+        data.empty = '';
+
+        const json = EntityUtils.toJSON(data);
+
+        expect(json).toEqual({
+          str: 'test',
+          num: 42,
+          bool: true,
+          zero: 0,
+          empty: '',
+        });
+      });
+    });
+
+    describe('inheritance', () => {
+      it('should serialize properties from parent and child classes', () => {
+        @Entity()
+        class BaseEntity {
+          @Property() id!: number;
+          @Property() createdAt!: Date;
+        }
+
+        @Entity()
+        class User extends BaseEntity {
+          @Property() name!: string;
+          @Property() email!: string;
+        }
+
+        const user = new User();
+        user.id = 1;
+        user.createdAt = new Date('2024-01-01T00:00:00.000Z');
+        user.name = 'John';
+        user.email = 'john@example.com';
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          id: 1,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          name: 'John',
+          email: 'john@example.com',
+        });
+      });
+
+      it('should handle multi-level inheritance', () => {
+        @Entity()
+        class BaseEntity {
+          @Property() id!: number;
+        }
+
+        @Entity()
+        class TimestampedEntity extends BaseEntity {
+          @Property() createdAt!: Date;
+        }
+
+        @Entity()
+        class User extends TimestampedEntity {
+          @Property() name!: string;
+        }
+
+        const user = new User();
+        user.id = 1;
+        user.createdAt = new Date('2024-01-01T00:00:00.000Z');
+        user.name = 'John';
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          id: 1,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          name: 'John',
+        });
+      });
+    });
+
+    describe('Date serialization', () => {
+      it('should serialize Date to ISO string', () => {
+        @Entity()
+        class Event {
+          @Property() name!: string;
+          @Property() date!: Date;
+        }
+
+        const event = new Event();
+        event.name = 'Meeting';
+        event.date = new Date('2024-06-15T14:30:00.000Z');
+
+        const json = EntityUtils.toJSON(event);
+
+        expect(json).toEqual({
+          name: 'Meeting',
+          date: '2024-06-15T14:30:00.000Z',
+        });
+      });
+
+      it('should handle null Date', () => {
+        @Entity()
+        class Event {
+          @Property() name!: string;
+          @Property() date!: Date | null;
+        }
+
+        const event = new Event();
+        event.name = 'Meeting';
+        event.date = null;
+
+        const json = EntityUtils.toJSON(event);
+
+        expect(json).toEqual({
+          name: 'Meeting',
+          date: null,
+        });
+      });
+    });
+
+    describe('bigint serialization', () => {
+      it('should serialize bigint to string', () => {
+        @Entity()
+        class Data {
+          @Property() id!: bigint;
+          @Property() largeNumber!: bigint;
+        }
+
+        const data = new Data();
+        data.id = BigInt(123);
+        data.largeNumber = BigInt('9007199254740991999');
+
+        const json = EntityUtils.toJSON(data);
+
+        expect(json).toEqual({
+          id: '123',
+          largeNumber: '9007199254740991999',
+        });
+      });
+
+      it('should handle null bigint', () => {
+        @Entity()
+        class Data {
+          @Property() id!: bigint | null;
+        }
+
+        const data = new Data();
+        data.id = null;
+
+        const json = EntityUtils.toJSON(data);
+
+        expect(json).toEqual({
+          id: null,
+        });
+      });
+    });
+
+    describe('nested entities', () => {
+      it('should recursively serialize nested entities', () => {
+        @Entity()
+        class Address {
+          @Property() street!: string;
+          @Property() city!: string;
+          @Property() zipCode!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() address!: Address;
+        }
+
+        const address = new Address();
+        address.street = '123 Main St';
+        address.city = 'Boston';
+        address.zipCode = '02101';
+
+        const user = new User();
+        user.name = 'John';
+        user.address = address;
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          address: {
+            street: '123 Main St',
+            city: 'Boston',
+            zipCode: '02101',
+          },
+        });
+      });
+
+      it('should handle null nested entities', () => {
+        @Entity()
+        class Address {
+          @Property() street!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() address!: Address | null;
+        }
+
+        const user = new User();
+        user.name = 'John';
+        user.address = null;
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          address: null,
+        });
+      });
+
+      it('should handle deeply nested entities', () => {
+        @Entity()
+        class Country {
+          @Property() name!: string;
+          @Property() code!: string;
+        }
+
+        @Entity()
+        class Address {
+          @Property() street!: string;
+          @Property() country!: Country;
+        }
+
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() address!: Address;
+        }
+
+        const country = new Country();
+        country.name = 'USA';
+        country.code = 'US';
+
+        const address = new Address();
+        address.street = '123 Main St';
+        address.country = country;
+
+        const user = new User();
+        user.name = 'John';
+        user.address = address;
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          address: {
+            street: '123 Main St',
+            country: {
+              name: 'USA',
+              code: 'US',
+            },
+          },
+        });
+      });
+    });
+
+    describe('array serialization', () => {
+      it('should serialize arrays of primitives', () => {
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() tags!: string[];
+          @Property() scores!: number[];
+        }
+
+        const user = new User();
+        user.name = 'John';
+        user.tags = ['developer', 'typescript', 'node'];
+        user.scores = [95, 87, 92];
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          tags: ['developer', 'typescript', 'node'],
+          scores: [95, 87, 92],
+        });
+      });
+
+      it('should serialize arrays of entities', () => {
+        @Entity()
+        class Phone {
+          @Property() type!: string;
+          @Property() number!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() phones!: Phone[];
+        }
+
+        const phone1 = new Phone();
+        phone1.type = 'mobile';
+        phone1.number = '555-0001';
+
+        const phone2 = new Phone();
+        phone2.type = 'work';
+        phone2.number = '555-0002';
+
+        const user = new User();
+        user.name = 'John';
+        user.phones = [phone1, phone2];
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          phones: [
+            { type: 'mobile', number: '555-0001' },
+            { type: 'work', number: '555-0002' },
+          ],
+        });
+      });
+
+      it('should serialize arrays containing mixed types including entities', () => {
+        @Entity()
+        class Tag {
+          @Property() name!: string;
+        }
+
+        @Entity()
+        class Post {
+          @Property() title!: string;
+          @Property() tags!: (Tag | string)[];
+        }
+
+        const tag = new Tag();
+        tag.name = 'important';
+
+        const post = new Post();
+        post.title = 'My Post';
+        post.tags = [tag, 'typescript', 'coding'];
+
+        const json = EntityUtils.toJSON(post);
+
+        expect(json).toEqual({
+          title: 'My Post',
+          tags: [{ name: 'important' }, 'typescript', 'coding'],
+        });
+      });
+
+      it('should handle empty arrays', () => {
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() tags!: string[];
+        }
+
+        const user = new User();
+        user.name = 'John';
+        user.tags = [];
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          tags: [],
+        });
+      });
+
+      it('should serialize arrays of Dates', () => {
+        @Entity()
+        class Event {
+          @Property() name!: string;
+          @Property() dates!: Date[];
+        }
+
+        const event = new Event();
+        event.name = 'Conference';
+        event.dates = [
+          new Date('2024-01-01T00:00:00.000Z'),
+          new Date('2024-01-02T00:00:00.000Z'),
+        ];
+
+        const json = EntityUtils.toJSON(event);
+
+        expect(json).toEqual({
+          name: 'Conference',
+          dates: ['2024-01-01T00:00:00.000Z', '2024-01-02T00:00:00.000Z'],
+        });
+      });
+
+      it('should serialize arrays of bigints', () => {
+        @Entity()
+        class Data {
+          @Property() name!: string;
+          @Property() ids!: bigint[];
+        }
+
+        const data = new Data();
+        data.name = 'test';
+        data.ids = [BigInt(1), BigInt(2), BigInt(999999999999)];
+
+        const json = EntityUtils.toJSON(data);
+
+        expect(json).toEqual({
+          name: 'test',
+          ids: ['1', '2', '999999999999'],
+        });
+      });
+
+      it('should handle nested arrays', () => {
+        @Entity()
+        class Matrix {
+          @Property() name!: string;
+          @Property() data!: number[][];
+        }
+
+        const matrix = new Matrix();
+        matrix.name = 'test-matrix';
+        matrix.data = [
+          [1, 2, 3],
+          [4, 5, 6],
+        ];
+
+        const json = EntityUtils.toJSON(matrix);
+
+        expect(json).toEqual({
+          name: 'test-matrix',
+          data: [
+            [1, 2, 3],
+            [4, 5, 6],
+          ],
+        });
+      });
+    });
+
+    describe('custom toJSON', () => {
+      it('should use custom toJSON method if present on property value', () => {
+        class CustomObject {
+          constructor(
+            public value: string,
+            public secret: string,
+          ) {}
+
+          toJSON() {
+            return { customValue: this.value.toUpperCase() };
+          }
+        }
+
+        @Entity()
+        class User {
+          @Property() name!: string;
+          @Property() data!: CustomObject;
+        }
+
+        const user = new User();
+        user.name = 'John';
+        user.data = new CustomObject('hello', 'password');
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: 'John',
+          data: { customValue: 'HELLO' },
+        });
+      });
+
+      it('should prefer custom toJSON over entity serialization', () => {
+        @Entity()
+        class SpecialEntity {
+          @Property() value!: string;
+          @Property() secret!: string;
+
+          toJSON() {
+            return { onlyValue: this.value };
+          }
+        }
+
+        @Entity()
+        class Container {
+          @Property() name!: string;
+          @Property() special!: SpecialEntity;
+        }
+
+        const special = new SpecialEntity();
+        special.value = 'visible';
+        special.secret = 'hidden';
+
+        const container = new Container();
+        container.name = 'test';
+        container.special = special;
+
+        const json = EntityUtils.toJSON(container);
+
+        expect(json).toEqual({
+          name: 'test',
+          special: { onlyValue: 'visible' },
+        });
+      });
+
+      it('should handle custom toJSON in arrays', () => {
+        class CustomObject {
+          constructor(public value: string) {}
+
+          toJSON() {
+            return { transformed: this.value.toUpperCase() };
+          }
+        }
+
+        @Entity()
+        class Container {
+          @Property() items!: CustomObject[];
+        }
+
+        const container = new Container();
+        container.items = [
+          new CustomObject('hello'),
+          new CustomObject('world'),
+        ];
+
+        const json = EntityUtils.toJSON(container);
+
+        expect(json).toEqual({
+          items: [{ transformed: 'HELLO' }, { transformed: 'WORLD' }],
+        });
+      });
+    });
+
+    describe('complex scenarios', () => {
+      it('should handle entity with all types combined', () => {
+        @Entity()
+        class Tag {
+          @Property() name!: string;
+        }
+
+        @Entity()
+        class Address {
+          @Property() street!: string;
+          @Property() city!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property() id!: bigint;
+          @Property() name!: string;
+          @Property() age!: number;
+          @Property() active!: boolean;
+          @Property() email!: string | null;
+          @Property() phone?: string;
+          @Property() createdAt!: Date;
+          @Property() address!: Address;
+          @Property() tags!: Tag[];
+          @Property() scores!: number[];
+          undecorated!: string;
+        }
+
+        const tag1 = new Tag();
+        tag1.name = 'developer';
+
+        const tag2 = new Tag();
+        tag2.name = 'typescript';
+
+        const address = new Address();
+        address.street = '123 Main St';
+        address.city = 'Boston';
+
+        const user = new User();
+        user.id = BigInt(12345);
+        user.name = 'John';
+        user.age = 30;
+        user.active = true;
+        user.email = null;
+        // phone is undefined
+        user.createdAt = new Date('2024-01-01T12:00:00.000Z');
+        user.address = address;
+        user.tags = [tag1, tag2];
+        user.scores = [95, 87, 92];
+        user.undecorated = 'should not appear';
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          id: '12345',
+          name: 'John',
+          age: 30,
+          active: true,
+          email: null,
+          createdAt: '2024-01-01T12:00:00.000Z',
+          address: {
+            street: '123 Main St',
+            city: 'Boston',
+          },
+          tags: [{ name: 'developer' }, { name: 'typescript' }],
+          scores: [95, 87, 92],
+        });
+        expect(json).not.toHaveProperty('phone');
+        expect(json).not.toHaveProperty('undecorated');
+      });
+    });
+
+    describe('edge cases', () => {
+      it('should handle entity with no properties set', () => {
+        @Entity()
+        class Empty {
+          @Property() name?: string;
+          @Property() age?: number;
+        }
+
+        const empty = new Empty();
+
+        const json = EntityUtils.toJSON(empty);
+
+        expect(json).toEqual({});
+      });
+
+      it('should handle entity with only null properties', () => {
+        @Entity()
+        class User {
+          @Property() name!: string | null;
+          @Property() email!: string | null;
+        }
+
+        const user = new User();
+        user.name = null;
+        user.email = null;
+
+        const json = EntityUtils.toJSON(user);
+
+        expect(json).toEqual({
+          name: null,
+          email: null,
+        });
+      });
+
+      it('should handle plain objects as property values', () => {
+        @Entity()
+        class Config {
+          @Property() name!: string;
+          @Property() settings!: Record<string, unknown>;
+        }
+
+        const config = new Config();
+        config.name = 'app-config';
+        config.settings = {
+          theme: 'dark',
+          fontSize: 14,
+          features: { beta: true },
+        };
+
+        const json = EntityUtils.toJSON(config);
+
+        expect(json).toEqual({
+          name: 'app-config',
+          settings: {
+            theme: 'dark',
+            fontSize: 14,
+            features: { beta: true },
+          },
+        });
+      });
+    });
+  });
+
+  describe('parse', () => {
+    describe('primitives', () => {
+      it('should parse string properties', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user).toBeInstanceOf(User);
+        expect(user.name).toBe('John');
+      });
+
+      it('should parse number properties', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => Number })
+          age!: number;
+        }
+
+        const json = { age: 30 };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user).toBeInstanceOf(User);
+        expect(user.age).toBe(30);
+      });
+
+      it('should parse boolean properties', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => Boolean })
+          active!: boolean;
+        }
+
+        const json = { active: true };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user).toBeInstanceOf(User);
+        expect(user.active).toBe(true);
+      });
+
+      it('should parse multiple primitive properties', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Number })
+          age!: number;
+
+          @Property({ type: () => Boolean })
+          active!: boolean;
+        }
+
+        const json = { name: 'John', age: 30, active: true };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.age).toBe(30);
+        expect(user.active).toBe(true);
+      });
+    });
+
+    describe('Date and BigInt', () => {
+      it('should parse Date from ISO string', () => {
+        @Entity()
+        class Event {
+          @Property({ type: () => Date })
+          createdAt!: Date;
+        }
+
+        const json = { createdAt: '2024-01-01T12:00:00.000Z' };
+        const event = EntityUtils.parse(Event, json);
+
+        expect(event.createdAt).toBeInstanceOf(Date);
+        expect(event.createdAt.toISOString()).toBe('2024-01-01T12:00:00.000Z');
+      });
+
+      it('should parse Date from Date object', () => {
+        @Entity()
+        class Event {
+          @Property({ type: () => Date })
+          createdAt!: Date;
+        }
+
+        const date = new Date('2024-01-01T12:00:00.000Z');
+        const json = { createdAt: date };
+        const event = EntityUtils.parse(Event, json);
+
+        expect(event.createdAt).toBe(date);
+      });
+
+      it('should parse BigInt from string', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => BigInt })
+          id!: bigint;
+        }
+
+        const json = { id: '12345678901234567890' };
+        const data = EntityUtils.parse(Data, json);
+
+        expect(data.id).toBe(BigInt('12345678901234567890'));
+      });
+
+      it('should parse BigInt from bigint', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => BigInt })
+          id!: bigint;
+        }
+
+        const json = { id: BigInt(123) };
+        const data = EntityUtils.parse(Data, json);
+
+        expect(data.id).toBe(BigInt(123));
+      });
+    });
+
+    describe('nested entities', () => {
+      it('should parse nested entities', () => {
+        @Entity()
+        class Address {
+          @Property({ type: () => String })
+          street!: string;
+
+          @Property({ type: () => String })
+          city!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Address })
+          address!: Address;
+        }
+
+        const json = {
+          name: 'John',
+          address: {
+            street: '123 Main St',
+            city: 'Boston',
+          },
+        };
+
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.address).toBeInstanceOf(Address);
+        expect(user.address.street).toBe('123 Main St');
+        expect(user.address.city).toBe('Boston');
+      });
+
+      it('should parse deeply nested entities', () => {
+        @Entity()
+        class Country {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        @Entity()
+        class Address {
+          @Property({ type: () => String })
+          street!: string;
+
+          @Property({ type: () => Country })
+          country!: Country;
+        }
+
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Address })
+          address!: Address;
+        }
+
+        const json = {
+          name: 'John',
+          address: {
+            street: '123 Main St',
+            country: {
+              name: 'USA',
+            },
+          },
+        };
+
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.address.country).toBeInstanceOf(Country);
+        expect(user.address.country.name).toBe('USA');
+      });
+    });
+
+    describe('arrays', () => {
+      it('should parse arrays of primitives', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String, array: true })
+          tags!: string[];
+        }
+
+        const json = { tags: ['developer', 'typescript'] };
+        const user = EntityUtils.parse(User, json);
+
+        expect(Array.isArray(user.tags)).toBe(true);
+        expect(user.tags).toEqual(['developer', 'typescript']);
+      });
+
+      it('should parse arrays of numbers', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => Number, array: true })
+          scores!: number[];
+        }
+
+        const json = { scores: [95, 87, 92] };
+        const data = EntityUtils.parse(Data, json);
+
+        expect(data.scores).toEqual([95, 87, 92]);
+      });
+
+      it('should parse arrays of entities', () => {
+        @Entity()
+        class Phone {
+          @Property({ type: () => String })
+          number!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property({ type: () => Phone, array: true })
+          phones!: Phone[];
+        }
+
+        const json = {
+          phones: [{ number: '555-0001' }, { number: '555-0002' }],
+        };
+
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.phones).toHaveLength(2);
+        expect(user.phones[0]).toBeInstanceOf(Phone);
+        expect(user.phones[0].number).toBe('555-0001');
+        expect(user.phones[1]).toBeInstanceOf(Phone);
+        expect(user.phones[1].number).toBe('555-0002');
+      });
+
+      it('should parse empty arrays', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String, array: true })
+          tags!: string[];
+        }
+
+        const json = { tags: [] };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.tags).toEqual([]);
+      });
+
+      it('should reject null/undefined elements in non-sparse arrays', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => String, array: true })
+          values!: string[];
+        }
+
+        const json = { values: ['a', null, 'b'] };
+
+        expect(() => EntityUtils.parse(Data, json)).toThrow(
+          "Property 'values[1]' cannot be null or undefined",
+        );
+      });
+
+      it('should reject undefined elements in non-sparse arrays', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => String, array: true })
+          values!: string[];
+        }
+
+        const json = { values: ['a', undefined, 'b'] };
+
+        expect(() => EntityUtils.parse(Data, json)).toThrow(
+          "Property 'values[1]' cannot be null or undefined",
+        );
+      });
+
+      it('should allow null/undefined elements in sparse arrays', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => String, array: true, sparse: true })
+          values!: (string | null)[];
+        }
+
+        const json = { values: ['a', null, 'b', undefined] };
+        const data = EntityUtils.parse(Data, json);
+
+        expect(data.values).toEqual(['a', null, 'b', undefined]);
+      });
+    });
+
+    describe('optional properties', () => {
+      it('should allow optional properties to be undefined', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => String, optional: true })
+          nickname?: string;
+        }
+
+        const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.nickname).toBeUndefined();
+      });
+
+      it('should allow optional properties to be null', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => String, optional: true })
+          email?: string;
+        }
+
+        const json = { name: 'John', email: null };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.email).toBeNull();
+      });
+
+      it('should parse optional properties when present', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => String, optional: true })
+          nickname?: string;
+        }
+
+        const json = { name: 'John', nickname: 'Johnny' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.nickname).toBe('Johnny');
+      });
+
+      it('should handle optional nested entities', () => {
+        @Entity()
+        class Address {
+          @Property({ type: () => String })
+          street!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Address, optional: true })
+          address?: Address;
+        }
+
+        const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.address).toBeUndefined();
+      });
+
+      it('should handle optional arrays', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => String, array: true, optional: true })
+          tags?: string[];
+        }
+
+        const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.tags).toBeUndefined();
+      });
+    });
+
+    describe('inheritance', () => {
+      it('should parse properties from parent and child classes', () => {
+        @Entity()
+        class BaseEntity {
+          @Property({ type: () => Number })
+          id!: number;
+        }
+
+        @Entity()
+        class User extends BaseEntity {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        const json = { id: 1, name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.id).toBe(1);
+        expect(user.name).toBe('John');
+      });
+
+      it('should parse multi-level inheritance', () => {
+        @Entity()
+        class BaseEntity {
+          @Property({ type: () => Number })
+          id!: number;
+        }
+
+        @Entity()
+        class TimestampedEntity extends BaseEntity {
+          @Property({ type: () => Date })
+          createdAt!: Date;
+        }
+
+        @Entity()
+        class User extends TimestampedEntity {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        const json = {
+          id: 1,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          name: 'John',
+        };
+
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.id).toBe(1);
+        expect(user.createdAt).toBeInstanceOf(Date);
+        expect(user.name).toBe('John');
+      });
+    });
+
+    describe('round-trip serialization', () => {
+      it('should round-trip simple entities', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Number })
+          age!: number;
+        }
+
+        const original = new User();
+        original.name = 'John';
+        original.age = 30;
+
+        const json = EntityUtils.toJSON(original);
+        const parsed = EntityUtils.parse(User, json);
+
+        expect(EntityUtils.equals(original, parsed)).toBe(true);
+      });
+
+      it('should round-trip entities with nested entities', () => {
+        @Entity()
+        class Address {
+          @Property({ type: () => String })
+          street!: string;
+
+          @Property({ type: () => String })
+          city!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Address })
+          address!: Address;
+        }
+
+        const address = new Address();
+        address.street = '123 Main St';
+        address.city = 'Boston';
+
+        const original = new User();
+        original.name = 'John';
+        original.address = address;
+
+        const json = EntityUtils.toJSON(original);
+        const parsed = EntityUtils.parse(User, json);
+
+        expect(EntityUtils.equals(original, parsed)).toBe(true);
+      });
+
+      it('should round-trip entities with arrays', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => String, array: true })
+          tags!: string[];
+        }
+
+        const original = new User();
+        original.name = 'John';
+        original.tags = ['dev', 'typescript'];
+
+        const json = EntityUtils.toJSON(original);
+        const parsed = EntityUtils.parse(User, json);
+
+        expect(EntityUtils.equals(original, parsed)).toBe(true);
+      });
+
+      it('should round-trip entities with Dates and BigInts', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => BigInt })
+          id!: bigint;
+
+          @Property({ type: () => Date })
+          createdAt!: Date;
+        }
+
+        const original = new Data();
+        original.id = BigInt(12345);
+        original.createdAt = new Date('2024-01-01T12:00:00.000Z');
+
+        const json = EntityUtils.toJSON(original);
+        const parsed = EntityUtils.parse(Data, json);
+
+        expect(parsed.id).toBe(original.id);
+        expect(parsed.createdAt.getTime()).toBe(original.createdAt.getTime());
+      });
+    });
+
+    describe('error handling', () => {
+      it('should throw error when type metadata is missing', () => {
+        @Entity()
+        class User {
+          @Property()
+          name!: string;
+        }
+
+        const json = { name: 'John' };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'name' requires type metadata for parsing",
+        );
+      });
+
+      it('should throw error when required property is missing', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Number })
+          age!: number;
+        }
+
+        const json = { name: 'John' };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'age' is required but missing from input",
+        );
+      });
+
+      it('should throw error when required property is null', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        const json = { name: null };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'name' cannot be null or undefined",
+        );
+      });
+
+      it('should throw error when required property is undefined', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        const json = { name: undefined };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'name' cannot be null or undefined",
+        );
+      });
+
+      it('should throw error for type mismatch on string', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String })
+          name!: string;
+        }
+
+        const json = { name: 123 };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'name' expects a string but received number",
+        );
+      });
+
+      it('should throw error for type mismatch on number', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => Number })
+          age!: number;
+        }
+
+        const json = { age: 'not a number' };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'age' expects a number but received string",
+        );
+      });
+
+      it('should throw error for type mismatch on boolean', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => Boolean })
+          active!: boolean;
+        }
+
+        const json = { active: 'true' };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'active' expects a boolean but received string",
+        );
+      });
+
+      it('should throw error for invalid Date string', () => {
+        @Entity()
+        class Event {
+          @Property({ type: () => Date })
+          createdAt!: Date;
+        }
+
+        const json = { createdAt: 'not a date' };
+
+        expect(() => EntityUtils.parse(Event, json)).toThrow(
+          "Property 'createdAt' cannot parse 'not a date' as Date",
+        );
+      });
+
+      it('should throw error for invalid BigInt string', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => BigInt })
+          id!: bigint;
+        }
+
+        const json = { id: 'not a bigint' };
+
+        expect(() => EntityUtils.parse(Data, json)).toThrow(
+          "Property 'id' cannot parse 'not a bigint' as BigInt",
+        );
+      });
+
+      it('should throw error when array expected but not received', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => String, array: true })
+          tags!: string[];
+        }
+
+        const json = { tags: 'not an array' };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'tags' expects an array but received string",
+        );
+      });
+
+      it('should throw error for nested entity type mismatch', () => {
+        @Entity()
+        class Address {
+          @Property({ type: () => String })
+          street!: string;
+        }
+
+        @Entity()
+        class User {
+          @Property({ type: () => Address })
+          address!: Address;
+        }
+
+        const json = { address: 'not an object' };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'address' expects an object but received string",
+        );
+      });
+
+      it('should throw error with correct property path in array', () => {
+        @Entity()
+        class User {
+          @Property({ type: () => Number, array: true })
+          scores!: number[];
+        }
+
+        const json = { scores: [95, 'invalid', 92] };
+
+        expect(() => EntityUtils.parse(User, json)).toThrow(
+          "Property 'scores[1]' expects a number but received string",
+        );
+      });
+
+      it('should throw error when sparse is true without array', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => String, sparse: true })
+          value!: string;
+        }
+
+        const json = { value: 'test' };
+
+        expect(() => EntityUtils.parse(Data, json)).toThrow(
+          "Property 'value' has sparse: true but array is not true",
+        );
+      });
+    });
+
+    describe('helper decorators', () => {
+      it('should work with StringProperty', () => {
+        @Entity()
+        class User {
+          @StringProperty()
+          name!: string;
+        }
+
+        const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+      });
+
+      it('should work with NumberProperty', () => {
+        @Entity()
+        class User {
+          @NumberProperty()
+          age!: number;
+        }
+
+        const json = { age: 30 };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.age).toBe(30);
+      });
+
+      it('should work with BooleanProperty', () => {
+        @Entity()
+        class User {
+          @BooleanProperty()
+          active!: boolean;
+        }
+
+        const json = { active: true };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.active).toBe(true);
+      });
+
+      it('should work with DateProperty', () => {
+        @Entity()
+        class Event {
+          @DateProperty()
+          createdAt!: Date;
+        }
+
+        const json = { createdAt: '2024-01-01T00:00:00.000Z' };
+        const event = EntityUtils.parse(Event, json);
+
+        expect(event.createdAt).toBeInstanceOf(Date);
+      });
+
+      it('should work with BigIntProperty', () => {
+        @Entity()
+        class Data {
+          @BigIntProperty()
+          id!: bigint;
+        }
+
+        const json = { id: '123' };
+        const data = EntityUtils.parse(Data, json);
+
+        expect(data.id).toBe(BigInt(123));
+      });
+
+      it('should work with EntityProperty', () => {
+        @Entity()
+        class Address {
+          @StringProperty()
+          street!: string;
+        }
+
+        @Entity()
+        class User {
+          @StringProperty()
+          name!: string;
+
+          @EntityProperty(() => Address)
+          address!: Address;
+        }
+
+        const json = {
+          name: 'John',
+          address: { street: '123 Main St' },
+        };
+
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.address).toBeInstanceOf(Address);
+        expect(user.address.street).toBe('123 Main St');
+      });
+
+      it('should work with ArrayProperty', () => {
+        @Entity()
+        class User {
+          @ArrayProperty(() => String)
+          tags!: string[];
+        }
+
+        const json = { tags: ['dev', 'typescript'] };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.tags).toEqual(['dev', 'typescript']);
+      });
+
+      it('should work with optional helper decorators', () => {
+        @Entity()
+        class User {
+          @StringProperty()
+          name!: string;
+
+          @StringProperty({ optional: true })
+          nickname?: string;
+
+          @NumberProperty({ optional: true })
+          age?: number;
+        }
+
+        const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.name).toBe('John');
+        expect(user.nickname).toBeUndefined();
+        expect(user.age).toBeUndefined();
+      });
+
+      it('should work with ArrayProperty of entities', () => {
+        @Entity()
+        class Phone {
+          @StringProperty()
+          number!: string;
+        }
+
+        @Entity()
+        class User {
+          @ArrayProperty(() => Phone)
+          phones!: Phone[];
+        }
+
+        const json = {
+          phones: [{ number: '555-0001' }, { number: '555-0002' }],
+        };
+
+        const user = EntityUtils.parse(User, json);
+
+        expect(user.phones).toHaveLength(2);
+        expect(user.phones[0]).toBeInstanceOf(Phone);
+        expect(user.phones[0].number).toBe('555-0001');
+      });
+
+      it('should work with sparse ArrayProperty', () => {
+        @Entity()
+        class Data {
+          @ArrayProperty(() => String, { sparse: true })
+          values!: (string | null)[];
+        }
+
+        const json = { values: ['a', null, 'b', undefined] };
+        const data = EntityUtils.parse(Data, json);
+
+        expect(data.values).toEqual(['a', null, 'b', undefined]);
+      });
+
+      it('should reject null in non-sparse ArrayProperty', () => {
+        @Entity()
+        class Data {
+          @ArrayProperty(() => String)
+          values!: string[];
+        }
+
+        const json = { values: ['a', null, 'b'] };
+
+        expect(() => EntityUtils.parse(Data, json)).toThrow(
+          "Property 'values[1]' cannot be null or undefined",
+        );
+      });
     });
   });
 });
