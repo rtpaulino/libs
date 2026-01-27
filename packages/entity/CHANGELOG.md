@@ -1,3 +1,17 @@
+## 0.13.0 (2026-01-27)
+
+### 🚀 Features
+
+- **entity:** update entity parsing to require data parameter in constructors ([dc1580b](https://github.com/rtpaulino/libs/commit/dc1580b))
+
+### 🩹 Fixes
+
+- **property:** prevent conflicting options for passthrough and custom serialization/deserialization ([75ddaf0](https://github.com/rtpaulino/libs/commit/75ddaf0))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.12.0 (2026-01-27)
 
 ### 🚀 Features
