@@ -1,4 +1,8 @@
+/* eslint-disable @typescript-eslint/no-wrapper-object-types */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  AnyCtor,
+  type CtorLike,
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
@@ -8,54 +12,73 @@ import {
  * Property decorator that marks class properties with metadata.
  * This decorator can be used to identify and track properties within classes.
  *
- * @param options - Optional configuration for the property
+ * @param options - Configuration for the property (type is required)
  *
  * @example
  * class User {
- *   @Property()
+ *   @Property({ type: () => String })
  *   name: string;
  *
- *   @Property({ equals: (a, b) => a.toLowerCase() === b.toLowerCase() })
+ *   @Property({ type: () => String, equals: (a, b) => a.toLowerCase() === b.toLowerCase() })
  *   email: string;
  *
- *   @Property()
+ *   @Property({ type: () => Number })
  *   age: number;
  * }
  */
-export function Property<T = any>(
-  options?: PropertyOptions<T>,
+export function Property<T, C extends CtorLike<T>>(
+  options: PropertyOptions<T, C>,
 ): PropertyDecorator {
   return (target: object, propertyKey: string | symbol): void => {
-    // Only support string property keys
     if (typeof propertyKey !== 'string') {
       return;
     }
 
-    // Get existing metadata from own property only (not from prototype chain)
     const existingProperties: string[] =
       Reflect.getOwnMetadata(PROPERTY_METADATA_KEY, target) || [];
 
-    // Add this property if not already tracked
     if (!existingProperties.includes(propertyKey)) {
       existingProperties.push(propertyKey);
     }
 
-    // Store updated metadata on the target itself
     Reflect.defineMetadata(PROPERTY_METADATA_KEY, existingProperties, target);
 
-    // Store property options if provided
-    if (options) {
-      const existingOptions: Record<string, PropertyOptions> =
-        Reflect.getOwnMetadata(PROPERTY_OPTIONS_METADATA_KEY, target) || {};
+    if (options.passthrough === true) {
+      if (options.array === true) {
+        throw new Error(
+          `Property '${propertyKey}' has passthrough: true and array: true. Passthrough cannot be combined with array.`,
+        );
+      }
+      if (options.optional === true) {
+        throw new Error(
+          `Property '${propertyKey}' has passthrough: true and optional: true. Passthrough cannot be combined with optional.`,
+        );
+      }
+      if (options.sparse === true) {
+        throw new Error(
+          `Property '${propertyKey}' has passthrough: true and sparse: true. Passthrough cannot be combined with sparse.`,
+        );
+      }
+    }
 
-      existingOptions[propertyKey] = options;
-
-      Reflect.defineMetadata(
-        PROPERTY_OPTIONS_METADATA_KEY,
-        existingOptions,
-        target,
+    if (options.sparse === true && options.array !== true) {
+      throw new Error(
+        `Property '${propertyKey}' has sparse: true but array is not true. The sparse option only applies to arrays.`,
       );
     }
+
+    const existingOptions: Record<
+      string,
+      PropertyOptions<any, any>
+    > = Reflect.getOwnMetadata(PROPERTY_OPTIONS_METADATA_KEY, target) || {};
+
+    existingOptions[propertyKey] = options;
+
+    Reflect.defineMetadata(
+      PROPERTY_OPTIONS_METADATA_KEY,
+      existingOptions,
+      target,
+    );
   };
 }
 
@@ -71,7 +94,7 @@ export function Property<T = any>(
  * }
  */
 export function StringProperty(
-  options?: Omit<PropertyOptions<string>, 'type'>,
+  options?: Omit<PropertyOptions<string, StringConstructor>, 'type'>,
 ): PropertyDecorator {
   return Property({ ...options, type: () => String });
 }
@@ -88,7 +111,7 @@ export function StringProperty(
  * }
  */
 export function NumberProperty(
-  options?: Omit<PropertyOptions<number>, 'type'>,
+  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'>,
 ): PropertyDecorator {
   return Property({ ...options, type: () => Number });
 }
@@ -105,7 +128,7 @@ export function NumberProperty(
  * }
  */
 export function BooleanProperty(
-  options?: Omit<PropertyOptions<boolean>, 'type'>,
+  options?: Omit<PropertyOptions<boolean, BooleanConstructor>, 'type'>,
 ): PropertyDecorator {
   return Property({ ...options, type: () => Boolean });
 }
@@ -122,7 +145,7 @@ export function BooleanProperty(
  * }
  */
 export function DateProperty(
-  options?: Omit<PropertyOptions<Date>, 'type'>,
+  options?: Omit<PropertyOptions<Date, DateConstructor>, 'type'>,
 ): PropertyDecorator {
   return Property({ ...options, type: () => Date });
 }
@@ -139,7 +162,7 @@ export function DateProperty(
  * }
  */
 export function BigIntProperty(
-  options?: Omit<PropertyOptions<bigint>, 'type'>,
+  options?: Omit<PropertyOptions<bigint, BigIntConstructor>, 'type'>,
 ): PropertyDecorator {
   return Property({ ...options, type: () => BigInt });
 }
@@ -155,11 +178,11 @@ export function BigIntProperty(
  *   profile?: Profile;
  * }
  */
-export function EntityProperty<T>(
-  type: () => new () => T,
-  options?: Omit<PropertyOptions<T>, 'type'>,
+export function EntityProperty<T, C extends AnyCtor<T>>(
+  type: () => C,
+  options?: Omit<PropertyOptions<T, C>, 'type'>,
 ): PropertyDecorator {
-  return Property({ ...options, type });
+  return Property<T, C>({ ...options, type });
 }
 
 /**
@@ -179,9 +202,26 @@ export function EntityProperty<T>(
  *   sparseList!: (string | null)[];
  * }
  */
-export function ArrayProperty<T>(
-  type: () => any,
-  options?: Omit<PropertyOptions<T[]>, 'type' | 'array'>,
+export function ArrayProperty<T, C extends CtorLike<T>>(
+  type: () => C,
+  options?: Omit<PropertyOptions<T>, 'type' | 'array'>,
 ): PropertyDecorator {
   return Property({ ...options, type, array: true });
+}
+
+/**
+ * Helper decorator for passthrough properties that bypass type validation.
+ * Use this for generic types like Record<string, unknown>, any, or custom objects.
+ * @example
+ * class Config {
+ *   @PassthroughProperty()
+ *   metadata!: Record<string, unknown>;
+ *
+ *   @PassthroughProperty()
+ *   customData!: any;
+ * }
+ */
+export function PassthroughProperty(): PropertyDecorator {
+  // Use a dummy type since type is mandatory but not used with passthrough
+  return Property({ type: () => Object, passthrough: true });
 }

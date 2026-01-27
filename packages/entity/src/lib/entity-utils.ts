@@ -265,7 +265,8 @@ export class EntityUtils {
         continue;
       }
 
-      result[key] = this.serializeValue(value);
+      const options = this.getPropertyOptions(entity, key);
+      result[key] = this.serializeValue(value, options?.passthrough === true);
     }
 
     return result;
@@ -275,13 +276,17 @@ export class EntityUtils {
    * Serializes a single value according to the toJSON rules
    * @private
    */
-  private static serializeValue(value: unknown): unknown {
+  private static serializeValue(value: unknown, passthrough = false): unknown {
     if (value === null) {
       return null;
     }
 
     if (value === undefined) {
       return undefined;
+    }
+
+    if (passthrough) {
+      return value;
     }
 
     if (value instanceof Date) {
@@ -293,7 +298,7 @@ export class EntityUtils {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this.serializeValue(item));
+      return value.map((item) => this.serializeValue(item, passthrough));
     }
 
     if (
@@ -309,12 +314,17 @@ export class EntityUtils {
       return this.toJSON(value);
     }
 
-    if (typeof value === 'object') {
-      // TODO: log a warning that plain objects are being serialized as-is
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
       return value;
     }
 
-    return value;
+    throw new Error(
+      `Cannot serialize value of type '${typeof value}'. Use passthrough: true in @Property() to explicitly allow serialization of unknown types.`,
+    );
   }
 
   /**
@@ -358,17 +368,16 @@ export class EntityUtils {
     for (const key of keys) {
       const options = this.getPropertyOptions(instance, key);
 
-      if (!options || !options.type) {
+      if (!options) {
         throw new Error(
-          `Property '${key}' requires type metadata for parsing. Use @Property({ type: () => TypeName })`,
+          `Property '${key}' has no metadata. This should not happen if @Property() was used correctly.`,
         );
       }
 
-      // Validate sparse option is only used with arrays
-      if (options.sparse === true && options.array !== true) {
-        throw new Error(
-          `Property '${key}' has sparse: true but array is not true. The sparse option only applies to arrays.`,
-        );
+      if (options.passthrough === true) {
+        const value = plainObject[key];
+        (instance as any)[key] = value;
+        continue;
       }
 
       const value = plainObject[key];
@@ -484,7 +493,7 @@ export class EntityUtils {
       if (typeof value === 'string') {
         try {
           return BigInt(value);
-        } catch (err) {
+        } catch {
           throw new Error(
             `Property '${propertyKey}' cannot parse '${value}' as BigInt`,
           );
@@ -527,8 +536,8 @@ export class EntityUtils {
       );
     }
 
-    // Unknown type - return as-is but log warning
-    // TODO: Consider throwing error for unknown types in strict mode
-    return value;
+    throw new Error(
+      `Property '${propertyKey}' has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, and @Entity() classes. Use passthrough: true to explicitly allow unknown types.`,
+    );
   }
 }

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-wrapper-object-types */
 /**
  * Metadata key used to store property information
  */
@@ -15,17 +17,48 @@ export const PROPERTY_OPTIONS_METADATA_KEY = Symbol(
  */
 export const ENTITY_METADATA_KEY = Symbol('entity:metadata');
 
+export type AnyCtor<T = any> = abstract new (...args: any[]) => T;
+
+export type BuiltinCtors =
+  | StringConstructor
+  | NumberConstructor
+  | BooleanConstructor
+  | BigIntConstructor
+  | SymbolConstructor
+  | DateConstructor;
+
+export type CtorLike<T> = AnyCtor<T> | BuiltinCtors;
+
+export type InstanceOfCtorLike<C> = C extends StringConstructor
+  ? string
+  : C extends NumberConstructor
+    ? number
+    : C extends BooleanConstructor
+      ? boolean
+      : C extends BigIntConstructor
+        ? bigint
+        : C extends SymbolConstructor
+          ? symbol
+          : C extends DateConstructor
+            ? Date
+            : C extends AnyCtor<infer T>
+              ? T
+              : never;
+
 /**
  * Options for the Property decorator
  */
-export interface PropertyOptions<T = any> {
+export interface PropertyOptions<
+  T = any,
+  C extends CtorLike<T> = AnyCtor<T> | BuiltinCtors,
+> {
   /**
    * Custom equality comparison function for this property
    * @param a - First value to compare
    * @param b - Second value to compare
    * @returns true if values are equal, false otherwise
    */
-  equals?: (a: T, b: T) => boolean;
+  equals?: (a: InstanceOfCtorLike<C>, b: InstanceOfCtorLike<C>) => boolean;
 
   /**
    * Type constructor for this property. Required for EntityUtils.parse() support.
@@ -37,7 +70,7 @@ export interface PropertyOptions<T = any> {
    * @Property({ type: () => Address })
    * address!: Address;
    */
-  type?: () => any;
+  type: () => C;
 
   /**
    * Whether this property is an array. Defaults to false.
@@ -68,4 +101,14 @@ export interface PropertyOptions<T = any> {
    * tags!: (string | null)[];
    */
   sparse?: boolean;
+
+  /**
+   * Whether to bypass type validation and pass values through as-is.
+   * Use this for generic types like Record<string, unknown> or any.
+   * When true, no type checking or transformation is performed.
+   * @example
+   * @Property({ passthrough: true })
+   * metadata!: Record<string, unknown>;
+   */
+  passthrough?: boolean;
 }

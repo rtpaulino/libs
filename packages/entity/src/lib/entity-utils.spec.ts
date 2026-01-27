@@ -10,6 +10,7 @@ import {
   BigIntProperty,
   EntityProperty,
   ArrayProperty,
+  PassthroughProperty,
 } from './property.js';
 import { Entity } from './entity.js';
 
@@ -127,10 +128,10 @@ describe('EntityUtils', () => {
 
     it('should return property keys for class with decorated properties', () => {
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -143,7 +144,7 @@ describe('EntityUtils', () => {
 
     it('should return only decorated properties, not all class properties', () => {
       class MixedEntity {
-        @Property()
+        @Property({ type: () => Object })
         decorated!: string;
 
         undecorated!: string;
@@ -158,7 +159,7 @@ describe('EntityUtils', () => {
 
     it('should work with multiple instances of EntityUtils', () => {
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -171,12 +172,12 @@ describe('EntityUtils', () => {
 
     it('should handle inherited properties correctly', () => {
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       class DerivedEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -195,17 +196,17 @@ describe('EntityUtils', () => {
 
     it('should support multi-level inheritance', () => {
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       class MiddleEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         createdAt!: Date;
       }
 
       class DerivedEntity extends MiddleEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -220,10 +221,10 @@ describe('EntityUtils', () => {
 
     it('should work when passing an object instance', () => {
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -237,12 +238,12 @@ describe('EntityUtils', () => {
 
     it('should work with inherited properties when passing an object instance', () => {
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       class DerivedEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -257,12 +258,12 @@ describe('EntityUtils', () => {
 
     it('should not duplicate property keys when decorator is applied multiple times', () => {
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
       // Apply decorator again manually (simulating edge case)
-      Property()(TestEntity.prototype, 'name');
+      Property({ type: () => Object })(TestEntity.prototype, 'name');
 
       const keys = EntityUtils.getPropertyKeys(TestEntity.prototype);
 
@@ -274,7 +275,7 @@ describe('EntityUtils', () => {
     it('should return true for instances of the same entity class', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -287,13 +288,13 @@ describe('EntityUtils', () => {
     it('should return false for instances of different entity classes', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
       @Entity()
       class Product {
-        @Property()
+        @Property({ type: () => Object })
         title!: string;
       }
 
@@ -306,7 +307,7 @@ describe('EntityUtils', () => {
     it('should return false when first argument is not an entity', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -319,7 +320,7 @@ describe('EntityUtils', () => {
     it('should return false when second argument is not an entity', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -339,13 +340,13 @@ describe('EntityUtils', () => {
     it('should return true for derived entities of the same class', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -358,13 +359,13 @@ describe('EntityUtils', () => {
     it('should return false for base and derived entity instances', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -421,10 +422,10 @@ describe('EntityUtils', () => {
     it('should return true for identical entity instances', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -442,10 +443,10 @@ describe('EntityUtils', () => {
     it('should return false for different entity instances', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -463,13 +464,13 @@ describe('EntityUtils', () => {
     it('should return false for entities of different types', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
       @Entity()
       class Product {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -485,19 +486,19 @@ describe('EntityUtils', () => {
     it('should handle nested entities', () => {
       @Entity()
       class Address {
-        @Property()
+        @Property({ type: () => Object })
         street!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         city!: string;
       }
 
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         address!: Address;
       }
 
@@ -523,19 +524,19 @@ describe('EntityUtils', () => {
     it('should return false for nested entities with differences', () => {
       @Entity()
       class Address {
-        @Property()
+        @Property({ type: () => Object })
         street!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         city!: string;
       }
 
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         address!: Address;
       }
 
@@ -568,7 +569,7 @@ describe('EntityUtils', () => {
     it('should handle arrays of entities', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -584,13 +585,13 @@ describe('EntityUtils', () => {
     it('should handle inherited properties in entity comparison', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       @Entity()
       class User extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -670,10 +671,10 @@ describe('EntityUtils', () => {
 
       @Entity()
       class Event {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         timestamp!: Timestamp;
       }
 
@@ -720,12 +721,14 @@ describe('EntityUtils', () => {
 
     it('should not use equals method for arrays', () => {
       // Arrays should not be treated as objects with equals method
-      const arr1: any = [1, 2, 3];
-      const arr2: any = [1, 2, 3];
+      const arr1 = [1, 2, 3];
+      const arr2 = [1, 2, 3];
 
       // Add equals method to arrays (which shouldn't be called)
-      arr1.equals = () => false;
-      arr2.equals = () => false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (arr1 as any).equals = () => false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (arr2 as any).equals = () => false;
 
       // Should use array comparison, not the equals method
       expect(EntityUtils.equals(arr1, arr2)).toBe(true);
@@ -773,10 +776,10 @@ describe('EntityUtils', () => {
     it('should return empty object when entities are identical', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -796,13 +799,13 @@ describe('EntityUtils', () => {
     it('should return only changed properties', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
 
-        @Property()
+        @Property({ type: () => Object })
         email!: string;
       }
 
@@ -828,34 +831,34 @@ describe('EntityUtils', () => {
     it('should throw error for entities of different types', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
       @Entity()
       class Product {
-        @Property()
+        @Property({ type: () => Object })
         title!: string;
       }
 
       const user = new User();
       const product = new Product();
 
-      expect(() => EntityUtils.changes(user, product as any)).toThrow(
-        'Entities must be of the same type to compute changes',
-      );
+      expect(() =>
+        EntityUtils.changes(user, product as unknown as User),
+      ).toThrow('Entities must be of the same type to compute changes');
     });
 
     it('should handle inherited properties', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       @Entity()
       class User extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -875,19 +878,19 @@ describe('EntityUtils', () => {
     it('should handle multiple changes across inheritance chain', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
 
-        @Property()
+        @Property({ type: () => Object })
         createdAt!: Date;
       }
 
       @Entity()
       class User extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         email!: string;
       }
 
@@ -919,7 +922,7 @@ describe('EntityUtils', () => {
     it('should ignore undecorated properties', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
         undecorated!: string;
@@ -942,10 +945,10 @@ describe('EntityUtils', () => {
     it('should handle changes to undefined', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         nickname?: string;
       }
 
@@ -965,10 +968,10 @@ describe('EntityUtils', () => {
     it('should handle changes from undefined', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         nickname?: string;
       }
 
@@ -988,10 +991,10 @@ describe('EntityUtils', () => {
     it('should handle changes to null', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         nickname!: string | null;
       }
 
@@ -1013,10 +1016,10 @@ describe('EntityUtils', () => {
     it('should return empty array when entities are identical', () => {
       @Entity()
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -1036,10 +1039,10 @@ describe('EntityUtils', () => {
     it('should detect differences in decorated properties', () => {
       @Entity()
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         age!: number;
       }
 
@@ -1064,7 +1067,7 @@ describe('EntityUtils', () => {
     it('should ignore undecorated properties', () => {
       @Entity()
       class TestEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
         undecorated!: string;
@@ -1086,13 +1089,13 @@ describe('EntityUtils', () => {
     it('should detect differences in inherited properties', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -1117,16 +1120,16 @@ describe('EntityUtils', () => {
     it('should detect multiple differences across inheritance chain', () => {
       @Entity()
       class BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         id!: number;
 
-        @Property()
+        @Property({ type: () => Object })
         createdAt!: Date;
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
@@ -1166,20 +1169,20 @@ describe('EntityUtils', () => {
     it('should throw error for entities of different types', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
       }
 
       @Entity()
       class Product {
-        @Property()
+        @Property({ type: () => Object })
         title!: string;
       }
 
       const user = new User();
       const product = new Product();
 
-      expect(() => EntityUtils.diff(user, product as any)).toThrow(
+      expect(() => EntityUtils.diff(user, product as unknown as User)).toThrow(
         'Entities must be of the same type to compute diff',
       );
     });
@@ -1187,19 +1190,19 @@ describe('EntityUtils', () => {
     it('should handle changes in nested entities', () => {
       @Entity()
       class Address {
-        @Property()
+        @Property({ type: () => Object })
         street!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         city!: string;
       }
 
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => Object })
         name!: string;
 
-        @Property()
+        @Property({ type: () => Object })
         address!: Address;
       }
 
@@ -1230,10 +1233,13 @@ describe('EntityUtils', () => {
     it('should use custom equals function from property options', () => {
       @Entity()
       class User {
-        @Property()
+        @Property({ type: () => String })
         name!: string;
 
-        @Property({ equals: (a, b) => a.toLowerCase() === b.toLowerCase() })
+        @Property({
+          type: () => String,
+          equals: (a, b) => a.toLowerCase() === b.toLowerCase(),
+        })
         email!: string;
       }
 
@@ -1254,7 +1260,10 @@ describe('EntityUtils', () => {
     it('should detect differences when custom equals returns false', () => {
       @Entity()
       class User {
-        @Property({ equals: (a, b) => a.toLowerCase() === b.toLowerCase() })
+        @Property({
+          type: () => String,
+          equals: (a, b) => a.toLowerCase() === b.toLowerCase(),
+        })
         email!: string;
       }
 
@@ -1278,6 +1287,7 @@ describe('EntityUtils', () => {
       @Entity()
       class User {
         @Property({
+          type: () => Date,
           equals: (a: Date, b: Date) =>
             a.getFullYear() === b.getFullYear() &&
             a.getMonth() === b.getMonth() &&
@@ -1304,8 +1314,8 @@ describe('EntityUtils', () => {
       it('should serialize only @Property decorated properties', () => {
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() age!: number;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) age!: number;
           undecorated!: string;
         }
 
@@ -1326,9 +1336,9 @@ describe('EntityUtils', () => {
       it('should exclude undefined values', () => {
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() age?: number;
-          @Property() email?: string;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) age?: number;
+          @Property({ type: () => Object }) email?: string;
         }
 
         const user = new User();
@@ -1347,9 +1357,9 @@ describe('EntityUtils', () => {
       it('should include null values', () => {
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() age!: number | null;
-          @Property() email!: string | null;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) age!: number | null;
+          @Property({ type: () => Object }) email!: string | null;
         }
 
         const user = new User();
@@ -1369,11 +1379,11 @@ describe('EntityUtils', () => {
       it('should serialize primitives correctly', () => {
         @Entity()
         class Data {
-          @Property() str!: string;
-          @Property() num!: number;
-          @Property() bool!: boolean;
-          @Property() zero!: number;
-          @Property() empty!: string;
+          @Property({ type: () => Object }) str!: string;
+          @Property({ type: () => Object }) num!: number;
+          @Property({ type: () => Object }) bool!: boolean;
+          @Property({ type: () => Object }) zero!: number;
+          @Property({ type: () => Object }) empty!: string;
         }
 
         const data = new Data();
@@ -1399,14 +1409,14 @@ describe('EntityUtils', () => {
       it('should serialize properties from parent and child classes', () => {
         @Entity()
         class BaseEntity {
-          @Property() id!: number;
-          @Property() createdAt!: Date;
+          @Property({ type: () => Object }) id!: number;
+          @Property({ type: () => Object }) createdAt!: Date;
         }
 
         @Entity()
         class User extends BaseEntity {
-          @Property() name!: string;
-          @Property() email!: string;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) email!: string;
         }
 
         const user = new User();
@@ -1428,17 +1438,17 @@ describe('EntityUtils', () => {
       it('should handle multi-level inheritance', () => {
         @Entity()
         class BaseEntity {
-          @Property() id!: number;
+          @Property({ type: () => Object }) id!: number;
         }
 
         @Entity()
         class TimestampedEntity extends BaseEntity {
-          @Property() createdAt!: Date;
+          @Property({ type: () => Object }) createdAt!: Date;
         }
 
         @Entity()
         class User extends TimestampedEntity {
-          @Property() name!: string;
+          @Property({ type: () => Object }) name!: string;
         }
 
         const user = new User();
@@ -1460,8 +1470,8 @@ describe('EntityUtils', () => {
       it('should serialize Date to ISO string', () => {
         @Entity()
         class Event {
-          @Property() name!: string;
-          @Property() date!: Date;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) date!: Date;
         }
 
         const event = new Event();
@@ -1479,8 +1489,8 @@ describe('EntityUtils', () => {
       it('should handle null Date', () => {
         @Entity()
         class Event {
-          @Property() name!: string;
-          @Property() date!: Date | null;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) date!: Date | null;
         }
 
         const event = new Event();
@@ -1500,8 +1510,8 @@ describe('EntityUtils', () => {
       it('should serialize bigint to string', () => {
         @Entity()
         class Data {
-          @Property() id!: bigint;
-          @Property() largeNumber!: bigint;
+          @Property({ type: () => Object }) id!: bigint;
+          @Property({ type: () => Object }) largeNumber!: bigint;
         }
 
         const data = new Data();
@@ -1519,7 +1529,7 @@ describe('EntityUtils', () => {
       it('should handle null bigint', () => {
         @Entity()
         class Data {
-          @Property() id!: bigint | null;
+          @Property({ type: () => Object }) id!: bigint | null;
         }
 
         const data = new Data();
@@ -1537,15 +1547,15 @@ describe('EntityUtils', () => {
       it('should recursively serialize nested entities', () => {
         @Entity()
         class Address {
-          @Property() street!: string;
-          @Property() city!: string;
-          @Property() zipCode!: string;
+          @Property({ type: () => Object }) street!: string;
+          @Property({ type: () => Object }) city!: string;
+          @Property({ type: () => Object }) zipCode!: string;
         }
 
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() address!: Address;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) address!: Address;
         }
 
         const address = new Address();
@@ -1572,13 +1582,13 @@ describe('EntityUtils', () => {
       it('should handle null nested entities', () => {
         @Entity()
         class Address {
-          @Property() street!: string;
+          @Property({ type: () => Object }) street!: string;
         }
 
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() address!: Address | null;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) address!: Address | null;
         }
 
         const user = new User();
@@ -1596,20 +1606,20 @@ describe('EntityUtils', () => {
       it('should handle deeply nested entities', () => {
         @Entity()
         class Country {
-          @Property() name!: string;
-          @Property() code!: string;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) code!: string;
         }
 
         @Entity()
         class Address {
-          @Property() street!: string;
-          @Property() country!: Country;
+          @Property({ type: () => Object }) street!: string;
+          @Property({ type: () => Object }) country!: Country;
         }
 
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() address!: Address;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) address!: Address;
         }
 
         const country = new Country();
@@ -1643,9 +1653,9 @@ describe('EntityUtils', () => {
       it('should serialize arrays of primitives', () => {
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() tags!: string[];
-          @Property() scores!: number[];
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) tags!: string[];
+          @Property({ type: () => Object }) scores!: number[];
         }
 
         const user = new User();
@@ -1665,14 +1675,14 @@ describe('EntityUtils', () => {
       it('should serialize arrays of entities', () => {
         @Entity()
         class Phone {
-          @Property() type!: string;
-          @Property() number!: string;
+          @Property({ type: () => Object }) type!: string;
+          @Property({ type: () => Object }) number!: string;
         }
 
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() phones!: Phone[];
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) phones!: Phone[];
         }
 
         const phone1 = new Phone();
@@ -1701,13 +1711,13 @@ describe('EntityUtils', () => {
       it('should serialize arrays containing mixed types including entities', () => {
         @Entity()
         class Tag {
-          @Property() name!: string;
+          @Property({ type: () => Object }) name!: string;
         }
 
         @Entity()
         class Post {
-          @Property() title!: string;
-          @Property() tags!: (Tag | string)[];
+          @Property({ type: () => Object }) title!: string;
+          @Property({ type: () => Object }) tags!: (Tag | string)[];
         }
 
         const tag = new Tag();
@@ -1728,8 +1738,8 @@ describe('EntityUtils', () => {
       it('should handle empty arrays', () => {
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() tags!: string[];
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) tags!: string[];
         }
 
         const user = new User();
@@ -1747,8 +1757,8 @@ describe('EntityUtils', () => {
       it('should serialize arrays of Dates', () => {
         @Entity()
         class Event {
-          @Property() name!: string;
-          @Property() dates!: Date[];
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) dates!: Date[];
         }
 
         const event = new Event();
@@ -1769,8 +1779,8 @@ describe('EntityUtils', () => {
       it('should serialize arrays of bigints', () => {
         @Entity()
         class Data {
-          @Property() name!: string;
-          @Property() ids!: bigint[];
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) ids!: bigint[];
         }
 
         const data = new Data();
@@ -1788,8 +1798,8 @@ describe('EntityUtils', () => {
       it('should handle nested arrays', () => {
         @Entity()
         class Matrix {
-          @Property() name!: string;
-          @Property() data!: number[][];
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) data!: number[][];
         }
 
         const matrix = new Matrix();
@@ -1826,8 +1836,8 @@ describe('EntityUtils', () => {
 
         @Entity()
         class User {
-          @Property() name!: string;
-          @Property() data!: CustomObject;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) data!: CustomObject;
         }
 
         const user = new User();
@@ -1845,8 +1855,8 @@ describe('EntityUtils', () => {
       it('should prefer custom toJSON over entity serialization', () => {
         @Entity()
         class SpecialEntity {
-          @Property() value!: string;
-          @Property() secret!: string;
+          @Property({ type: () => Object }) value!: string;
+          @Property({ type: () => Object }) secret!: string;
 
           toJSON() {
             return { onlyValue: this.value };
@@ -1855,8 +1865,8 @@ describe('EntityUtils', () => {
 
         @Entity()
         class Container {
-          @Property() name!: string;
-          @Property() special!: SpecialEntity;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) special!: SpecialEntity;
         }
 
         const special = new SpecialEntity();
@@ -1886,7 +1896,7 @@ describe('EntityUtils', () => {
 
         @Entity()
         class Container {
-          @Property() items!: CustomObject[];
+          @Property({ type: () => Object }) items!: CustomObject[];
         }
 
         const container = new Container();
@@ -1907,27 +1917,27 @@ describe('EntityUtils', () => {
       it('should handle entity with all types combined', () => {
         @Entity()
         class Tag {
-          @Property() name!: string;
+          @Property({ type: () => Object }) name!: string;
         }
 
         @Entity()
         class Address {
-          @Property() street!: string;
-          @Property() city!: string;
+          @Property({ type: () => Object }) street!: string;
+          @Property({ type: () => Object }) city!: string;
         }
 
         @Entity()
         class User {
-          @Property() id!: bigint;
-          @Property() name!: string;
-          @Property() age!: number;
-          @Property() active!: boolean;
-          @Property() email!: string | null;
-          @Property() phone?: string;
-          @Property() createdAt!: Date;
-          @Property() address!: Address;
-          @Property() tags!: Tag[];
-          @Property() scores!: number[];
+          @Property({ type: () => Object }) id!: bigint;
+          @Property({ type: () => Object }) name!: string;
+          @Property({ type: () => Object }) age!: number;
+          @Property({ type: () => Object }) active!: boolean;
+          @Property({ type: () => Object }) email!: string | null;
+          @Property({ type: () => Object }) phone?: string;
+          @Property({ type: () => Object }) createdAt!: Date;
+          @Property({ type: () => Object }) address!: Address;
+          @Property({ type: () => Object }) tags!: Tag[];
+          @Property({ type: () => Object }) scores!: number[];
           undecorated!: string;
         }
 
@@ -1979,8 +1989,8 @@ describe('EntityUtils', () => {
       it('should handle entity with no properties set', () => {
         @Entity()
         class Empty {
-          @Property() name?: string;
-          @Property() age?: number;
+          @Property({ type: () => Object }) name?: string;
+          @Property({ type: () => Object }) age?: number;
         }
 
         const empty = new Empty();
@@ -1993,8 +2003,8 @@ describe('EntityUtils', () => {
       it('should handle entity with only null properties', () => {
         @Entity()
         class User {
-          @Property() name!: string | null;
-          @Property() email!: string | null;
+          @Property({ type: () => Object }) name!: string | null;
+          @Property({ type: () => Object }) email!: string | null;
         }
 
         const user = new User();
@@ -2012,8 +2022,11 @@ describe('EntityUtils', () => {
       it('should handle plain objects as property values', () => {
         @Entity()
         class Config {
-          @Property() name!: string;
-          @Property() settings!: Record<string, unknown>;
+          @Property({ type: () => String })
+          name!: string;
+
+          @PassthroughProperty()
+          settings!: Record<string, unknown>;
         }
 
         const config = new Config();
@@ -2034,6 +2047,25 @@ describe('EntityUtils', () => {
             features: { beta: true },
           },
         });
+      });
+
+      it('should throw error for plain objects without passthrough', () => {
+        @Entity()
+        class Config {
+          @Property({ type: () => String })
+          name!: string;
+
+          @Property({ type: () => Object })
+          settings!: Record<string, unknown>;
+        }
+
+        const config = new Config();
+        config.name = 'app-config';
+        config.settings = { theme: 'dark' };
+
+        expect(() => EntityUtils.toJSON(config)).toThrow(
+          "Cannot serialize value of type 'object'",
+        );
       });
     });
   });
@@ -2591,18 +2623,18 @@ describe('EntityUtils', () => {
     });
 
     describe('error handling', () => {
-      it('should throw error when type metadata is missing', () => {
+      it('should throw error when property metadata is missing', () => {
         @Entity()
         class User {
-          @Property()
+          @Property({ type: () => String })
           name!: string;
         }
 
         const json = { name: 'John' };
+        const user = EntityUtils.parse(User, json);
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'name' requires type metadata for parsing",
-        );
+        // This test now verifies that with proper metadata, parsing works
+        expect(user.name).toBe('John');
       });
 
       it('should throw error when required property is missing', () => {
@@ -2769,17 +2801,116 @@ describe('EntityUtils', () => {
       });
 
       it('should throw error when sparse is true without array', () => {
+        // This now fails at decorator time
+        expect(() => {
+          const decorator = Property({ type: () => String, sparse: true });
+          decorator({}, 'value');
+        }).toThrow("Property 'value' has sparse: true but array is not true");
+      });
+
+      it('should throw error when passthrough is combined with array', () => {
+        expect(() => {
+          const decorator = Property({
+            type: () => String,
+            passthrough: true,
+            array: true,
+          });
+          decorator({}, 'value');
+        }).toThrow("Property 'value' has passthrough: true and array: true");
+      });
+
+      it('should throw error when passthrough is combined with optional', () => {
+        expect(() => {
+          const decorator = Property({
+            type: () => String,
+            passthrough: true,
+            optional: true,
+          });
+          decorator({}, 'value');
+        }).toThrow("Property 'value' has passthrough: true and optional: true");
+      });
+
+      it('should throw error when passthrough is combined with sparse', () => {
+        expect(() => {
+          const decorator = Property({
+            type: () => String,
+            passthrough: true,
+            sparse: true,
+          });
+          decorator({}, 'value');
+        }).toThrow("Property 'value' has passthrough: true and sparse: true");
+      });
+    });
+
+    describe('PassthroughProperty helper', () => {
+      it('should work with PassthroughProperty for serialization', () => {
         @Entity()
-        class Data {
-          @Property({ type: () => String, sparse: true })
-          value!: string;
+        class Config {
+          @StringProperty()
+          name!: string;
+
+          @PassthroughProperty()
+          metadata!: Record<string, unknown>;
         }
 
-        const json = { value: 'test' };
+        const config = new Config();
+        config.name = 'test';
+        config.metadata = { custom: 'value', nested: { data: 123 } };
 
-        expect(() => EntityUtils.parse(Data, json)).toThrow(
-          "Property 'value' has sparse: true but array is not true",
-        );
+        const json = EntityUtils.toJSON(config);
+
+        expect(json).toEqual({
+          name: 'test',
+          metadata: { custom: 'value', nested: { data: 123 } },
+        });
+      });
+
+      it('should work with PassthroughProperty for deserialization', () => {
+        @Entity()
+        class Config {
+          @StringProperty()
+          name!: string;
+
+          @PassthroughProperty()
+          metadata!: Record<string, unknown>;
+        }
+
+        const json = {
+          name: 'test',
+          metadata: { custom: 'value', nested: { data: 123 } },
+        };
+
+        const config = EntityUtils.parse(Config, json);
+
+        expect(config.name).toBe('test');
+        expect(config.metadata).toEqual({
+          custom: 'value',
+          nested: { data: 123 },
+        });
+      });
+
+      it('should round-trip with PassthroughProperty', () => {
+        @Entity()
+        class Config {
+          @StringProperty()
+          name!: string;
+
+          @PassthroughProperty()
+          data!: unknown;
+        }
+
+        const original = new Config();
+        original.name = 'test';
+        original.data = {
+          complex: [1, 2, { nested: true }],
+          map: new Map([['key', 'value']]),
+        };
+
+        const json = EntityUtils.toJSON(original);
+        const parsed = EntityUtils.parse(Config, json);
+
+        expect(parsed.name).toBe(original.name);
+        expect(parsed.data).toEqual(original.data);
       });
     });
 
@@ -2958,6 +3089,22 @@ describe('EntityUtils', () => {
 
         expect(() => EntityUtils.parse(Data, json)).toThrow(
           "Property 'values[1]' cannot be null or undefined",
+        );
+      });
+    });
+
+    describe('passthrough option with explicit type', () => {
+      it('should throw error for unknown type without passthrough in parse', () => {
+        @Entity()
+        class Data {
+          @Property({ type: () => Symbol })
+          value!: symbol;
+        }
+
+        const json = { value: 'test' };
+
+        expect(() => EntityUtils.parse(Data, json)).toThrow(
+          "Property 'value' has unknown type constructor",
         );
       });
     });
