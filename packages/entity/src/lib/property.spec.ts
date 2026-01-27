@@ -232,9 +232,7 @@ describe('StringifiableProperty', () => {
     );
 
     const equals = options['simple'].equals!;
-    expect(equals(new SimpleValue('test'), new SimpleValue('test'))).toBe(
-      true,
-    );
+    expect(equals(new SimpleValue('test'), new SimpleValue('test'))).toBe(true);
     expect(equals(new SimpleValue('test'), new SimpleValue('other'))).toBe(
       false,
     );
@@ -373,7 +371,11 @@ describe('SerializableProperty', () => {
 
     const deserialize = options['permission'].deserialize!;
     expect(
-      deserialize({ id: 'admin', level: 10, description: 'Administrator access' }),
+      deserialize({
+        id: 'admin',
+        level: 10,
+        description: 'Administrator access',
+      }),
     ).toBe(Permission.ADMIN);
     expect(
       deserialize({ id: 'user', level: 1, description: 'User access' }),
