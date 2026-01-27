@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-wrapper-object-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isEqual } from 'lodash-es';
 import {
   AnyCtor,
   type CtorLike,
+  type InstanceOfCtorLike,
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
@@ -245,3 +247,47 @@ export function PassthroughProperty(): PropertyDecorator {
   // Use a dummy type since type is mandatory but not used with passthrough
   return Property({ type: () => Object, passthrough: true });
 }
+
+export const StringifiableProperty = <
+  T extends { equals?(other: T): boolean; toString(): string },
+  C extends CtorLike<T> & { parse(value: string): T },
+>(
+  type: () => C,
+  data: Omit<
+    PropertyOptions<T, C>,
+    'serialize' | 'deserialize' | 'passthrough' | 'type' | 'equals'
+  > = {},
+): PropertyDecorator =>
+  Property<T, C>({
+    ...data,
+    type,
+    equals: (a, b) => (a.equals ? a.equals(b) : a.toString() === b.toString()),
+    serialize: (value) => value.toString(),
+    deserialize: (value) => {
+      if (typeof value === 'string') {
+        return type().parse(value) as InstanceOfCtorLike<C>;
+      }
+      throw new Error(`Invalid value ${type().name}: ${String(value)}`);
+    },
+  });
+
+export const SerializableProperty = <
+  T extends { equals?(other: T): boolean; toJSON(): unknown },
+  C extends CtorLike<T> & { parse(value: unknown): T },
+>(
+  type: () => C,
+  data: Omit<
+    PropertyOptions<T, C>,
+    'serialize' | 'deserialize' | 'passthrough' | 'type' | 'equals'
+  > = {},
+) =>
+  Property({
+    ...data,
+    type,
+    equals: (a: T, b: T) =>
+      a.equals ? a.equals(b) : isEqual(a.toJSON(), b.toJSON()),
+    serialize: (value: T) => value.toJSON(),
+    deserialize: (value: unknown) => {
+      return type().parse(value) as InstanceOfCtorLike<C>;
+    },
+  });
