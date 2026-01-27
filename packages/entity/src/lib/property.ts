@@ -59,7 +59,10 @@ export function Property<T, C extends CtorLike<T>>(
           `Property '${propertyKey}' has passthrough: true and sparse: true. Passthrough cannot be combined with sparse.`,
         );
       }
-      if (options.serialize !== undefined || options.deserialize !== undefined) {
+      if (
+        options.serialize !== undefined ||
+        options.deserialize !== undefined
+      ) {
         throw new Error(
           `Property '${propertyKey}' has passthrough: true and custom serialize/deserialize functions. Passthrough cannot be combined with serialize or deserialize.`,
         );
