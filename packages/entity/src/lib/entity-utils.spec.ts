@@ -22,6 +22,10 @@ describe('EntityUtils', () => {
       @Entity()
       class User {
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
       expect(EntityUtils.isEntity(User)).toBe(true);
@@ -31,9 +35,13 @@ describe('EntityUtils', () => {
       @Entity()
       class User {
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
+      const user = new User({ name: 'John' });
       expect(EntityUtils.isEntity(user)).toBe(true);
     });
 
@@ -88,34 +96,56 @@ describe('EntityUtils', () => {
       @Entity()
       class BaseEntity {
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       class DerivedEntity extends BaseEntity {
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
       expect(EntityUtils.isEntity(BaseEntity)).toBe(true);
-      expect(EntityUtils.isEntity(new BaseEntity())).toBe(true);
+      expect(EntityUtils.isEntity(new BaseEntity({ id: 1 }))).toBe(true);
       // Metadata is inherited, so derived class instances are also entities
       expect(EntityUtils.isEntity(DerivedEntity)).toBe(true);
-      expect(EntityUtils.isEntity(new DerivedEntity())).toBe(true);
+      expect(
+        EntityUtils.isEntity(new DerivedEntity({ id: 1, name: 'John' })),
+      ).toBe(true);
     });
 
     it('should return true when both parent and child are decorated', () => {
       @Entity()
       class BaseEntity {
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
       expect(EntityUtils.isEntity(BaseEntity)).toBe(true);
-      expect(EntityUtils.isEntity(new BaseEntity())).toBe(true);
+      expect(EntityUtils.isEntity(new BaseEntity({ id: 1 }))).toBe(true);
       expect(EntityUtils.isEntity(DerivedEntity)).toBe(true);
-      expect(EntityUtils.isEntity(new DerivedEntity())).toBe(true);
+      expect(
+        EntityUtils.isEntity(new DerivedEntity({ id: 1, name: 'Test' })),
+      ).toBe(true);
     });
   });
 
@@ -279,10 +309,14 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
-      const user2 = new User();
+      const user1 = new User({ name: 'John' });
+      const user2 = new User({ name: 'Jane' });
 
       expect(EntityUtils.sameEntity(user1, user2)).toBe(true);
     });
@@ -292,16 +326,24 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class Product {
         @Property({ type: () => Object })
         title!: string;
+
+        constructor(data: { title: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
-      const product = new Product();
+      const user = new User({ name: 'John' });
+      const product = new Product({ title: 'Product' });
 
       expect(EntityUtils.sameEntity(user, product)).toBe(false);
     });
@@ -311,9 +353,13 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
+      const user = new User({ name: 'John' });
       const plainObj = { name: 'test' };
 
       expect(EntityUtils.sameEntity(plainObj, user)).toBe(false);
@@ -324,9 +370,13 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
+      const user = new User({ name: 'John' });
       const plainObj = { name: 'test' };
 
       expect(EntityUtils.sameEntity(user, plainObj)).toBe(false);
@@ -344,16 +394,25 @@ describe('EntityUtils', () => {
       class BaseEntity {
         @Property({ type: () => Object })
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
-      const derived1 = new DerivedEntity();
-      const derived2 = new DerivedEntity();
+      const derived1 = new DerivedEntity({ id: 1, name: 'Test1' });
+      const derived2 = new DerivedEntity({ id: 2, name: 'Test2' });
 
       expect(EntityUtils.sameEntity(derived1, derived2)).toBe(true);
     });
@@ -363,16 +422,25 @@ describe('EntityUtils', () => {
       class BaseEntity {
         @Property({ type: () => Object })
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
-      const base = new BaseEntity();
-      const derived = new DerivedEntity();
+      const base = new BaseEntity({ id: 1 });
+      const derived = new DerivedEntity({ id: 1, name: 'Test' });
 
       expect(EntityUtils.sameEntity(base, derived)).toBe(false);
     });
@@ -429,15 +497,16 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         age!: number;
+
+        constructor(data: { name: string; age: number }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
-      user1.name = 'John';
-      user1.age = 30;
+      const user1 = new User({ name: 'John', age: 30 });
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane', age: 30 });
       user2.name = 'John';
-      user2.age = 30;
 
       expect(EntityUtils.equals(user1, user2)).toBe(true);
     });
@@ -450,15 +519,15 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         age!: number;
+
+        constructor(data: { name: string; age: number }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
-      user1.name = 'John';
-      user1.age = 30;
+      const user1 = new User({ name: 'John', age: 30 });
 
-      const user2 = new User();
-      user2.name = 'Jane';
-      user2.age = 30;
+      const user2 = new User({ name: 'Jane', age: 30 });
 
       expect(EntityUtils.equals(user1, user2)).toBe(false);
     });
@@ -468,18 +537,25 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class Product {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
-      user.name = 'John';
+      const user = new User({ name: 'John' });
 
-      const product = new Product();
+      const product = new Product({ name: 'Product' });
       product.name = 'John';
 
       expect(EntityUtils.equals(user, product)).toBe(false);
@@ -493,6 +569,10 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         city!: string;
+
+        constructor(data: { street: string; city: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
@@ -502,23 +582,24 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         address!: Address;
+
+        constructor(data: { name: string; address: Address }) {
+          Object.assign(this, data);
+        }
       }
 
-      const address1 = new Address();
+      const address1 = new Address({ street: '123 Main', city: 'Boston' });
       address1.street = '123 Main St';
       address1.city = 'Springfield';
 
-      const address2 = new Address();
+      const address2 = new Address({ street: '456 Oak', city: 'NYC' });
       address2.street = '123 Main St';
       address2.city = 'Springfield';
 
-      const user1 = new User();
-      user1.name = 'John';
-      user1.address = address1;
+      const user1 = new User({ name: 'John', address: address1 });
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane', address: address2 });
       user2.name = 'John';
-      user2.address = address2;
 
       expect(EntityUtils.equals(user1, user2)).toBe(true);
     });
@@ -531,6 +612,10 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         city!: string;
+
+        constructor(data: { street: string; city: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
@@ -540,23 +625,24 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         address!: Address;
+
+        constructor(data: { name: string; address: Address }) {
+          Object.assign(this, data);
+        }
       }
 
-      const address1 = new Address();
+      const address1 = new Address({ street: '123 Main', city: 'Boston' });
       address1.street = '123 Main St';
       address1.city = 'Springfield';
 
-      const address2 = new Address();
+      const address2 = new Address({ street: '456 Oak', city: 'NYC' });
       address2.street = '456 Oak Ave';
       address2.city = 'Springfield';
 
-      const user1 = new User();
-      user1.name = 'John';
-      user1.address = address1;
+      const user1 = new User({ name: 'John', address: address1 });
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane', address: address2 });
       user2.name = 'John';
-      user2.address = address2;
 
       expect(EntityUtils.equals(user1, user2)).toBe(false);
     });
@@ -573,12 +659,15 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
-      user1.name = 'John';
+      const user1 = new User({ name: 'John' });
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane' });
       user2.name = 'John';
 
       expect(EntityUtils.equals([user1], [user2])).toBe(true);
@@ -589,20 +678,26 @@ describe('EntityUtils', () => {
       class BaseEntity {
         @Property({ type: () => Object })
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class User extends BaseEntity {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
-      user1.id = 1;
-      user1.name = 'John';
+      const user1 = new User({ id: 1, name: 'John' });
 
-      const user2 = new User();
-      user2.id = 1;
+      const user2 = new User({ id: 1, name: 'Jane' });
       user2.name = 'John';
 
       expect(EntityUtils.equals(user1, user2)).toBe(true);
@@ -678,19 +773,26 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         timestamp!: Timestamp;
+
+        constructor(data: { name: string; timestamp: Timestamp }) {
+          Object.assign(this, data);
+        }
       }
 
-      const event1 = new Event();
-      event1.name = 'Login';
-      event1.timestamp = new Timestamp(1000);
+      const event1 = new Event({
+        name: 'Login',
+        timestamp: new Timestamp(1000),
+      });
 
-      const event2 = new Event();
-      event2.name = 'Login';
-      event2.timestamp = new Timestamp(1000);
+      const event2 = new Event({
+        name: 'Login',
+        timestamp: new Timestamp(1000),
+      });
 
-      const event3 = new Event();
-      event3.name = 'Login';
-      event3.timestamp = new Timestamp(2000);
+      const event3 = new Event({
+        name: 'Login',
+        timestamp: new Timestamp(2000),
+      });
 
       expect(EntityUtils.equals(event1, event2)).toBe(true);
       expect(EntityUtils.equals(event1, event3)).toBe(false);
@@ -783,15 +885,15 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         age!: number;
+
+        constructor(data: { name: string; age: number }) {
+          Object.assign(this, data);
+        }
       }
 
-      const entity1 = new User();
-      entity1.name = 'John';
-      entity1.age = 30;
+      const entity1 = new User({ name: 'John', age: 30 });
 
-      const entity2 = new User();
-      entity2.name = 'John';
-      entity2.age = 30;
+      const entity2 = new User({ name: 'John', age: 30 });
 
       const changes = EntityUtils.changes(entity1, entity2);
 
@@ -809,17 +911,23 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         email!: string;
+
+        constructor(data: { name: string; age: number; email: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new User();
-      oldEntity.name = 'John';
-      oldEntity.age = 30;
-      oldEntity.email = 'john@example.com';
+      const oldEntity = new User({
+        name: 'John',
+        age: 30,
+        email: 'john@example.com',
+      });
 
-      const newEntity = new User();
-      newEntity.name = 'Jane';
-      newEntity.age = 30;
-      newEntity.email = 'jane@example.com';
+      const newEntity = new User({
+        name: 'Jane',
+        age: 30,
+        email: 'jane@example.com',
+      });
 
       const changes = EntityUtils.changes(oldEntity, newEntity);
 
@@ -835,16 +943,24 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class Product {
         @Property({ type: () => Object })
         title!: string;
+
+        constructor(data: { title: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
-      const product = new Product();
+      const user = new User({ name: 'John' });
+      const product = new Product({ title: 'Product' });
 
       expect(() =>
         EntityUtils.changes(user, product as unknown as User),
@@ -856,21 +972,26 @@ describe('EntityUtils', () => {
       class BaseEntity {
         @Property({ type: () => Object })
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class User extends BaseEntity {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new User();
-      oldEntity.id = 1;
-      oldEntity.name = 'John';
+      const oldEntity = new User({ id: 1, name: 'John' });
 
-      const newEntity = new User();
-      newEntity.id = 2;
-      newEntity.name = 'John';
+      const newEntity = new User({ id: 2, name: 'John' });
 
       const changes = EntityUtils.changes(oldEntity, newEntity);
 
@@ -885,6 +1006,10 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         createdAt!: Date;
+
+        constructor(data: { id: number; createdAt: Date }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
@@ -894,22 +1019,34 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         email!: string;
+
+        constructor(data: {
+          id: number;
+          createdAt: Date;
+          name: string;
+          email: string;
+        }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
       const oldDate = new Date('2024-01-01');
       const newDate = new Date('2024-01-02');
 
-      const oldEntity = new User();
-      oldEntity.id = 1;
-      oldEntity.createdAt = oldDate;
-      oldEntity.name = 'John';
-      oldEntity.email = 'john@example.com';
+      const oldEntity = new User({
+        id: 1,
+        createdAt: oldDate,
+        name: 'John',
+        email: 'john@example.com',
+      });
 
-      const newEntity = new User();
-      newEntity.id = 2;
-      newEntity.createdAt = newDate;
-      newEntity.name = 'Jane';
-      newEntity.email = 'john@example.com';
+      const newEntity = new User({
+        id: 2,
+        createdAt: newDate,
+        name: 'Jane',
+        email: 'john@example.com',
+      });
 
       const changes = EntityUtils.changes(oldEntity, newEntity);
 
@@ -928,13 +1065,17 @@ describe('EntityUtils', () => {
         name!: string;
 
         undecorated!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new User();
+      const oldEntity = new User({ name: 'Old' });
       oldEntity.name = 'John';
       oldEntity.undecorated = 'old';
 
-      const newEntity = new User();
+      const newEntity = new User({ name: 'New' });
       newEntity.name = 'Jane';
       newEntity.undecorated = 'new';
 
@@ -952,13 +1093,17 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         nickname?: string;
+
+        constructor(data: { name: string; nickname?: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new User();
+      const oldEntity = new User({ name: 'Old' });
       oldEntity.name = 'John';
       oldEntity.nickname = 'Johnny';
 
-      const newEntity = new User();
+      const newEntity = new User({ name: 'New' });
       newEntity.name = 'John';
       newEntity.nickname = undefined;
 
@@ -975,13 +1120,17 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         nickname?: string;
+
+        constructor(data: { name: string; nickname?: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new User();
+      const oldEntity = new User({ name: 'Old' });
       oldEntity.name = 'John';
       oldEntity.nickname = undefined;
 
-      const newEntity = new User();
+      const newEntity = new User({ name: 'New' });
       newEntity.name = 'John';
       newEntity.nickname = 'Johnny';
 
@@ -998,13 +1147,17 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         nickname!: string | null;
+
+        constructor(data: { name: string; nickname: string | null }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new User();
+      const oldEntity = new User({ name: 'John', nickname: 'Johnny' });
       oldEntity.name = 'John';
       oldEntity.nickname = 'Johnny';
 
-      const newEntity = new User();
+      const newEntity = new User({ name: 'John', nickname: null });
       newEntity.name = 'John';
       newEntity.nickname = null;
 
@@ -1023,15 +1176,15 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         age!: number;
+
+        constructor(data: { name: string; age: number }) {
+          Object.assign(this, data);
+        }
       }
 
-      const entity1 = new TestEntity();
-      entity1.name = 'John';
-      entity1.age = 30;
+      const entity1 = new TestEntity({ name: 'John', age: 30 });
 
-      const entity2 = new TestEntity();
-      entity2.name = 'John';
-      entity2.age = 30;
+      const entity2 = new TestEntity({ name: 'John', age: 30 });
 
       const diffs = EntityUtils.diff(entity1, entity2);
 
@@ -1046,15 +1199,15 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         age!: number;
+
+        constructor(data: { name: string; age: number }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new TestEntity();
-      oldEntity.name = 'John';
-      oldEntity.age = 30;
+      const oldEntity = new TestEntity({ name: 'John', age: 30 });
 
-      const newEntity = new TestEntity();
-      newEntity.name = 'Jane';
-      newEntity.age = 30;
+      const newEntity = new TestEntity({ name: 'Jane', age: 30 });
 
       const diffs = EntityUtils.diff(oldEntity, newEntity);
 
@@ -1073,14 +1226,16 @@ describe('EntityUtils', () => {
         name!: string;
 
         undecorated!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new TestEntity();
-      oldEntity.name = 'John';
+      const oldEntity = new TestEntity({ name: 'John' });
       oldEntity.undecorated = 'old';
 
-      const newEntity = new TestEntity();
-      newEntity.name = 'John';
+      const newEntity = new TestEntity({ name: 'John' });
       newEntity.undecorated = 'new';
 
       const diffs = EntityUtils.diff(oldEntity, newEntity);
@@ -1093,21 +1248,26 @@ describe('EntityUtils', () => {
       class BaseEntity {
         @Property({ type: () => Object })
         id!: number;
+
+        constructor(data: { id: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { id: number; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
-      const oldEntity = new DerivedEntity();
-      oldEntity.id = 1;
-      oldEntity.name = 'John';
+      const oldEntity = new DerivedEntity({ id: 1, name: 'John' });
 
-      const newEntity = new DerivedEntity();
-      newEntity.id = 2;
-      newEntity.name = 'John';
+      const newEntity = new DerivedEntity({ id: 2, name: 'John' });
 
       const diffs = EntityUtils.diff(oldEntity, newEntity);
 
@@ -1127,26 +1287,37 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         createdAt!: Date;
+
+        constructor(data: { id: number; createdAt: Date }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class DerivedEntity extends BaseEntity {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { id: number; createdAt: Date; name: string }) {
+          super(data);
+          Object.assign(this, data);
+        }
       }
 
       const oldDate = new Date('2024-01-01');
       const newDate = new Date('2024-01-02');
 
-      const oldEntity = new DerivedEntity();
-      oldEntity.id = 1;
-      oldEntity.createdAt = oldDate;
-      oldEntity.name = 'John';
+      const oldEntity = new DerivedEntity({
+        id: 1,
+        createdAt: oldDate,
+        name: 'John',
+      });
 
-      const newEntity = new DerivedEntity();
-      newEntity.id = 2;
-      newEntity.createdAt = newDate;
-      newEntity.name = 'Jane';
+      const newEntity = new DerivedEntity({
+        id: 2,
+        createdAt: newDate,
+        name: 'Jane',
+      });
 
       const diffs = EntityUtils.diff(oldEntity, newEntity);
 
@@ -1173,16 +1344,24 @@ describe('EntityUtils', () => {
       class User {
         @Property({ type: () => Object })
         name!: string;
+
+        constructor(data: { name: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
       class Product {
         @Property({ type: () => Object })
         title!: string;
+
+        constructor(data: { title: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user = new User();
-      const product = new Product();
+      const user = new User({ name: 'John' });
+      const product = new Product({ title: 'Product' });
 
       expect(() => EntityUtils.diff(user, product as unknown as User)).toThrow(
         'Entities must be of the same type to compute diff',
@@ -1197,6 +1376,10 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         city!: string;
+
+        constructor(data: { street: string; city: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
@@ -1206,23 +1389,24 @@ describe('EntityUtils', () => {
 
         @Property({ type: () => Object })
         address!: Address;
+
+        constructor(data: { name: string; address: Address }) {
+          Object.assign(this, data);
+        }
       }
 
-      const address1 = new Address();
+      const address1 = new Address({ street: '123 Main', city: 'Boston' });
       address1.street = '123 Main St';
       address1.city = 'Springfield';
 
-      const address2 = new Address();
+      const address2 = new Address({ street: '456 Oak', city: 'NYC' });
       address2.street = '456 Oak Ave';
       address2.city = 'Springfield';
 
-      const user1 = new User();
-      user1.name = 'John';
-      user1.address = address1;
+      const user1 = new User({ name: 'John', address: address1 });
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane', address: address2 });
       user2.name = 'John';
-      user2.address = address2;
 
       const diffs = EntityUtils.diff(user1, user2);
 
@@ -1243,13 +1427,16 @@ describe('EntityUtils', () => {
           equals: (a, b) => a.toLowerCase() === b.toLowerCase(),
         })
         email!: string;
+        constructor(data: { name?: string; email?: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
+      const user1 = new User({ name: 'John' });
       user1.name = 'John';
       user1.email = 'JOHN@EXAMPLE.COM';
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane' });
       user2.name = 'John';
       user2.email = 'john@example.com';
 
@@ -1267,12 +1454,15 @@ describe('EntityUtils', () => {
           equals: (a, b) => a.toLowerCase() === b.toLowerCase(),
         })
         email!: string;
+        constructor(data: { email?: string; name?: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
+      const user1 = new User({ name: 'John' });
       user1.email = 'john@example.com';
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane' });
       user2.email = 'jane@example.com';
 
       const diffs = EntityUtils.diff(user1, user2);
@@ -1296,12 +1486,16 @@ describe('EntityUtils', () => {
             a.getDate() === b.getDate(),
         })
         birthDate!: Date;
+
+        constructor(data: { birthDate?: Date; name?: string }) {
+          Object.assign(this, data);
+        }
       }
 
-      const user1 = new User();
+      const user1 = new User({ name: 'John' });
       user1.birthDate = new Date('2000-01-15T10:30:00');
 
-      const user2 = new User();
+      const user2 = new User({ name: 'Jane' });
       user2.birthDate = new Date('2000-01-15T14:45:00');
 
       const diffs = EntityUtils.diff(user1, user2);
@@ -1319,11 +1513,13 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) age!: number;
           undecorated!: string;
+
+          constructor(data: { name: string; age: number }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
-        user.age = 30;
+        const user = new User({ name: 'John', age: 30 });
         user.undecorated = 'should not appear';
 
         const json = EntityUtils.toJSON(user);
@@ -1341,10 +1537,13 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) age?: number;
           @Property({ type: () => Object }) email?: string;
+
+          constructor(data: { name: string; age?: number; email?: string }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
+        const user = new User({ name: 'John' });
         // age and email are undefined
 
         const json = EntityUtils.toJSON(user);
@@ -1362,12 +1561,17 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) age!: number | null;
           @Property({ type: () => Object }) email!: string | null;
+
+          constructor(data: {
+            name: string;
+            age: number | null;
+            email: string | null;
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
-        user.age = null;
-        user.email = null;
+        const user = new User({ name: 'John', age: null, email: null });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1386,14 +1590,25 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) bool!: boolean;
           @Property({ type: () => Object }) zero!: number;
           @Property({ type: () => Object }) empty!: string;
+
+          constructor(data: {
+            str: string;
+            num: number;
+            bool: boolean;
+            zero: number;
+            empty: string;
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const data = new Data();
-        data.str = 'test';
-        data.num = 42;
-        data.bool = true;
-        data.zero = 0;
-        data.empty = '';
+        const data = new Data({
+          str: 'test',
+          num: 42,
+          bool: true,
+          zero: 0,
+          empty: '',
+        });
 
         const json = EntityUtils.toJSON(data);
 
@@ -1413,19 +1628,34 @@ describe('EntityUtils', () => {
         class BaseEntity {
           @Property({ type: () => Object }) id!: number;
           @Property({ type: () => Object }) createdAt!: Date;
+
+          constructor(data: { id: number; createdAt: Date }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User extends BaseEntity {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) email!: string;
+
+          constructor(data: {
+            id: number;
+            createdAt: Date;
+            name: string;
+            email: string;
+          }) {
+            super(data);
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.id = 1;
-        user.createdAt = new Date('2024-01-01T00:00:00.000Z');
-        user.name = 'John';
-        user.email = 'john@example.com';
+        const user = new User({
+          id: 1,
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          name: 'John',
+          email: 'john@example.com',
+        });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1441,22 +1671,37 @@ describe('EntityUtils', () => {
         @Entity()
         class BaseEntity {
           @Property({ type: () => Object }) id!: number;
+
+          constructor(data: { id: number }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class TimestampedEntity extends BaseEntity {
           @Property({ type: () => Object }) createdAt!: Date;
+
+          constructor(data: { id: number; createdAt: Date }) {
+            super(data);
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User extends TimestampedEntity {
           @Property({ type: () => Object }) name!: string;
+
+          constructor(data: { id: number; createdAt: Date; name: string }) {
+            super(data);
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.id = 1;
-        user.createdAt = new Date('2024-01-01T00:00:00.000Z');
-        user.name = 'John';
+        const user = new User({
+          id: 1,
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          name: 'John',
+        });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1474,11 +1719,16 @@ describe('EntityUtils', () => {
         class Event {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) date!: Date;
+
+          constructor(data: { name: string; date: Date }) {
+            Object.assign(this, data);
+          }
         }
 
-        const event = new Event();
-        event.name = 'Meeting';
-        event.date = new Date('2024-06-15T14:30:00.000Z');
+        const event = new Event({
+          name: 'Meeting',
+          date: new Date('2024-06-15T14:30:00.000Z'),
+        });
 
         const json = EntityUtils.toJSON(event);
 
@@ -1493,11 +1743,13 @@ describe('EntityUtils', () => {
         class Event {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) date!: Date | null;
+
+          constructor(data: { name: string; date: Date | null }) {
+            Object.assign(this, data);
+          }
         }
 
-        const event = new Event();
-        event.name = 'Meeting';
-        event.date = null;
+        const event = new Event({ name: 'Meeting', date: null });
 
         const json = EntityUtils.toJSON(event);
 
@@ -1514,11 +1766,16 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => Object }) id!: bigint;
           @Property({ type: () => Object }) largeNumber!: bigint;
+
+          constructor(data: { id: bigint; largeNumber: bigint }) {
+            Object.assign(this, data);
+          }
         }
 
-        const data = new Data();
-        data.id = BigInt(123);
-        data.largeNumber = BigInt('9007199254740991999');
+        const data = new Data({
+          id: BigInt(123),
+          largeNumber: BigInt('9007199254740991999'),
+        });
 
         const json = EntityUtils.toJSON(data);
 
@@ -1532,10 +1789,13 @@ describe('EntityUtils', () => {
         @Entity()
         class Data {
           @Property({ type: () => Object }) id!: bigint | null;
+
+          constructor(data: { id: bigint | null }) {
+            Object.assign(this, data);
+          }
         }
 
-        const data = new Data();
-        data.id = null;
+        const data = new Data({ id: null });
 
         const json = EntityUtils.toJSON(data);
 
@@ -1552,22 +1812,32 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) street!: string;
           @Property({ type: () => Object }) city!: string;
           @Property({ type: () => Object }) zipCode!: string;
+
+          constructor(data: { street: string; city: string; zipCode: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) address!: Address;
+
+          constructor(data: { name: string; address: Address }) {
+            Object.assign(this, data);
+          }
         }
 
-        const address = new Address();
+        const address = new Address({
+          street: '789 Pine',
+          city: 'LA',
+          zipCode: '90001',
+        });
         address.street = '123 Main St';
         address.city = 'Boston';
         address.zipCode = '02101';
 
-        const user = new User();
-        user.name = 'John';
-        user.address = address;
+        const user = new User({ name: 'John', address });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1585,17 +1855,23 @@ describe('EntityUtils', () => {
         @Entity()
         class Address {
           @Property({ type: () => Object }) street!: string;
+
+          constructor(data: { street: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) address!: Address | null;
+
+          constructor(data: { name: string; address: Address | null }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
-        user.address = null;
+        const user = new User({ name: 'John', address: null });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1610,31 +1886,35 @@ describe('EntityUtils', () => {
         class Country {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) code!: string;
+
+          constructor(data: { name: string; code: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class Address {
           @Property({ type: () => Object }) street!: string;
           @Property({ type: () => Object }) country!: Country;
+
+          constructor(data: { street: string; country: Country }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) address!: Address;
+
+          constructor(data: { name: string; address: Address }) {
+            Object.assign(this, data);
+          }
         }
 
-        const country = new Country();
-        country.name = 'USA';
-        country.code = 'US';
-
-        const address = new Address();
-        address.street = '123 Main St';
-        address.country = country;
-
-        const user = new User();
-        user.name = 'John';
-        user.address = address;
+        const country = new Country({ name: 'USA', code: 'US' });
+        const address = new Address({ street: '123 Main St', country });
+        const user = new User({ name: 'John', address });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1658,12 +1938,21 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) tags!: string[];
           @Property({ type: () => Object }) scores!: number[];
+
+          constructor(data: {
+            name: string;
+            tags: string[];
+            scores: number[];
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
-        user.tags = ['developer', 'typescript', 'node'];
-        user.scores = [95, 87, 92];
+        const user = new User({
+          name: 'John',
+          tags: ['developer', 'typescript', 'node'],
+          scores: [95, 87, 92],
+        });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1679,25 +1968,25 @@ describe('EntityUtils', () => {
         class Phone {
           @Property({ type: () => Object }) type!: string;
           @Property({ type: () => Object }) number!: string;
+
+          constructor(data: { type: string; number: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) phones!: Phone[];
+
+          constructor(data: { name: string; phones: Phone[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const phone1 = new Phone();
-        phone1.type = 'mobile';
-        phone1.number = '555-0001';
-
-        const phone2 = new Phone();
-        phone2.type = 'work';
-        phone2.number = '555-0002';
-
-        const user = new User();
-        user.name = 'John';
-        user.phones = [phone1, phone2];
+        const phone1 = new Phone({ type: 'mobile', number: '555-0001' });
+        const phone2 = new Phone({ type: 'work', number: '555-0002' });
+        const user = new User({ name: 'John', phones: [phone1, phone2] });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1714,20 +2003,27 @@ describe('EntityUtils', () => {
         @Entity()
         class Tag {
           @Property({ type: () => Object }) name!: string;
+
+          constructor(data: { name: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class Post {
           @Property({ type: () => Object }) title!: string;
           @Property({ type: () => Object }) tags!: (Tag | string)[];
+
+          constructor(data: { title: string; tags: (Tag | string)[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const tag = new Tag();
-        tag.name = 'important';
-
-        const post = new Post();
-        post.title = 'My Post';
-        post.tags = [tag, 'typescript', 'coding'];
+        const tag = new Tag({ name: 'important' });
+        const post = new Post({
+          title: 'My Post',
+          tags: [tag, 'typescript', 'coding'],
+        });
 
         const json = EntityUtils.toJSON(post);
 
@@ -1742,11 +2038,13 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) tags!: string[];
+
+          constructor(data: { name: string; tags: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
-        user.tags = [];
+        const user = new User({ name: 'John', tags: [] });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1761,14 +2059,19 @@ describe('EntityUtils', () => {
         class Event {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) dates!: Date[];
+
+          constructor(data: { name: string; dates: Date[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const event = new Event();
-        event.name = 'Conference';
-        event.dates = [
-          new Date('2024-01-01T00:00:00.000Z'),
-          new Date('2024-01-02T00:00:00.000Z'),
-        ];
+        const event = new Event({
+          name: 'Conference',
+          dates: [
+            new Date('2024-01-01T00:00:00.000Z'),
+            new Date('2024-01-02T00:00:00.000Z'),
+          ],
+        });
 
         const json = EntityUtils.toJSON(event);
 
@@ -1783,11 +2086,16 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) ids!: bigint[];
+
+          constructor(data: { name: string; ids: bigint[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const data = new Data();
-        data.name = 'test';
-        data.ids = [BigInt(1), BigInt(2), BigInt(999999999999)];
+        const data = new Data({
+          name: 'test',
+          ids: [BigInt(1), BigInt(2), BigInt(999999999999)],
+        });
 
         const json = EntityUtils.toJSON(data);
 
@@ -1802,14 +2110,19 @@ describe('EntityUtils', () => {
         class Matrix {
           @Property({ type: () => Object }) name!: string;
           @Property({ type: () => Object }) data!: number[][];
+
+          constructor(data: { name: string; data: number[][] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const matrix = new Matrix();
-        matrix.name = 'test-matrix';
-        matrix.data = [
-          [1, 2, 3],
-          [4, 5, 6],
-        ];
+        const matrix = new Matrix({
+          name: 'test-matrix',
+          data: [
+            [1, 2, 3],
+            [4, 5, 6],
+          ],
+        });
 
         const json = EntityUtils.toJSON(matrix);
 
@@ -1844,11 +2157,16 @@ describe('EntityUtils', () => {
               new CustomObject(json.customValue.toLowerCase(), ''),
           })
           data!: CustomObject;
+
+          constructor(data: { name: string; data: CustomObject }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = 'John';
-        user.data = new CustomObject('hello', 'password');
+        const user = new User({
+          name: 'John',
+          data: new CustomObject('hello', 'password'),
+        });
 
         const json = EntityUtils.toJSON(user);
 
@@ -1878,11 +2196,16 @@ describe('EntityUtils', () => {
               new CustomObject(json.customValue.toLowerCase(), ''),
           })
           data!: CustomObject;
+
+          constructor(data: { name: string; data: CustomObject }) {
+            Object.assign(this, data);
+          }
         }
 
-        const original = new User();
-        original.name = 'John';
-        original.data = new CustomObject('hello', 'password');
+        const original = new User({
+          name: 'John',
+          data: new CustomObject('hello', 'password'),
+        });
 
         const json = EntityUtils.toJSON(original);
         const parsed = EntityUtils.parse(User, json);
@@ -1906,13 +2229,15 @@ describe('EntityUtils', () => {
             deserialize: (json: any) => new CustomObject(json.transformed),
           } as any)
           items!: CustomObject[];
+
+          constructor(data: { items: CustomObject[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const container = new Container();
-        container.items = [
-          new CustomObject('hello'),
-          new CustomObject('world'),
-        ];
+        const container = new Container({
+          items: [new CustomObject('hello'), new CustomObject('world')],
+        });
 
         const json = EntityUtils.toJSON(container);
 
@@ -1962,10 +2287,13 @@ describe('EntityUtils', () => {
             passthrough: true,
           })
           metadata!: Record<string, unknown>;
+
+          constructor(data: { metadata: Record<string, unknown> }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.metadata = { nested: { data: 'value' } };
+        const user = new User({ metadata: { nested: { data: 'value' } } });
 
         const json = EntityUtils.toJSON(user);
         expect(json.metadata).toEqual({ nested: { data: 'value' } });
@@ -2030,11 +2358,15 @@ describe('EntityUtils', () => {
             },
           })
           position!: Point;
+          constructor(data: { name: string; position: Point }) {
+            Object.assign(this, data);
+          }
         }
 
-        const shape = new Shape();
-        shape.name = 'circle';
-        shape.position = new Point(10, 20);
+        const shape = new Shape({
+          name: 'circle',
+          position: new Point(10, 20),
+        });
 
         const json = EntityUtils.toJSON(shape);
         expect(json).toEqual({
@@ -2088,12 +2420,20 @@ describe('EntityUtils', () => {
         @Entity()
         class Tag {
           @Property({ type: () => Object }) name!: string;
+
+          constructor(data: { name: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class Address {
           @Property({ type: () => Object }) street!: string;
           @Property({ type: () => Object }) city!: string;
+
+          constructor(data: { street: string; city: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -2109,29 +2449,38 @@ describe('EntityUtils', () => {
           @Property({ type: () => Object }) tags!: Tag[];
           @Property({ type: () => Object }) scores!: number[];
           undecorated!: string;
+
+          constructor(data: {
+            id: bigint;
+            name: string;
+            age: number;
+            active: boolean;
+            email: string | null;
+            phone?: string;
+            createdAt: Date;
+            address: Address;
+            tags: Tag[];
+            scores: number[];
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const tag1 = new Tag();
-        tag1.name = 'developer';
+        const tag1 = new Tag({ name: 'developer' });
+        const tag2 = new Tag({ name: 'typescript' });
+        const address = new Address({ street: '123 Main St', city: 'Boston' });
 
-        const tag2 = new Tag();
-        tag2.name = 'typescript';
-
-        const address = new Address();
-        address.street = '123 Main St';
-        address.city = 'Boston';
-
-        const user = new User();
-        user.id = BigInt(12345);
-        user.name = 'John';
-        user.age = 30;
-        user.active = true;
-        user.email = null;
-        // phone is undefined
-        user.createdAt = new Date('2024-01-01T12:00:00.000Z');
-        user.address = address;
-        user.tags = [tag1, tag2];
-        user.scores = [95, 87, 92];
+        const user = new User({
+          id: BigInt(12345),
+          name: 'John',
+          age: 30,
+          active: true,
+          email: null,
+          createdAt: new Date('2024-01-01T12:00:00.000Z'),
+          address,
+          tags: [tag1, tag2],
+          scores: [95, 87, 92],
+        });
         user.undecorated = 'should not appear';
 
         const json = EntityUtils.toJSON(user);
@@ -2161,6 +2510,10 @@ describe('EntityUtils', () => {
         class Empty {
           @Property({ type: () => Object }) name?: string;
           @Property({ type: () => Object }) age?: number;
+
+          constructor(data: { name?: string; age?: number } = {}) {
+            Object.assign(this, data);
+          }
         }
 
         const empty = new Empty();
@@ -2175,11 +2528,13 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Object }) name!: string | null;
           @Property({ type: () => Object }) email!: string | null;
+
+          constructor(data: { name: string | null; email: string | null }) {
+            Object.assign(this, data);
+          }
         }
 
-        const user = new User();
-        user.name = null;
-        user.email = null;
+        const user = new User({ name: null, email: null });
 
         const json = EntityUtils.toJSON(user);
 
@@ -2197,15 +2552,23 @@ describe('EntityUtils', () => {
 
           @PassthroughProperty()
           settings!: Record<string, unknown>;
+
+          constructor(data: {
+            name: string;
+            settings: Record<string, unknown>;
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const config = new Config();
-        config.name = 'app-config';
-        config.settings = {
-          theme: 'dark',
-          fontSize: 14,
-          features: { beta: true },
-        };
+        const config = new Config({
+          name: 'app-config',
+          settings: {
+            theme: 'dark',
+            fontSize: 14,
+            features: { beta: true },
+          },
+        });
 
         const json = EntityUtils.toJSON(config);
 
@@ -2227,11 +2590,19 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Object })
           settings!: Record<string, unknown>;
+
+          constructor(data: {
+            name: string;
+            settings: Record<string, unknown>;
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const config = new Config();
-        config.name = 'app-config';
-        config.settings = { theme: 'dark' };
+        const config = new Config({
+          name: 'app-config',
+          settings: { theme: 'dark' },
+        });
 
         expect(() => EntityUtils.toJSON(config)).toThrow(
           "Cannot serialize value of type 'object'",
@@ -2247,6 +2618,10 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String })
           name!: string;
+
+          constructor(data: { name: string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -2261,6 +2636,10 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Number })
           age!: number;
+
+          constructor(data: { age: number }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { age: 30 };
@@ -2275,6 +2654,10 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Boolean })
           active!: boolean;
+
+          constructor(data: { active: boolean }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { active: true };
@@ -2295,6 +2678,10 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Boolean })
           active!: boolean;
+
+          constructor(data: { name: string; age: number; active: boolean }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John', age: 30, active: true };
@@ -2312,6 +2699,10 @@ describe('EntityUtils', () => {
         class Event {
           @Property({ type: () => Date })
           createdAt!: Date;
+
+          constructor(data: { createdAt: Date }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { createdAt: '2024-01-01T12:00:00.000Z' };
@@ -2326,6 +2717,10 @@ describe('EntityUtils', () => {
         class Event {
           @Property({ type: () => Date })
           createdAt!: Date;
+
+          constructor(data: { createdAt: Date }) {
+            Object.assign(this, data);
+          }
         }
 
         const date = new Date('2024-01-01T12:00:00.000Z');
@@ -2340,6 +2735,10 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => BigInt })
           id!: bigint;
+
+          constructor(data: { id: bigint }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { id: '12345678901234567890' };
@@ -2353,6 +2752,10 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => BigInt })
           id!: bigint;
+
+          constructor(data: { id: bigint }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { id: BigInt(123) };
@@ -2371,6 +2774,10 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String })
           city!: string;
+
+          constructor(data: { street: string; city: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -2380,6 +2787,10 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Address })
           address!: Address;
+
+          constructor(data: { name: string; address: Address }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -2403,6 +2814,10 @@ describe('EntityUtils', () => {
         class Country {
           @Property({ type: () => String })
           name!: string;
+
+          constructor(data: { name: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -2412,6 +2827,10 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Country })
           country!: Country;
+
+          constructor(data: { street: string; country: Country }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -2421,6 +2840,10 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Address })
           address!: Address;
+
+          constructor(data: { name: string; address: Address }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -2446,6 +2869,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String, array: true })
           tags!: string[];
+          constructor(data: { tags: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { tags: ['developer', 'typescript'] };
@@ -2460,6 +2886,9 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => Number, array: true })
           scores!: number[];
+          constructor(data: { scores: number[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { scores: [95, 87, 92] };
@@ -2473,12 +2902,18 @@ describe('EntityUtils', () => {
         class Phone {
           @Property({ type: () => String })
           number!: string;
+          constructor(data: { number: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @Property({ type: () => Phone, array: true })
           phones!: Phone[];
+          constructor(data: { phones: Phone[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -2499,6 +2934,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String, array: true })
           tags!: string[];
+          constructor(data: { tags: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { tags: [] };
@@ -2512,6 +2950,9 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => String, array: true })
           values!: string[];
+          constructor(data: { values: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { values: ['a', null, 'b'] };
@@ -2526,6 +2967,9 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => String, array: true })
           values!: string[];
+          constructor(data: { values: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { values: ['a', undefined, 'b'] };
@@ -2540,6 +2984,9 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => String, array: true, sparse: true })
           values!: (string | null)[];
+          constructor(data: { values: (string | null)[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { values: ['a', null, 'b', undefined] };
@@ -2558,6 +3005,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String, optional: true })
           nickname?: string;
+          constructor(data: { name: string; nickname?: string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -2575,6 +3025,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String, optional: true })
           email?: string;
+          constructor(data: { name: string; email?: string | null }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John', email: null };
@@ -2592,6 +3045,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String, optional: true })
           nickname?: string;
+          constructor(data: { name: string; nickname?: string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John', nickname: 'Johnny' };
@@ -2606,6 +3062,9 @@ describe('EntityUtils', () => {
         class Address {
           @Property({ type: () => String })
           street!: string;
+          constructor(data: { street: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -2615,6 +3074,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Address, optional: true })
           address?: Address;
+          constructor(data: { name: string; address?: Address }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -2632,6 +3094,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String, array: true, optional: true })
           tags?: string[];
+          constructor(data: { name: string; tags?: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -2648,12 +3113,19 @@ describe('EntityUtils', () => {
         class BaseEntity {
           @Property({ type: () => Number })
           id!: number;
+          constructor(data: { id: number }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User extends BaseEntity {
           @Property({ type: () => String })
           name!: string;
+          constructor(data: { id: number; name: string }) {
+            super(data);
+            Object.assign(this, data);
+          }
         }
 
         const json = { id: 1, name: 'John' };
@@ -2668,18 +3140,29 @@ describe('EntityUtils', () => {
         class BaseEntity {
           @Property({ type: () => Number })
           id!: number;
+          constructor(data: { id: number; createdAt?: Date; name?: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class TimestampedEntity extends BaseEntity {
           @Property({ type: () => Date })
           createdAt!: Date;
+          constructor(data: { id: number; createdAt: Date; name?: string }) {
+            super(data);
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User extends TimestampedEntity {
           @Property({ type: () => String })
           name!: string;
+          constructor(data: { id: number; createdAt: Date; name: string }) {
+            super(data);
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -2705,11 +3188,12 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Number })
           age!: number;
+          constructor(data: { name: string; age: number }) {
+            Object.assign(this, data);
+          }
         }
 
-        const original = new User();
-        original.name = 'John';
-        original.age = 30;
+        const original = new User({ name: 'John', age: 30 });
 
         const json = EntityUtils.toJSON(original);
         const parsed = EntityUtils.parse(User, json);
@@ -2725,6 +3209,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String })
           city!: string;
+          constructor(data: { street: string; city: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -2734,15 +3221,14 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Address })
           address!: Address;
+          constructor(data: { name: string; address: Address }) {
+            Object.assign(this, data);
+          }
         }
 
-        const address = new Address();
-        address.street = '123 Main St';
-        address.city = 'Boston';
+        const address = new Address({ street: '123 Main St', city: 'Boston' });
 
-        const original = new User();
-        original.name = 'John';
-        original.address = address;
+        const original = new User({ name: 'John', address: address });
 
         const json = EntityUtils.toJSON(original);
         const parsed = EntityUtils.parse(User, json);
@@ -2758,11 +3244,15 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => String, array: true })
           tags!: string[];
+          constructor(data: { name: string; tags: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
-        const original = new User();
-        original.name = 'John';
-        original.tags = ['dev', 'typescript'];
+        const original = new User({
+          name: 'John',
+          tags: ['dev', 'typescript'],
+        });
 
         const json = EntityUtils.toJSON(original);
         const parsed = EntityUtils.parse(User, json);
@@ -2778,11 +3268,15 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Date })
           createdAt!: Date;
+          constructor(data: { id: bigint; createdAt: Date }) {
+            Object.assign(this, data);
+          }
         }
 
-        const original = new Data();
-        original.id = BigInt(12345);
-        original.createdAt = new Date('2024-01-01T12:00:00.000Z');
+        const original = new Data({
+          id: BigInt(12345),
+          createdAt: new Date('2024-01-01T12:00:00.000Z'),
+        });
 
         const json = EntityUtils.toJSON(original);
         const parsed = EntityUtils.parse(Data, json);
@@ -2798,6 +3292,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String })
           name!: string;
+          constructor(data: { name: string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -2815,6 +3312,9 @@ describe('EntityUtils', () => {
 
           @Property({ type: () => Number })
           age!: number;
+          constructor(data: { name: string; age: number }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -2829,6 +3329,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String })
           name!: string;
+          constructor(data: { name: string | null }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: null };
@@ -2843,6 +3346,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String })
           name!: string;
+          constructor(data: { name?: string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: undefined };
@@ -2857,6 +3363,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String })
           name!: string;
+          constructor(data: { name: string | number }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 123 };
@@ -2871,6 +3380,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Number })
           age!: number;
+          constructor(data: { age: number | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { age: 'not a number' };
@@ -2885,6 +3397,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Boolean })
           active!: boolean;
+          constructor(data: { active: boolean | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { active: 'true' };
@@ -2899,6 +3414,9 @@ describe('EntityUtils', () => {
         class Event {
           @Property({ type: () => Date })
           createdAt!: Date;
+          constructor(data: { createdAt: Date | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { createdAt: 'not a date' };
@@ -2913,6 +3431,9 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => BigInt })
           id!: bigint;
+          constructor(data: { id: bigint | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { id: 'not a bigint' };
@@ -2927,6 +3448,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => String, array: true })
           tags!: string[];
+          constructor(data: { tags: string[] | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { tags: 'not an array' };
@@ -2941,12 +3465,18 @@ describe('EntityUtils', () => {
         class Address {
           @Property({ type: () => String })
           street!: string;
+          constructor(data: { street: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @Property({ type: () => Address })
           address!: Address;
+          constructor(data: { address: Address | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { address: 'not an object' };
@@ -2961,6 +3491,9 @@ describe('EntityUtils', () => {
         class User {
           @Property({ type: () => Number, array: true })
           scores!: number[];
+          constructor(data: { scores: (number | string)[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { scores: [95, 'invalid', 92] };
@@ -3021,11 +3554,18 @@ describe('EntityUtils', () => {
 
           @PassthroughProperty()
           metadata!: Record<string, unknown>;
+          constructor(data: {
+            name: string;
+            metadata: Record<string, unknown>;
+          }) {
+            Object.assign(this, data);
+          }
         }
 
-        const config = new Config();
-        config.name = 'test';
-        config.metadata = { custom: 'value', nested: { data: 123 } };
+        const config = new Config({
+          name: 'test',
+          metadata: { custom: 'value', nested: { data: 123 } },
+        });
 
         const json = EntityUtils.toJSON(config);
 
@@ -3043,6 +3583,12 @@ describe('EntityUtils', () => {
 
           @PassthroughProperty()
           metadata!: Record<string, unknown>;
+          constructor(data: {
+            name: string;
+            metadata: Record<string, unknown>;
+          }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -3067,14 +3613,18 @@ describe('EntityUtils', () => {
 
           @PassthroughProperty()
           data!: unknown;
+          constructor(data: { name: string; data: unknown }) {
+            Object.assign(this, data);
+          }
         }
 
-        const original = new Config();
-        original.name = 'test';
-        original.data = {
-          complex: [1, 2, { nested: true }],
-          map: new Map([['key', 'value']]),
-        };
+        const original = new Config({
+          name: 'test',
+          data: {
+            complex: [1, 2, { nested: true }],
+            map: new Map([['key', 'value']]),
+          },
+        });
 
         const json = EntityUtils.toJSON(original);
         const parsed = EntityUtils.parse(Config, json);
@@ -3090,6 +3640,9 @@ describe('EntityUtils', () => {
         class User {
           @StringProperty()
           name!: string;
+          constructor(data: { name: string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -3103,6 +3656,9 @@ describe('EntityUtils', () => {
         class User {
           @NumberProperty()
           age!: number;
+          constructor(data: { age: number }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { age: 30 };
@@ -3116,6 +3672,9 @@ describe('EntityUtils', () => {
         class User {
           @BooleanProperty()
           active!: boolean;
+          constructor(data: { active: boolean }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { active: true };
@@ -3129,6 +3688,9 @@ describe('EntityUtils', () => {
         class Event {
           @DateProperty()
           createdAt!: Date;
+          constructor(data: { createdAt: Date | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { createdAt: '2024-01-01T00:00:00.000Z' };
@@ -3142,6 +3704,9 @@ describe('EntityUtils', () => {
         class Data {
           @BigIntProperty()
           id!: bigint;
+          constructor(data: { id: bigint | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { id: '123' };
@@ -3155,6 +3720,9 @@ describe('EntityUtils', () => {
         class Address {
           @StringProperty()
           street!: string;
+          constructor(data: { street: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
@@ -3164,6 +3732,9 @@ describe('EntityUtils', () => {
 
           @EntityProperty(() => Address)
           address!: Address;
+          constructor(data: { name: string; address: Address }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -3182,6 +3753,9 @@ describe('EntityUtils', () => {
         class User {
           @ArrayProperty(() => String)
           tags!: string[];
+          constructor(data: { tags: string[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { tags: ['dev', 'typescript'] };
@@ -3201,6 +3775,9 @@ describe('EntityUtils', () => {
 
           @NumberProperty({ optional: true })
           age?: number;
+          constructor(data: { name: string; nickname?: string; age?: number }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { name: 'John' };
@@ -3216,12 +3793,18 @@ describe('EntityUtils', () => {
         class Phone {
           @StringProperty()
           number!: string;
+          constructor(data: { number: string }) {
+            Object.assign(this, data);
+          }
         }
 
         @Entity()
         class User {
           @ArrayProperty(() => Phone)
           phones!: Phone[];
+          constructor(data: { phones: Phone[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = {
@@ -3240,6 +3823,9 @@ describe('EntityUtils', () => {
         class Data {
           @ArrayProperty(() => String, { sparse: true })
           values!: (string | null)[];
+          constructor(data: { values: (string | null)[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { values: ['a', null, 'b', undefined] };
@@ -3253,6 +3839,9 @@ describe('EntityUtils', () => {
         class Data {
           @ArrayProperty(() => String)
           values!: string[];
+          constructor(data: { values: (string | null)[] }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { values: ['a', null, 'b'] };
@@ -3269,6 +3858,9 @@ describe('EntityUtils', () => {
         class Data {
           @Property({ type: () => Symbol })
           value!: symbol;
+          constructor(data: { value: symbol | string }) {
+            Object.assign(this, data);
+          }
         }
 
         const json = { value: 'test' };
@@ -3293,6 +3885,9 @@ describe('EntityUtils', () => {
 
         @NumberProperty()
         zipCode!: number;
+        constructor(data: { street: string; city: string; zipCode: number }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
@@ -3302,6 +3897,9 @@ describe('EntityUtils', () => {
 
         @StringProperty()
         number!: string;
+        constructor(data: { type: string; number: string }) {
+          Object.assign(this, data);
+        }
       }
 
       @Entity()
@@ -3341,35 +3939,48 @@ describe('EntityUtils', () => {
 
         @PassthroughProperty()
         metadata!: Record<string, unknown>;
+        constructor(data: {
+          name: string;
+          age: number;
+          active: boolean;
+          createdAt: Date;
+          balance: bigint;
+          address: Address;
+          phones: Phone[];
+          tags: string[];
+          scores: number[];
+          nickname?: string;
+          sparseList: (string | null)[];
+          metadata: Record<string, unknown>;
+        }) {
+          Object.assign(this, data);
+        }
       }
 
       // Create a complex entity
-      const address = new Address();
-      address.street = '123 Main St';
-      address.city = 'Boston';
-      address.zipCode = 12345;
+      const address = new Address({
+        street: '123 Main St',
+        city: 'Boston',
+        zipCode: 12345,
+      });
 
-      const phone1 = new Phone();
-      phone1.type = 'mobile';
-      phone1.number = '555-0001';
+      const phone1 = new Phone({ type: 'mobile', number: '555-0001' });
 
-      const phone2 = new Phone();
-      phone2.type = 'home';
-      phone2.number = '555-0002';
+      const phone2 = new Phone({ type: 'home', number: '555-0002' });
 
-      const originalUser = new User();
-      originalUser.name = 'John Doe';
-      originalUser.age = 30;
-      originalUser.active = true;
-      originalUser.createdAt = new Date('2024-01-15T10:30:00.000Z');
-      originalUser.balance = BigInt('999999999999999999');
-      originalUser.address = address;
-      originalUser.phones = [phone1, phone2];
-      originalUser.tags = ['developer', 'typescript', 'nodejs'];
-      originalUser.scores = [95, 87, 92];
-      originalUser.sparseList = ['first', null, 'third'];
-      originalUser.metadata = { custom: 'data', nested: { value: 42 } };
-      // nickname is intentionally left undefined
+      const originalUser = new User({
+        name: 'John Doe',
+        age: 30,
+        active: true,
+        createdAt: new Date('2024-01-15T10:30:00.000Z'),
+        balance: BigInt('999999999999999999'),
+        address: address,
+        phones: [phone1, phone2],
+        tags: ['developer', 'typescript', 'nodejs'],
+        scores: [95, 87, 92],
+        sparseList: ['first', null, 'third'],
+        metadata: { custom: 'data', nested: { value: 42 } },
+      });
 
       // Serialize to JSON
       const json = EntityUtils.toJSON(originalUser);

@@ -17,7 +17,8 @@ export const PROPERTY_OPTIONS_METADATA_KEY = Symbol(
  */
 export const ENTITY_METADATA_KEY = Symbol('entity:metadata');
 
-export type AnyCtor<T = any> = abstract new (...args: any[]) => T;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export type AnyCtor<T = any> = Function & { prototype: T };
 
 export type BuiltinCtors =
   | StringConstructor

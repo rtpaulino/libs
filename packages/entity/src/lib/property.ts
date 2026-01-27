@@ -195,7 +195,10 @@ export function BigIntProperty(
  *   profile?: Profile;
  * }
  */
-export function EntityProperty<T, C extends AnyCtor<T>>(
+export function EntityProperty<
+  T,
+  C extends AnyCtor<T> & { new (data: any): T },
+>(
   type: () => C,
   options?: Omit<PropertyOptions<T, C>, 'type'>,
 ): PropertyDecorator {

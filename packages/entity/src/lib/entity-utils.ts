@@ -333,7 +333,7 @@ export class EntityUtils {
   /**
    * Deserializes a plain object to an entity instance
    *
-   * @param entityClass - The entity class constructor
+   * @param entityClass - The entity class constructor. Must accept a data object parameter.
    * @param plainObject - The plain object to deserialize
    * @returns A new instance of the entity with deserialized values
    *
@@ -346,6 +346,7 @@ export class EntityUtils {
    * - Arrays are supported with the array: true option
    * - Nested entities are recursively deserialized
    * - Type conversion is strict (no coercion)
+   * - Entity constructors must accept a required data parameter
    *
    * @example
    * ```typescript
@@ -353,23 +354,25 @@ export class EntityUtils {
    * class User {
    *   @Property({ type: () => String }) name!: string;
    *   @Property({ type: () => Number }) age!: number;
-   *   @Property({ type: () => String, optional: true }) email?: string;
+   *
+   *   constructor(data: Partial<User>) {
+   *     Object.assign(this, data);
+   *   }
    * }
    *
    * const json = { name: 'John', age: 30 };
    * const user = EntityUtils.parse(User, json);
-   * // user is a properly typed User instance
    * ```
    */
   static parse<T extends object>(
-    entityClass: new () => T,
+    entityClass: new (data: any) => T,
     plainObject: Record<string, unknown>,
   ): T {
-    const instance = new entityClass();
-    const keys = this.getPropertyKeys(instance);
+    const keys = this.getPropertyKeys(entityClass.prototype);
+    const data: Record<string, unknown> = {};
 
     for (const key of keys) {
-      const options = this.getPropertyOptions(instance, key);
+      const options = this.getPropertyOptions(entityClass.prototype, key);
 
       if (!options) {
         throw new Error(
@@ -379,7 +382,7 @@ export class EntityUtils {
 
       if (options.passthrough === true) {
         const value = plainObject[key];
-        (instance as any)[key] = value;
+        data[key] = value;
         continue;
       }
 
@@ -399,14 +402,14 @@ export class EntityUtils {
         if (!isOptional) {
           throw new Error(`Property '${key}' cannot be null or undefined`);
         }
-        (instance as any)[key] = value;
+        data[key] = value;
         continue;
       }
 
-      (instance as any)[key] = this.deserializeValue(value, options, key);
+      data[key] = this.deserializeValue(value, options, key);
     }
 
-    return instance;
+    return new entityClass(data as Partial<T>);
   }
 
   /**
@@ -536,7 +539,7 @@ export class EntityUtils {
         );
       }
       return this.parse(
-        typeConstructor as new () => object,
+        typeConstructor as new (data: any) => object,
         value as Record<string, unknown>,
       );
     }
