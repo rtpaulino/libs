@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import 'reflect-metadata';
 import { describe, it, expect } from 'vitest';
 import { isEqual } from 'lodash-es';
@@ -1822,23 +1823,27 @@ describe('EntityUtils', () => {
       });
     });
 
-    describe('custom toJSON', () => {
-      it('should use custom toJSON method if present on property value', () => {
+    describe('custom serialize/deserialize', () => {
+      it('should use custom serialize function when provided', () => {
         class CustomObject {
           constructor(
             public value: string,
             public secret: string,
           ) {}
-
-          toJSON() {
-            return { customValue: this.value.toUpperCase() };
-          }
         }
 
         @Entity()
         class User {
-          @Property({ type: () => Object }) name!: string;
-          @Property({ type: () => Object }) data!: CustomObject;
+          @StringProperty() name!: string;
+          @Property({
+            type: () => CustomObject,
+            serialize: (obj: CustomObject) => ({
+              customValue: obj.value.toUpperCase(),
+            }),
+            deserialize: (json: any) =>
+              new CustomObject(json.customValue.toLowerCase(), ''),
+          })
+          data!: CustomObject;
         }
 
         const user = new User();
@@ -1853,51 +1858,54 @@ describe('EntityUtils', () => {
         });
       });
 
-      it('should prefer custom toJSON over entity serialization', () => {
-        @Entity()
-        class SpecialEntity {
-          @Property({ type: () => Object }) value!: string;
-          @Property({ type: () => Object }) secret!: string;
-
-          toJSON() {
-            return { onlyValue: this.value };
-          }
+      it('should use custom deserialize function for symmetric round-trip', () => {
+        class CustomObject {
+          constructor(
+            public value: string,
+            public secret: string,
+          ) {}
         }
 
         @Entity()
-        class Container {
-          @Property({ type: () => Object }) name!: string;
-          @Property({ type: () => Object }) special!: SpecialEntity;
+        class User {
+          @StringProperty() name!: string;
+          @Property({
+            type: () => CustomObject,
+            serialize: (obj: CustomObject) => ({
+              customValue: obj.value.toUpperCase(),
+            }),
+            deserialize: (json: any) =>
+              new CustomObject(json.customValue.toLowerCase(), ''),
+          })
+          data!: CustomObject;
         }
 
-        const special = new SpecialEntity();
-        special.value = 'visible';
-        special.secret = 'hidden';
+        const original = new User();
+        original.name = 'John';
+        original.data = new CustomObject('hello', 'password');
 
-        const container = new Container();
-        container.name = 'test';
-        container.special = special;
+        const json = EntityUtils.toJSON(original);
+        const parsed = EntityUtils.parse(User, json);
 
-        const json = EntityUtils.toJSON(container);
-
-        expect(json).toEqual({
-          name: 'test',
-          special: { onlyValue: 'visible' },
-        });
+        expect(parsed.name).toBe('John');
+        expect(parsed.data).toBeInstanceOf(CustomObject);
+        expect(parsed.data.value).toBe('hello');
       });
 
-      it('should handle custom toJSON in arrays', () => {
+      it('should handle custom serialize/deserialize in arrays', () => {
         class CustomObject {
           constructor(public value: string) {}
-
-          toJSON() {
-            return { transformed: this.value.toUpperCase() };
-          }
         }
 
         @Entity()
         class Container {
-          @Property({ type: () => Object }) items!: CustomObject[];
+          @ArrayProperty(() => CustomObject, {
+            serialize: (obj: CustomObject) => ({
+              transformed: obj.value.toUpperCase(),
+            }),
+            deserialize: (json: any) => new CustomObject(json.transformed),
+          } as any)
+          items!: CustomObject[];
         }
 
         const container = new Container();
@@ -1911,6 +1919,167 @@ describe('EntityUtils', () => {
         expect(json).toEqual({
           items: [{ transformed: 'HELLO' }, { transformed: 'WORLD' }],
         });
+
+        const parsed = EntityUtils.parse(Container, json);
+        expect(parsed.items).toHaveLength(2);
+        expect(parsed.items[0]).toBeInstanceOf(CustomObject);
+        expect(parsed.items[0].value).toBe('HELLO');
+      });
+
+      it('should throw error when only serialize is defined', () => {
+        expect(() => {
+          @Entity()
+          class User {
+            @Property({
+              type: () => String,
+              serialize: (val: string) => val.toUpperCase(),
+            } as any)
+            name!: string;
+          }
+          new User();
+        }).toThrow(/must define both serialize and deserialize/);
+      });
+
+      it('should throw error when only deserialize is defined', () => {
+        expect(() => {
+          @Entity()
+          class User {
+            @Property({
+              type: () => String,
+              deserialize: (val: any) => val.toLowerCase(),
+            } as any)
+            name!: string;
+          }
+          new User();
+        }).toThrow(/must define both serialize and deserialize/);
+      });
+
+      it('should not use serialize/deserialize when passthrough is true', () => {
+        @Entity()
+        class User {
+          @Property({
+            type: () => String,
+            passthrough: true,
+          })
+          metadata!: Record<string, unknown>;
+        }
+
+        const user = new User();
+        user.metadata = { nested: { data: 'value' } };
+
+        const json = EntityUtils.toJSON(user);
+        expect(json.metadata).toEqual({ nested: { data: 'value' } });
+
+        const parsed = EntityUtils.parse(User, json);
+        expect(parsed.metadata).toEqual({ nested: { data: 'value' } });
+      });
+
+      it('should throw error when passthrough is combined with serialize', () => {
+        expect(() => {
+          @Entity()
+          class User {
+            @Property({
+              type: () => String,
+              passthrough: true,
+              serialize: (val: any) => val,
+              deserialize: (val: any) => val,
+            } as any)
+            data!: any;
+          }
+          new User();
+        }).toThrow(
+          /passthrough: true and custom serialize\/deserialize functions/,
+        );
+      });
+
+      it('should throw error when passthrough is combined with deserialize', () => {
+        expect(() => {
+          @Entity()
+          class User {
+            @Property({
+              type: () => String,
+              passthrough: true,
+              serialize: (val: any) => val,
+              deserialize: (val: any) => val,
+            } as any)
+            data!: any;
+          }
+          new User();
+        }).toThrow(
+          /passthrough: true and custom serialize\/deserialize functions/,
+        );
+      });
+
+      it('should handle complex transformations with nested data', () => {
+        class Point {
+          constructor(
+            public x: number,
+            public y: number,
+          ) {}
+        }
+
+        @Entity()
+        class Shape {
+          @StringProperty() name!: string;
+          @Property({
+            type: () => Point,
+            serialize: (point: Point) => `${point.x},${point.y}`,
+            deserialize: (str: any) => {
+              const [x, y] = str.split(',').map(Number);
+              return new Point(x, y);
+            },
+          })
+          position!: Point;
+        }
+
+        const shape = new Shape();
+        shape.name = 'circle';
+        shape.position = new Point(10, 20);
+
+        const json = EntityUtils.toJSON(shape);
+        expect(json).toEqual({
+          name: 'circle',
+          position: '10,20',
+        });
+
+        const parsed = EntityUtils.parse(Shape, json);
+        expect(parsed.position).toBeInstanceOf(Point);
+        expect(parsed.position.x).toBe(10);
+        expect(parsed.position.y).toBe(20);
+      });
+
+      it('should maintain serialization order with serialize callbacks', () => {
+        class Wrapper {
+          constructor(public value: string) {}
+        }
+
+        @Entity()
+        class Data {
+          @Property({
+            type: () => Wrapper,
+            serialize: (w: Wrapper) => ({ wrapped: w.value }),
+            deserialize: (json: any) => new Wrapper(json.wrapped),
+          })
+          first!: Wrapper;
+
+          @StringProperty() middle!: string;
+
+          @Property({
+            type: () => Wrapper,
+            serialize: (w: Wrapper) => ({ wrapped: w.value }),
+            deserialize: (json: any) => new Wrapper(json.wrapped),
+          })
+          last!: Wrapper;
+        }
+
+        const data = new Data();
+        data.first = new Wrapper('a');
+        data.middle = 'b';
+        data.last = new Wrapper('c');
+
+        const json = EntityUtils.toJSON(data);
+        const keys = Object.keys(json);
+        expect(keys).toEqual(['first', 'middle', 'last']);
       });
     });
 

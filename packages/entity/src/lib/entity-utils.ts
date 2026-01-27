@@ -266,7 +266,7 @@ export class EntityUtils {
       }
 
       const options = this.getPropertyOptions(entity, key);
-      result[key] = this.serializeValue(value, options?.passthrough === true);
+      result[key] = this.serializeValue(value, options);
     }
 
     return result;
@@ -276,7 +276,10 @@ export class EntityUtils {
    * Serializes a single value according to the toJSON rules
    * @private
    */
-  private static serializeValue(value: unknown, passthrough = false): unknown {
+  private static serializeValue(
+    value: unknown,
+    options?: PropertyOptions,
+  ): unknown {
     if (value === null) {
       return null;
     }
@@ -285,8 +288,21 @@ export class EntityUtils {
       return undefined;
     }
 
+    const passthrough = options?.passthrough === true;
     if (passthrough) {
       return value;
+    }
+
+    if (Array.isArray(value)) {
+      if (options?.serialize) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return value.map((item) => options.serialize!(item as any));
+      }
+      return value.map((item) => this.serializeValue(item));
+    }
+
+    if (options?.serialize) {
+      return options.serialize(value as any);
     }
 
     if (value instanceof Date) {
@@ -295,19 +311,6 @@ export class EntityUtils {
 
     if (typeof value === 'bigint') {
       return value.toString();
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((item) => this.serializeValue(item, passthrough));
-    }
-
-    if (
-      value != null &&
-      typeof value === 'object' &&
-      'toJSON' in value &&
-      typeof value.toJSON === 'function'
-    ) {
-      return value.toJSON();
     }
 
     if (this.isEntity(value)) {
@@ -420,7 +423,6 @@ export class EntityUtils {
     const isArray = options.array === true;
     const isSparse = options.sparse === true;
 
-    // Handle arrays
     if (isArray) {
       if (!Array.isArray(value)) {
         throw new Error(
@@ -437,12 +439,19 @@ export class EntityUtils {
           }
           return item;
         }
+        if (options.deserialize) {
+          return options.deserialize(item);
+        }
         return this.deserializeSingleValue(
           item,
           typeConstructor,
           `${propertyKey}[${index}]`,
         );
       });
+    }
+
+    if (options.deserialize) {
+      return options.deserialize(value);
     }
 
     return this.deserializeSingleValue(value, typeConstructor, propertyKey);
@@ -457,7 +466,6 @@ export class EntityUtils {
     typeConstructor: any,
     propertyKey: string,
   ): unknown {
-    // Handle primitives
     if (typeConstructor === String) {
       if (typeof value !== 'string') {
         throw new Error(
@@ -485,7 +493,6 @@ export class EntityUtils {
       return value;
     }
 
-    // Handle BigInt
     if (typeConstructor === BigInt) {
       if (typeof value === 'bigint') {
         return value;
@@ -504,7 +511,6 @@ export class EntityUtils {
       );
     }
 
-    // Handle Date
     if (typeConstructor === Date) {
       if (value instanceof Date) {
         return value;
@@ -523,7 +529,6 @@ export class EntityUtils {
       );
     }
 
-    // Handle nested entities
     if (this.isEntity(typeConstructor)) {
       if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         throw new Error(

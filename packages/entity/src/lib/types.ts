@@ -106,9 +106,38 @@ export interface PropertyOptions<
    * Whether to bypass type validation and pass values through as-is.
    * Use this for generic types like Record<string, unknown> or any.
    * When true, no type checking or transformation is performed.
+   * Also bypasses any custom serialize/deserialize callbacks.
    * @example
    * @Property({ passthrough: true })
    * metadata!: Record<string, unknown>;
    */
   passthrough?: boolean;
+
+  /**
+   * Custom serialization function to convert the property value to JSON-compatible format.
+   * Must be paired with deserialize - both must be defined together or both omitted.
+   * Not used when passthrough is true.
+   * @example
+   * @Property({
+   *   type: () => MyClass,
+   *   serialize: (value) => ({ data: value.toData() }),
+   *   deserialize: (json) => MyClass.fromData(json.data)
+   * })
+   * myProperty!: MyClass;
+   */
+  serialize?: (value: InstanceOfCtorLike<C>) => unknown;
+
+  /**
+   * Custom deserialization function to convert JSON data back to the property type.
+   * Must be paired with serialize - both must be defined together or both omitted.
+   * Not used when passthrough is true.
+   * @example
+   * @Property({
+   *   type: () => MyClass,
+   *   serialize: (value) => ({ data: value.toData() }),
+   *   deserialize: (json) => MyClass.fromData(json.data)
+   * })
+   * myProperty!: MyClass;
+   */
+  deserialize?: (serialized: unknown) => InstanceOfCtorLike<C>;
 }

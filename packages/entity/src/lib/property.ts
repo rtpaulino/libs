@@ -59,11 +59,25 @@ export function Property<T, C extends CtorLike<T>>(
           `Property '${propertyKey}' has passthrough: true and sparse: true. Passthrough cannot be combined with sparse.`,
         );
       }
+      if (options.serialize !== undefined || options.deserialize !== undefined) {
+        throw new Error(
+          `Property '${propertyKey}' has passthrough: true and custom serialize/deserialize functions. Passthrough cannot be combined with serialize or deserialize.`,
+        );
+      }
     }
 
     if (options.sparse === true && options.array !== true) {
       throw new Error(
         `Property '${propertyKey}' has sparse: true but array is not true. The sparse option only applies to arrays.`,
+      );
+    }
+
+    // Validate serialize/deserialize pairing
+    const hasSerialize = options.serialize !== undefined;
+    const hasDeserialize = options.deserialize !== undefined;
+    if (hasSerialize !== hasDeserialize) {
+      throw new Error(
+        `Property '${propertyKey}' must define both serialize and deserialize functions, or neither. Found only ${hasSerialize ? 'serialize' : 'deserialize'}.`,
       );
     }
 
@@ -204,7 +218,7 @@ export function EntityProperty<T, C extends AnyCtor<T>>(
  */
 export function ArrayProperty<T, C extends CtorLike<T>>(
   type: () => C,
-  options?: Omit<PropertyOptions<T>, 'type' | 'array'>,
+  options?: Omit<PropertyOptions<T, C>, 'type' | 'array'>,
 ): PropertyDecorator {
   return Property({ ...options, type, array: true });
 }
