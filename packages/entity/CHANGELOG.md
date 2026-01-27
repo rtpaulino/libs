@@ -1,3 +1,17 @@
+## 0.12.0 (2026-01-27)
+
+### 🚀 Features
+
+- **entity:** enhance serialization and deserialization with custom functions and validation ([b04b6de](https://github.com/rtpaulino/libs/commit/b04b6de))
+- **entity:** add comprehensive serialization and deserialization tests for complex entities ([9c78025](https://github.com/rtpaulino/libs/commit/9c78025))
+- enhance property decorator and serialization logic ([e8d973b](https://github.com/rtpaulino/libs/commit/e8d973b))
+- **entity:** add serialization and deserialization utilities for entities ([3bbda7c](https://github.com/rtpaulino/libs/commit/3bbda7c))
+- enhance equals method to support custom equality checks for non-entity objects ([072d1f6](https://github.com/rtpaulino/libs/commit/072d1f6))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.11.3 (2026-01-21)
 
 ### 🚀 Features
