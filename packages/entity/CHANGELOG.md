@@ -1,3 +1,13 @@
+## 0.14.2 (2026-01-28)
+
+### 🚀 Features
+
+- add EnumProperty and IntProperty decorators with validation logic ([fdcd26b](https://github.com/rtpaulino/libs/commit/fdcd26b))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.14.1 (2026-01-28)
 
 ### 🚀 Features
