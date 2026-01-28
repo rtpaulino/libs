@@ -226,7 +226,9 @@ export interface PropertyOptions<
  * }
  * ```
  */
-export type PropertyValidator<T> = (data: { value: T }) => Problem[] | Promise<Problem[]>;
+export type PropertyValidator<T> = (data: {
+  value: T;
+}) => Problem[] | Promise<Problem[]>;
 
 /**
  * A validator function for an entity.
@@ -234,4 +236,6 @@ export type PropertyValidator<T> = (data: { value: T }) => Problem[] | Promise<P
  * @param instance - The entity instance to validate
  * @returns Array of Problems (empty if valid) or Promise resolving to Problems
  */
-export type EntityValidatorFn<T = any> = (instance: T) => Problem[] | Promise<Problem[]>;
+export type EntityValidatorFn<T = any> = (
+  instance: T,
+) => Problem[] | Promise<Problem[]>;

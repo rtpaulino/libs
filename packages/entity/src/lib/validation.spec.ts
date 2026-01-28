@@ -141,16 +141,27 @@ describe('Validation System', () => {
 
     it('should throw ValidationError in strict mode when validation fails', async () => {
       await expect(async () => {
-        await EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
+        await EntityUtils.parse(
+          User,
+          { name: 'Jo', age: 30 },
+          { strict: true },
+        );
       }).rejects.toThrow(ValidationError);
       await expect(async () => {
-        await EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
+        await EntityUtils.parse(
+          User,
+          { name: 'Jo', age: 30 },
+          { strict: true },
+        );
       }).rejects.toThrow('name: Name must be at least 3 characters');
     });
 
     it('should validate multiple problems on same property', async () => {
       const veryLongName = 'a'.repeat(51);
-      const user = await EntityUtils.parse(User, { name: veryLongName, age: 30 });
+      const user = await EntityUtils.parse(User, {
+        name: veryLongName,
+        age: 30,
+      });
       const problems = EntityUtils.problems(user);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('name');
@@ -323,9 +334,9 @@ describe('Validation System', () => {
     });
 
     it('should throw error for non-entity', async () => {
-      await expect(
-        EntityUtils.validate({} as any)
-      ).rejects.toThrow('Cannot validate non-entity instance');
+      await expect(EntityUtils.validate({} as any)).rejects.toThrow(
+        'Cannot validate non-entity instance',
+      );
     });
   });
 
@@ -401,7 +412,11 @@ describe('Validation System', () => {
 
     it('should throw for SOFT errors in strict mode', async () => {
       await expect(async () => {
-        await EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
+        await EntityUtils.parse(
+          User,
+          { name: 'Jo', age: 30 },
+          { strict: true },
+        );
       }).rejects.toThrow(ValidationError);
     });
 
@@ -883,10 +898,14 @@ describe('Validation System', () => {
         }
       }
 
-      const validEntity = await EntityUtils.parse(TestEntity, { field: 'test' });
+      const validEntity = await EntityUtils.parse(TestEntity, {
+        field: 'test',
+      });
       expect(EntityUtils.problems(validEntity)).toHaveLength(0);
 
-      const invalidEntity = await EntityUtils.parse(TestEntity, { field: 'invalid' });
+      const invalidEntity = await EntityUtils.parse(TestEntity, {
+        field: 'invalid',
+      });
       const problems = EntityUtils.problems(invalidEntity);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('field');
@@ -978,7 +997,9 @@ describe('Validation System', () => {
         }
       }
 
-      const invalidData = await EntityUtils.parse(Data, { raw: 'not an object' });
+      const invalidData = await EntityUtils.parse(Data, {
+        raw: 'not an object',
+      });
       const problems = EntityUtils.problems(invalidData);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('raw');

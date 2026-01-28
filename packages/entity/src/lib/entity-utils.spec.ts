@@ -2957,9 +2957,9 @@ describe('EntityUtils', () => {
 
         const json = { values: ['a', null, 'b'] };
 
-        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
-          'values[1]: Cannot be null or undefined',
-        );
+        await expect(
+          async () => await EntityUtils.parse(Data, json),
+        ).rejects.toThrow('values[1]: Cannot be null or undefined');
       });
 
       it('should reject undefined elements in non-sparse arrays', async () => {
@@ -2974,9 +2974,9 @@ describe('EntityUtils', () => {
 
         const json = { values: ['a', undefined, 'b'] };
 
-        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
-          'values[1]: Cannot be null or undefined',
-        );
+        await expect(
+          async () => await EntityUtils.parse(Data, json),
+        ).rejects.toThrow('values[1]: Cannot be null or undefined');
       });
 
       it('should allow null/undefined elements in sparse arrays', async () => {
@@ -3319,9 +3319,9 @@ describe('EntityUtils', () => {
 
         const json = { name: 'John' };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'age: Required property is missing from input',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('age: Required property is missing from input');
       });
 
       it('should throw error when required property is null', async () => {
@@ -3336,9 +3336,9 @@ describe('EntityUtils', () => {
 
         const json = { name: null };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'name: Cannot be null or undefined',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('name: Cannot be null or undefined');
       });
 
       it('should throw error when required property is undefined', async () => {
@@ -3353,9 +3353,9 @@ describe('EntityUtils', () => {
 
         const json = { name: undefined };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'name: Cannot be null or undefined',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('name: Cannot be null or undefined');
       });
 
       it('should throw error for type mismatch on string', async () => {
@@ -3370,9 +3370,9 @@ describe('EntityUtils', () => {
 
         const json = { name: 123 };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'name: Expects a string but received number',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('name: Expects a string but received number');
       });
 
       it('should throw error for type mismatch on number', async () => {
@@ -3387,9 +3387,9 @@ describe('EntityUtils', () => {
 
         const json = { age: 'not a number' };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'age: Expects a number but received string',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('age: Expects a number but received string');
       });
 
       it('should throw error for type mismatch on boolean', async () => {
@@ -3404,9 +3404,9 @@ describe('EntityUtils', () => {
 
         const json = { active: 'true' };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'active: Expects a boolean but received string',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('active: Expects a boolean but received string');
       });
 
       it('should throw error for invalid Date string', async () => {
@@ -3421,9 +3421,9 @@ describe('EntityUtils', () => {
 
         const json = { createdAt: 'not a date' };
 
-        await expect(async () => await EntityUtils.parse(Event, json)).rejects.toThrow(
-          "createdAt: Cannot parse 'not a date' as Date",
-        );
+        await expect(
+          async () => await EntityUtils.parse(Event, json),
+        ).rejects.toThrow("createdAt: Cannot parse 'not a date' as Date");
       });
 
       it('should throw error for invalid BigInt string', async () => {
@@ -3438,9 +3438,9 @@ describe('EntityUtils', () => {
 
         const json = { id: 'not a bigint' };
 
-        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
-          "id: Cannot parse 'not a bigint' as BigInt",
-        );
+        await expect(
+          async () => await EntityUtils.parse(Data, json),
+        ).rejects.toThrow("id: Cannot parse 'not a bigint' as BigInt");
       });
 
       it('should throw error when array expected but not received', async () => {
@@ -3455,9 +3455,9 @@ describe('EntityUtils', () => {
 
         const json = { tags: 'not an array' };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'tags: Expects an array but received string',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('tags: Expects an array but received string');
       });
 
       it('should throw error for nested entity type mismatch', async () => {
@@ -3481,9 +3481,9 @@ describe('EntityUtils', () => {
 
         const json = { address: 'not an object' };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'address: Expects an object but received string',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('address: Expects an object but received string');
       });
 
       it('should throw error with correct property path in array', async () => {
@@ -3498,9 +3498,9 @@ describe('EntityUtils', () => {
 
         const json = { scores: [95, 'invalid', 92] };
 
-        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
-          'scores[1]: Expects a number but received string',
-        );
+        await expect(
+          async () => await EntityUtils.parse(User, json),
+        ).rejects.toThrow('scores[1]: Expects a number but received string');
       });
 
       it('should throw error when sparse is true without array', () => {
@@ -3846,9 +3846,9 @@ describe('EntityUtils', () => {
 
         const json = { values: ['a', null, 'b'] };
 
-        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
-          'values[1]: Cannot be null or undefined',
-        );
+        await expect(
+          async () => await EntityUtils.parse(Data, json),
+        ).rejects.toThrow('values[1]: Cannot be null or undefined');
       });
     });
 
@@ -3865,9 +3865,9 @@ describe('EntityUtils', () => {
 
         const json = { value: 'test' };
 
-        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
-          'value: Has unknown type constructor',
-        );
+        await expect(
+          async () => await EntityUtils.parse(Data, json),
+        ).rejects.toThrow('value: Has unknown type constructor');
       });
     });
   });
