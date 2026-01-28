@@ -1,3 +1,18 @@
+## 0.14.0 (2026-01-28)
+
+### 🚀 Features
+
+- add primitive deserializers and validation error handling ([773a45b](https://github.com/rtpaulino/libs/commit/773a45b))
+- **property:** add StringifiableProperty and SerializableProperty decorators with serialization and deserialization logic ([e170f8b](https://github.com/rtpaulino/libs/commit/e170f8b))
+
+### 🩹 Fixes
+
+- **tests:** simplify expect statements in StringifiableProperty and SerializableProperty tests ([ef6f87f](https://github.com/rtpaulino/libs/commit/ef6f87f))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.13.0 (2026-01-27)
 
 ### 🚀 Features
