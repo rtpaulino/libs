@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-wrapper-object-types */
+import type { Problem } from './problem.js';
+
 /**
  * Metadata key used to store property information
  */
@@ -17,6 +19,13 @@ export const PROPERTY_OPTIONS_METADATA_KEY = Symbol(
  */
 export const ENTITY_METADATA_KEY = Symbol('entity:metadata');
 
+/**
+ * Metadata key used to store entity validator methods
+ */
+export const ENTITY_VALIDATOR_METADATA_KEY = Symbol(
+  'entity:validator:metadata',
+);
+
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type AnyCtor<T = any> = Function & { prototype: T };
 
@@ -26,6 +35,17 @@ export type BuiltinCtors =
   | BooleanConstructor
   | BigIntConstructor
   | SymbolConstructor
+  | DateConstructor;
+
+/**
+ * Type constructors for primitive types that can be deserialized
+ * (excludes Symbol which cannot be deserialized from JSON)
+ */
+export type PrimitiveConstructor =
+  | StringConstructor
+  | NumberConstructor
+  | BooleanConstructor
+  | BigIntConstructor
   | DateConstructor;
 
 export type CtorLike<T> = AnyCtor<T> | BuiltinCtors;
@@ -141,4 +161,75 @@ export interface PropertyOptions<
    * myProperty!: MyClass;
    */
   deserialize?: (serialized: unknown) => InstanceOfCtorLike<C>;
+
+  /**
+   * Array of validator functions for this property.
+   * Each validator receives the property value and validation context.
+   * Empty array means validation passed.
+   * If the property is an array (array: true), these validators will run against each item.
+   * Use arrayValidators instead to validate the array as a whole.
+   * If passthrough is true, validators will run against the raw value.
+   * @example
+   * @Property({
+   *   type: () => String,
+   *   validators: [
+   *     (value, { createProblem }) =>
+   *       value.length > 10 ? [createProblem('Too long')] : []
+   *   ]
+   * })
+   * name!: string;
+   */
+  validators?: PropertyValidator<InstanceOfCtorLike<C>>[];
+
+  /**
+   * Array of validator functions for this property when it is an array.
+   * Each validator receives the array value and validation context.
+   * Empty array means validation passed.
+   * Only applicable when array is true.
+   * Not applicable when passthrough is true.
+   * @example
+   * @Property({
+   *   type: () => Number,
+   *   array: true,
+   *   arrayValidators: [
+   *     (value, { createProblem }) =>
+   *       value.length === 0 ? [createProblem('Array cannot be empty')] : []
+   *   ]
+   * })
+   * scores!: number[];
+   */
+  arrayValidators?: PropertyValidator<InstanceOfCtorLike<C>[]>[];
 }
+
+/**
+ * A validator function for a property.
+ * The validator receives the value and returns Problems with property paths relative to the value.
+ * The calling code will prepend the actual property key to all returned problems.
+ *
+ * @param data - Object containing the value to validate
+ * @param data.value - The value to validate
+ * @returns Array of Problems (empty if valid). Problems should have empty property for the value itself,
+ *          or relative paths for nested properties (e.g., 'name', '[0]', 'address.street')
+ *
+ * @example
+ * ```typescript
+ * // Validator that checks the value itself
+ * (({ value }) =>
+ *   value.length < 3 ? [new Problem({ property: '', message: 'Too short' })] : [])
+ *
+ * // Validator that checks nested properties
+ * (({ value }) => {
+ *   const problems = [];
+ *   if (value.street === '') problems.push(new Problem({ property: 'street', message: 'Required' }));
+ *   return problems;
+ * })
+ * ```
+ */
+export type PropertyValidator<T> = (data: { value: T }) => Problem[];
+
+/**
+ * A validator function for an entity
+ * @param instance - The entity instance to validate
+ * @returns Array of Problems (empty if valid)
+ */
+export type EntityValidatorFn<T = any> = (instance: T) => Problem[];

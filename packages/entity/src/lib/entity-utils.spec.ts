@@ -2958,7 +2958,7 @@ describe('EntityUtils', () => {
         const json = { values: ['a', null, 'b'] };
 
         expect(() => EntityUtils.parse(Data, json)).toThrow(
-          "Property 'values[1]' cannot be null or undefined",
+          'values[1]: Cannot be null or undefined',
         );
       });
 
@@ -2975,7 +2975,7 @@ describe('EntityUtils', () => {
         const json = { values: ['a', undefined, 'b'] };
 
         expect(() => EntityUtils.parse(Data, json)).toThrow(
-          "Property 'values[1]' cannot be null or undefined",
+          'values[1]: Cannot be null or undefined',
         );
       });
 
@@ -3320,7 +3320,7 @@ describe('EntityUtils', () => {
         const json = { name: 'John' };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'age' is required but missing from input",
+          'age: Required property is missing from input',
         );
       });
 
@@ -3337,7 +3337,7 @@ describe('EntityUtils', () => {
         const json = { name: null };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'name' cannot be null or undefined",
+          'name: Cannot be null or undefined',
         );
       });
 
@@ -3354,7 +3354,7 @@ describe('EntityUtils', () => {
         const json = { name: undefined };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'name' cannot be null or undefined",
+          'name: Cannot be null or undefined',
         );
       });
 
@@ -3371,7 +3371,7 @@ describe('EntityUtils', () => {
         const json = { name: 123 };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'name' expects a string but received number",
+          'name: Expects a string but received number',
         );
       });
 
@@ -3388,7 +3388,7 @@ describe('EntityUtils', () => {
         const json = { age: 'not a number' };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'age' expects a number but received string",
+          'age: Expects a number but received string',
         );
       });
 
@@ -3405,7 +3405,7 @@ describe('EntityUtils', () => {
         const json = { active: 'true' };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'active' expects a boolean but received string",
+          'active: Expects a boolean but received string',
         );
       });
 
@@ -3422,7 +3422,7 @@ describe('EntityUtils', () => {
         const json = { createdAt: 'not a date' };
 
         expect(() => EntityUtils.parse(Event, json)).toThrow(
-          "Property 'createdAt' cannot parse 'not a date' as Date",
+          "createdAt: Cannot parse 'not a date' as Date",
         );
       });
 
@@ -3439,7 +3439,7 @@ describe('EntityUtils', () => {
         const json = { id: 'not a bigint' };
 
         expect(() => EntityUtils.parse(Data, json)).toThrow(
-          "Property 'id' cannot parse 'not a bigint' as BigInt",
+          "id: Cannot parse 'not a bigint' as BigInt",
         );
       });
 
@@ -3456,7 +3456,7 @@ describe('EntityUtils', () => {
         const json = { tags: 'not an array' };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'tags' expects an array but received string",
+          'tags: Expects an array but received string',
         );
       });
 
@@ -3482,7 +3482,7 @@ describe('EntityUtils', () => {
         const json = { address: 'not an object' };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'address' expects an object but received string",
+          'address: Expects an object but received string',
         );
       });
 
@@ -3499,7 +3499,7 @@ describe('EntityUtils', () => {
         const json = { scores: [95, 'invalid', 92] };
 
         expect(() => EntityUtils.parse(User, json)).toThrow(
-          "Property 'scores[1]' expects a number but received string",
+          'scores[1]: Expects a number but received string',
         );
       });
 
@@ -3847,7 +3847,7 @@ describe('EntityUtils', () => {
         const json = { values: ['a', null, 'b'] };
 
         expect(() => EntityUtils.parse(Data, json)).toThrow(
-          "Property 'values[1]' cannot be null or undefined",
+          'values[1]: Cannot be null or undefined',
         );
       });
     });
@@ -3866,7 +3866,7 @@ describe('EntityUtils', () => {
         const json = { value: 'test' };
 
         expect(() => EntityUtils.parse(Data, json)).toThrow(
-          "Property 'value' has unknown type constructor",
+          'value: Has unknown type constructor',
         );
       });
     });

@@ -1,11 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ENTITY_METADATA_KEY,
+  ENTITY_VALIDATOR_METADATA_KEY,
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
 } from './types.js';
 import { isEqualWith } from 'lodash-es';
+import { ValidationError } from './validation-error.js';
+import { Problem } from './problem.js';
+import {
+  prependPropertyPath,
+  prependArrayIndex,
+  createValidationError,
+  combinePropertyPaths,
+} from './validation-utils.js';
+import {
+  isPrimitiveConstructor,
+  deserializePrimitive,
+} from './primitive-deserializers.js';
+import { ok } from 'assert';
+
+/**
+ * WeakMap to store validation problems for entity instances
+ */
+const problemsStorage = new WeakMap<object, Problem[]>();
+
+/**
+ * WeakMap to store raw input data for entity instances
+ */
+const rawInputStorage = new WeakMap<object, Record<string, unknown>>();
 
 export class EntityUtils {
   /**
@@ -335,6 +359,7 @@ export class EntityUtils {
    *
    * @param entityClass - The entity class constructor. Must accept a data object parameter.
    * @param plainObject - The plain object to deserialize
+   * @param options - Parse options (strict mode)
    * @returns A new instance of the entity with deserialized values
    *
    * @remarks
@@ -347,6 +372,13 @@ export class EntityUtils {
    * - Nested entities are recursively deserialized
    * - Type conversion is strict (no coercion)
    * - Entity constructors must accept a required data parameter
+   *
+   * Validation behavior:
+   * - If strict: true - both HARD and SOFT problems throw ValidationError
+   * - If strict: false (default) - HARD problems throw ValidationError, SOFT problems stored
+   * - Property validators run first, then entity validators
+   * - Problems are accessible via EntityUtils.problems()
+   * - Raw input data is accessible via EntityUtils.getRawInput()
    *
    * @example
    * ```typescript
@@ -362,37 +394,51 @@ export class EntityUtils {
    *
    * const json = { name: 'John', age: 30 };
    * const user = EntityUtils.parse(User, json);
+   * const userStrict = EntityUtils.parse(User, json, { strict: true });
    * ```
    */
   static parse<T extends object>(
     entityClass: new (data: any) => T,
     plainObject: Record<string, unknown>,
+    options?: { strict?: boolean },
   ): T {
+    const strict = options?.strict ?? false;
     const keys = this.getPropertyKeys(entityClass.prototype);
     const data: Record<string, unknown> = {};
+    const hardProblems: Problem[] = [];
 
     for (const key of keys) {
-      const options = this.getPropertyOptions(entityClass.prototype, key);
+      const propertyOptions = this.getPropertyOptions(
+        entityClass.prototype,
+        key,
+      );
 
-      if (!options) {
-        throw new Error(
-          `Property '${key}' has no metadata. This should not happen if @Property() was used correctly.`,
+      if (!propertyOptions) {
+        hardProblems.push(
+          new Problem({
+            property: key,
+            message: `Property has no metadata. This should not happen if @Property() was used correctly.`,
+          }),
         );
+        continue;
       }
 
-      if (options.passthrough === true) {
+      if (propertyOptions.passthrough === true) {
         const value = plainObject[key];
         data[key] = value;
         continue;
       }
 
       const value = plainObject[key];
-      const isOptional = options.optional === true;
+      const isOptional = propertyOptions.optional === true;
 
       if (!(key in plainObject)) {
         if (!isOptional) {
-          throw new Error(
-            `Property '${key}' is required but missing from input`,
+          hardProblems.push(
+            new Problem({
+              property: key,
+              message: 'Required property is missing from input',
+            }),
           );
         }
         continue;
@@ -400,16 +446,55 @@ export class EntityUtils {
 
       if (value === null || value === undefined) {
         if (!isOptional) {
-          throw new Error(`Property '${key}' cannot be null or undefined`);
+          hardProblems.push(
+            new Problem({
+              property: key,
+              message: 'Cannot be null or undefined',
+            }),
+          );
         }
         data[key] = value;
         continue;
       }
 
-      data[key] = this.deserializeValue(value, options, key);
+      try {
+        data[key] = this.deserializeValue(value, propertyOptions);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          const problems = prependPropertyPath(key, error);
+          hardProblems.push(...problems);
+        } else if (error instanceof Error) {
+          hardProblems.push(
+            new Problem({
+              property: key,
+              message: error.message,
+            }),
+          );
+        } else {
+          throw error;
+        }
+      }
     }
 
-    return new entityClass(data as Partial<T>);
+    if (hardProblems.length > 0) {
+      throw new ValidationError(hardProblems);
+    }
+
+    const instance = new entityClass(data);
+
+    rawInputStorage.set(instance, plainObject);
+
+    const problems = this.validate(instance);
+
+    if (problems.length > 0) {
+      if (strict) {
+        throw new ValidationError(problems);
+      } else {
+        problemsStorage.set(instance, problems);
+      }
+    }
+
+    return instance;
   }
 
   /**
@@ -419,7 +504,6 @@ export class EntityUtils {
   private static deserializeValue(
     value: unknown,
     options: PropertyOptions,
-    propertyKey: string,
   ): unknown {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const typeConstructor = options.type!();
@@ -428,124 +512,312 @@ export class EntityUtils {
 
     if (isArray) {
       if (!Array.isArray(value)) {
-        throw new Error(
-          `Property '${propertyKey}' expects an array but received ${typeof value}`,
+        throw createValidationError(
+          `Expects an array but received ${typeof value}`,
         );
       }
 
-      return value.map((item, index) => {
+      const arrayProblems: Problem[] = [];
+      const result: unknown[] = [];
+
+      for (let index = 0; index < value.length; index++) {
+        const item = value[index];
         if (item === null || item === undefined) {
           if (!isSparse) {
-            throw new Error(
-              `Property '${propertyKey}[${index}]' cannot be null or undefined. Use sparse: true to allow null/undefined elements in arrays.`,
+            arrayProblems.push(
+              new Problem({
+                property: `[${index}]`,
+                message: 'Cannot be null or undefined.',
+              }),
             );
           }
-          return item;
+          result.push(item);
+        } else {
+          try {
+            if (options.deserialize) {
+              result.push(options.deserialize(item));
+            } else {
+              result.push(this.deserializeSingleValue(item, typeConstructor));
+            }
+          } catch (error) {
+            if (error instanceof ValidationError) {
+              const problems = prependArrayIndex(index, error);
+              arrayProblems.push(...problems);
+            } else {
+              throw error;
+            }
+          }
         }
-        if (options.deserialize) {
-          return options.deserialize(item);
-        }
-        return this.deserializeSingleValue(
-          item,
-          typeConstructor,
-          `${propertyKey}[${index}]`,
-        );
-      });
+      }
+
+      if (arrayProblems.length > 0) {
+        throw new ValidationError(arrayProblems);
+      }
+
+      return result;
     }
 
     if (options.deserialize) {
       return options.deserialize(value);
     }
 
-    return this.deserializeSingleValue(value, typeConstructor, propertyKey);
+    return this.deserializeSingleValue(value, typeConstructor);
   }
 
   /**
    * Deserializes a single non-array value
+   * Reports validation errors with empty property (caller will prepend context)
    * @private
    */
   private static deserializeSingleValue(
     value: unknown,
     typeConstructor: any,
-    propertyKey: string,
   ): unknown {
-    if (typeConstructor === String) {
-      if (typeof value !== 'string') {
-        throw new Error(
-          `Property '${propertyKey}' expects a string but received ${typeof value}`,
-        );
-      }
-      return value;
-    }
-
-    if (typeConstructor === Number) {
-      if (typeof value !== 'number') {
-        throw new Error(
-          `Property '${propertyKey}' expects a number but received ${typeof value}`,
-        );
-      }
-      return value;
-    }
-
-    if (typeConstructor === Boolean) {
-      if (typeof value !== 'boolean') {
-        throw new Error(
-          `Property '${propertyKey}' expects a boolean but received ${typeof value}`,
-        );
-      }
-      return value;
-    }
-
-    if (typeConstructor === BigInt) {
-      if (typeof value === 'bigint') {
-        return value;
-      }
-      if (typeof value === 'string') {
-        try {
-          return BigInt(value);
-        } catch {
-          throw new Error(
-            `Property '${propertyKey}' cannot parse '${value}' as BigInt`,
-          );
-        }
-      }
-      throw new Error(
-        `Property '${propertyKey}' expects a bigint or string but received ${typeof value}`,
-      );
-    }
-
-    if (typeConstructor === Date) {
-      if (value instanceof Date) {
-        return value;
-      }
-      if (typeof value === 'string') {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-          throw new Error(
-            `Property '${propertyKey}' cannot parse '${value}' as Date`,
-          );
-        }
-        return date;
-      }
-      throw new Error(
-        `Property '${propertyKey}' expects a Date or ISO string but received ${typeof value}`,
-      );
+    if (isPrimitiveConstructor(typeConstructor)) {
+      return deserializePrimitive(value, typeConstructor);
     }
 
     if (this.isEntity(typeConstructor)) {
       if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw new Error(
-          `Property '${propertyKey}' expects an object but received ${typeof value}`,
+        throw createValidationError(
+          `Expects an object but received ${typeof value}`,
         );
       }
+
       return this.parse(
         typeConstructor as new (data: any) => object,
         value as Record<string, unknown>,
       );
     }
 
-    throw new Error(
-      `Property '${propertyKey}' has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, and @Entity() classes. Use passthrough: true to explicitly allow unknown types.`,
+    throw createValidationError(
+      `Has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, and @Entity() classes. Use passthrough: true to explicitly allow unknown types.`,
     );
+  }
+
+  /**
+   * Validates a property value by running validators and nested entity validation.
+   * Prepends the property path to all returned problems.
+   * @private
+   */
+  private static validatePropertyValue(
+    propertyPath: string,
+    value: unknown,
+    validators: PropertyOptions['validators'],
+  ): Problem[] {
+    const problems: Problem[] = [];
+
+    if (validators) {
+      for (const validator of validators) {
+        const validatorProblems = validator({ value });
+        // Prepend propertyPath to all problems
+        for (const problem of validatorProblems) {
+          problems.push(
+            new Problem({
+              property: combinePropertyPaths(propertyPath, problem.property),
+              message: problem.message,
+            }),
+          );
+        }
+      }
+    }
+
+    if (EntityUtils.isEntity(value)) {
+      const nestedProblems = EntityUtils.validate(value);
+      const prependedProblems = prependPropertyPath(
+        propertyPath,
+        new ValidationError(nestedProblems),
+      );
+      problems.push(...prependedProblems);
+    }
+
+    return problems;
+  }
+
+  /**
+   * Runs property validators for a given property value
+   * @private
+   */
+  private static runPropertyValidators(
+    key: string,
+    value: unknown,
+    options: PropertyOptions,
+  ): Problem[] {
+    const problems: Problem[] = [];
+    const isArray = options?.array === true;
+    const isPassthrough = options?.passthrough === true;
+
+    if (isPassthrough || !isArray) {
+      const valueProblems = this.validatePropertyValue(
+        key,
+        value,
+        options.validators,
+      );
+      problems.push(...valueProblems);
+    } else {
+      ok(Array.isArray(value), 'Value must be an array for array property');
+
+      const arrayValidators = options.arrayValidators || [];
+      for (const validator of arrayValidators) {
+        const validatorProblems = validator({ value });
+        for (const problem of validatorProblems) {
+          problems.push(
+            new Problem({
+              property: combinePropertyPaths(key, problem.property),
+              message: problem.message,
+            }),
+          );
+        }
+      }
+
+      const validators = options.validators || [];
+      if (validators.length > 0) {
+        for (let i = 0; i < value.length; i++) {
+          const element = value[i];
+          if (element !== null && element !== undefined) {
+            const elementPath = `${key}[${i}]`;
+            const elementProblems = this.validatePropertyValue(
+              elementPath,
+              element,
+              validators,
+            );
+            problems.push(...elementProblems);
+          }
+        }
+      }
+    }
+
+    return problems;
+  }
+
+  /**
+   * Validates an entity instance by running all property and entity validators
+   *
+   * @param instance - The entity instance to validate
+   * @returns Array of Problems found during validation (empty if valid)
+   *
+   * @remarks
+   * - Property validators run first, then entity validators
+   * - Each validator returns an array of Problems
+   * - Empty array means no problems found
+   *
+   * @example
+   * ```typescript
+   * const user = new User({ name: '', age: -5 });
+   * const problems = EntityUtils.validate(user);
+   * console.log(problems); // [Problem, Problem, ...]
+   * ```
+   */
+  static validate<T extends object>(instance: T): Problem[] {
+    if (!this.isEntity(instance)) {
+      throw new Error('Cannot validate non-entity instance');
+    }
+
+    const problems: Problem[] = [];
+
+    const keys = this.getPropertyKeys(instance);
+    for (const key of keys) {
+      const options = this.getPropertyOptions(instance, key);
+      if (options) {
+        const value = (instance as any)[key];
+        if (value != null) {
+          const validationProblems = this.runPropertyValidators(
+            key,
+            value,
+            options,
+          );
+          problems.push(...validationProblems);
+        }
+      }
+    }
+
+    const entityValidators = this.getEntityValidators(instance);
+    for (const validatorMethod of entityValidators) {
+      const validatorProblems = (instance as any)[validatorMethod]();
+      if (Array.isArray(validatorProblems)) {
+        problems.push(...validatorProblems);
+      }
+    }
+
+    return problems;
+  }
+
+  /**
+   * Gets the validation problems for an entity instance
+   *
+   * @param instance - The entity instance
+   * @returns Array of Problems (empty if no problems or instance not parsed)
+   *
+   * @remarks
+   * - Only returns problems from the last parse() call
+   * - Returns empty array if instance was not created via parse()
+   * - Returns empty array if parse() was called with strict: true
+   *
+   * @example
+   * ```typescript
+   * const user = EntityUtils.parse(User, data);
+   * const problems = EntityUtils.problems(user);
+   * console.log(problems); // [Problem, ...]
+   * ```
+   */
+  static problems<T extends object>(instance: T): Problem[] {
+    return problemsStorage.get(instance) || [];
+  }
+
+  /**
+   * Gets the raw input data that was used to create an entity instance
+   *
+   * @param instance - The entity instance
+   * @returns The raw input object, or undefined if not available
+   *
+   * @remarks
+   * - Only available for instances created via parse()
+   * - Returns a reference to the original input data (not a copy)
+   *
+   * @example
+   * ```typescript
+   * const user = EntityUtils.parse(User, { name: 'John', age: 30 });
+   * const rawInput = EntityUtils.getRawInput(user);
+   * console.log(rawInput); // { name: 'John', age: 30 }
+   * ```
+   */
+  static getRawInput<T extends object>(
+    instance: T,
+  ): Record<string, unknown> | undefined {
+    return rawInputStorage.get(instance);
+  }
+
+  /**
+   * Gets all entity validator method names for an entity
+   * @private
+   */
+  private static getEntityValidators(target: object): string[] {
+    let currentProto: any;
+
+    if (target.constructor && target === target.constructor.prototype) {
+      currentProto = target;
+    } else {
+      currentProto = Object.getPrototypeOf(target);
+    }
+
+    const validators: string[] = [];
+    const seen = new Set<string>();
+
+    while (currentProto && currentProto !== Object.prototype) {
+      const protoValidators: string[] =
+        Reflect.getOwnMetadata(ENTITY_VALIDATOR_METADATA_KEY, currentProto) ||
+        [];
+
+      for (const validator of protoValidators) {
+        if (!seen.has(validator)) {
+          seen.add(validator);
+          validators.push(validator);
+        }
+      }
+
+      currentProto = Object.getPrototypeOf(currentProto);
+    }
+
+    return validators;
   }
 }

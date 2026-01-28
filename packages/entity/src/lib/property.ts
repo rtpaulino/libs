@@ -77,6 +77,12 @@ export function Property<T, C extends CtorLike<T>>(
       );
     }
 
+    if (options.arrayValidators && options.array !== true) {
+      throw new Error(
+        `Property '${propertyKey}' has arrayValidators defined but array is not true. The arrayValidators option only applies to arrays.`,
+      );
+    }
+
     // Validate serialize/deserialize pairing
     const hasSerialize = options.serialize !== undefined;
     const hasDeserialize = options.deserialize !== undefined;
