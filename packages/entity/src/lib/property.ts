@@ -9,7 +9,17 @@ import {
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
 } from './types.js';
-import { enumValidator, intValidator } from './validators.js';
+import {
+  enumValidator,
+  intValidator,
+  minLengthValidator,
+  maxLengthValidator,
+  patternValidator,
+  minValidator,
+  maxValidator,
+  arrayMinLengthValidator,
+  arrayMaxLengthValidator,
+} from './validators.js';
 
 /**
  * Property decorator that marks class properties with metadata.
@@ -117,12 +127,45 @@ export function Property<T, C extends CtorLike<T>>(
  *
  *   @StringProperty({ optional: true })
  *   nickname?: string;
+ *
+ *   @StringProperty({ minLength: 3, maxLength: 50 })
+ *   username!: string;
+ *
+ *   @StringProperty({ pattern: /^[a-z]+$/ })
+ *   slug!: string;
  * }
  */
 export function StringProperty(
-  options?: Omit<PropertyOptions<string, StringConstructor>, 'type'>,
+  options?: Omit<PropertyOptions<string, StringConstructor>, 'type'> & {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    patternMessage?: string;
+  },
 ): PropertyDecorator {
-  return Property({ ...options, type: () => String });
+  const validators = [...(options?.validators || [])];
+
+  if (options?.minLength !== undefined) {
+    validators.unshift(minLengthValidator(options.minLength));
+  }
+  if (options?.maxLength !== undefined) {
+    validators.unshift(maxLengthValidator(options.maxLength));
+  }
+  if (options?.pattern !== undefined) {
+    validators.unshift(
+      patternValidator(options.pattern, options.patternMessage),
+    );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { minLength, maxLength, pattern, patternMessage, ...restOptions } =
+    options || {};
+
+  return Property({
+    ...restOptions,
+    type: () => String,
+    validators: validators.length > 0 ? validators : undefined,
+  });
 }
 
 /**
@@ -164,12 +207,34 @@ export function EnumProperty<T extends Record<string, string>>(
  *
  *   @NumberProperty({ optional: true })
  *   score?: number;
+ *
+ *   @NumberProperty({ min: 0, max: 100 })
+ *   percentage!: number;
  * }
  */
 export function NumberProperty(
-  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'>,
+  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
+    min?: number;
+    max?: number;
+  },
 ): PropertyDecorator {
-  return Property({ ...options, type: () => Number });
+  const validators = [...(options?.validators || [])];
+
+  if (options?.min !== undefined) {
+    validators.unshift(minValidator(options.min));
+  }
+  if (options?.max !== undefined) {
+    validators.unshift(maxValidator(options.max));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { min, max, ...restOptions } = options || {};
+
+  return Property({
+    ...restOptions,
+    type: () => Number,
+    validators: validators.length > 0 ? validators : undefined,
+  });
 }
 
 /**
@@ -281,13 +346,36 @@ export function EntityProperty<
  *
  *   @ArrayProperty(() => String, { sparse: true })
  *   sparseList!: (string | null)[];
+ *
+ *   @ArrayProperty(() => String, { minLength: 1, maxLength: 10 })
+ *   limitedList!: string[];
  * }
  */
 export function ArrayProperty<T, C extends CtorLike<T>>(
   type: () => C,
-  options?: Omit<PropertyOptions<T, C>, 'type' | 'array'>,
+  options?: Omit<PropertyOptions<T, C>, 'type' | 'array'> & {
+    minLength?: number;
+    maxLength?: number;
+  },
 ): PropertyDecorator {
-  return Property({ ...options, type, array: true });
+  const arrayValidators = [...(options?.arrayValidators || [])];
+
+  if (options?.minLength !== undefined) {
+    arrayValidators.unshift(arrayMinLengthValidator(options.minLength));
+  }
+  if (options?.maxLength !== undefined) {
+    arrayValidators.unshift(arrayMaxLengthValidator(options.maxLength));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { minLength, maxLength, ...restOptions } = options || {};
+
+  return Property({
+    ...restOptions,
+    type,
+    array: true,
+    arrayValidators: arrayValidators.length > 0 ? arrayValidators : undefined,
+  });
 }
 
 /**

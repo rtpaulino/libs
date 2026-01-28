@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import 'reflect-metadata';
 import { describe, it, expect } from 'vitest';
-import { StringifiableProperty, SerializableProperty } from './property.js';
+import {
+  StringifiableProperty,
+  SerializableProperty,
+  StringProperty,
+  NumberProperty,
+  ArrayProperty,
+} from './property.js';
 import {
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
@@ -498,5 +504,231 @@ describe('SerializableProperty', () => {
     );
 
     expect(options['permission'].optional).toBe(true);
+  });
+});
+
+describe('Property validation options', () => {
+  describe('StringProperty validation options', () => {
+    it('should add minLength validator', () => {
+      class User {
+        @StringProperty({ minLength: 3 })
+        name!: string;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['name'].validators).toBeDefined();
+      expect(options['name'].validators).toHaveLength(1);
+    });
+
+    it('should add maxLength validator', () => {
+      class User {
+        @StringProperty({ maxLength: 50 })
+        name!: string;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['name'].validators).toBeDefined();
+      expect(options['name'].validators).toHaveLength(1);
+    });
+
+    it('should add pattern validator', () => {
+      class User {
+        @StringProperty({ pattern: /^[a-z]+$/ })
+        slug!: string;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['slug'].validators).toBeDefined();
+      expect(options['slug'].validators).toHaveLength(1);
+    });
+
+    it('should combine multiple validators', () => {
+      class User {
+        @StringProperty({ minLength: 3, maxLength: 50, pattern: /^[a-z]+$/ })
+        username!: string;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['username'].validators).toBeDefined();
+      expect(options['username'].validators).toHaveLength(3);
+    });
+
+    it('should preserve existing validators', () => {
+      const customValidator = () => [];
+
+      class User {
+        @StringProperty({ minLength: 3, validators: [customValidator] })
+        name!: string;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['name'].validators).toBeDefined();
+      expect(options['name'].validators).toHaveLength(2);
+    });
+  });
+
+  describe('NumberProperty validation options', () => {
+    it('should add min validator', () => {
+      class Product {
+        @NumberProperty({ min: 0 })
+        price!: number;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        Product.prototype,
+      );
+
+      expect(options['price'].validators).toBeDefined();
+      expect(options['price'].validators).toHaveLength(1);
+    });
+
+    it('should add max validator', () => {
+      class Product {
+        @NumberProperty({ max: 100 })
+        discount!: number;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        Product.prototype,
+      );
+
+      expect(options['discount'].validators).toBeDefined();
+      expect(options['discount'].validators).toHaveLength(1);
+    });
+
+    it('should combine min and max validators', () => {
+      class Product {
+        @NumberProperty({ min: 0, max: 100 })
+        percentage!: number;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        Product.prototype,
+      );
+
+      expect(options['percentage'].validators).toBeDefined();
+      expect(options['percentage'].validators).toHaveLength(2);
+    });
+
+    it('should preserve existing validators', () => {
+      const customValidator = () => [];
+
+      class Product {
+        @NumberProperty({ min: 0, validators: [customValidator] })
+        price!: number;
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        Product.prototype,
+      );
+
+      expect(options['price'].validators).toBeDefined();
+      expect(options['price'].validators).toHaveLength(2);
+    });
+  });
+
+  describe('ArrayProperty validation options', () => {
+    it('should add minLength validator', () => {
+      class User {
+        @ArrayProperty(() => String, { minLength: 1 })
+        tags!: string[];
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['tags'].arrayValidators).toBeDefined();
+      expect(options['tags'].arrayValidators).toHaveLength(1);
+    });
+
+    it('should add maxLength validator', () => {
+      class User {
+        @ArrayProperty(() => String, { maxLength: 10 })
+        tags!: string[];
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['tags'].arrayValidators).toBeDefined();
+      expect(options['tags'].arrayValidators).toHaveLength(1);
+    });
+
+    it('should combine minLength and maxLength validators', () => {
+      class User {
+        @ArrayProperty(() => String, { minLength: 1, maxLength: 10 })
+        tags!: string[];
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['tags'].arrayValidators).toBeDefined();
+      expect(options['tags'].arrayValidators).toHaveLength(2);
+    });
+
+    it('should preserve existing arrayValidators', () => {
+      const customValidator = () => [];
+
+      class User {
+        @ArrayProperty(() => String, {
+          minLength: 1,
+          arrayValidators: [customValidator],
+        })
+        tags!: string[];
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['tags'].arrayValidators).toBeDefined();
+      expect(options['tags'].arrayValidators).toHaveLength(2);
+    });
+
+    it('should set array option to true', () => {
+      class User {
+        @ArrayProperty(() => Number, { minLength: 1 })
+        scores!: number[];
+      }
+
+      const options: Record<string, AnyPropertyOptions> = Reflect.getMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        User.prototype,
+      );
+
+      expect(options['scores'].array).toBe(true);
+    });
   });
 });
