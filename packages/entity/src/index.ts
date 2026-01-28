@@ -9,3 +9,4 @@ export * from './lib/problem.js';
 export * from './lib/validation-utils.js';
 export * from './lib/primitive-deserializers.js';
 export * from './lib/validators.js';
+export * from './lib/zod-property.js';
