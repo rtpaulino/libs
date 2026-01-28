@@ -1,3 +1,13 @@
+## 0.16.0 (2026-01-28)
+
+### 🚀 Features
+
+- add ZodProperty decorator for schema validation and introduce zod-property tests ([ac0b07e](https://github.com/rtpaulino/libs/commit/ac0b07e))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.15.0 (2026-01-28)
 
 ### 🚀 Features
