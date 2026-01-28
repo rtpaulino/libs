@@ -2176,7 +2176,7 @@ describe('EntityUtils', () => {
         });
       });
 
-      it('should use custom deserialize function for symmetric round-trip', () => {
+      it('should use custom deserialize function for symmetric round-trip', async () => {
         class CustomObject {
           constructor(
             public value: string,
@@ -2208,14 +2208,14 @@ describe('EntityUtils', () => {
         });
 
         const json = EntityUtils.toJSON(original);
-        const parsed = EntityUtils.parse(User, json);
+        const parsed = await EntityUtils.parse(User, json);
 
         expect(parsed.name).toBe('John');
         expect(parsed.data).toBeInstanceOf(CustomObject);
         expect(parsed.data.value).toBe('hello');
       });
 
-      it('should handle custom serialize/deserialize in arrays', () => {
+      it('should handle custom serialize/deserialize in arrays', async () => {
         class CustomObject {
           constructor(public value: string) {}
         }
@@ -2245,7 +2245,7 @@ describe('EntityUtils', () => {
           items: [{ transformed: 'HELLO' }, { transformed: 'WORLD' }],
         });
 
-        const parsed = EntityUtils.parse(Container, json);
+        const parsed = await EntityUtils.parse(Container, json);
         expect(parsed.items).toHaveLength(2);
         expect(parsed.items[0]).toBeInstanceOf(CustomObject);
         expect(parsed.items[0].value).toBe('HELLO');
@@ -2279,7 +2279,7 @@ describe('EntityUtils', () => {
         }).toThrow(/must define both serialize and deserialize/);
       });
 
-      it('should not use serialize/deserialize when passthrough is true', () => {
+      it('should not use serialize/deserialize when passthrough is true', async () => {
         @Entity()
         class User {
           @Property({
@@ -2298,7 +2298,7 @@ describe('EntityUtils', () => {
         const json = EntityUtils.toJSON(user);
         expect(json.metadata).toEqual({ nested: { data: 'value' } });
 
-        const parsed = EntityUtils.parse(User, json);
+        const parsed = await EntityUtils.parse(User, json);
         expect(parsed.metadata).toEqual({ nested: { data: 'value' } });
       });
 
@@ -2338,7 +2338,7 @@ describe('EntityUtils', () => {
         );
       });
 
-      it('should handle complex transformations with nested data', () => {
+      it('should handle complex transformations with nested data', async () => {
         class Point {
           constructor(
             public x: number,
@@ -2374,7 +2374,7 @@ describe('EntityUtils', () => {
           position: '10,20',
         });
 
-        const parsed = EntityUtils.parse(Shape, json);
+        const parsed = await EntityUtils.parse(Shape, json);
         expect(parsed.position).toBeInstanceOf(Point);
         expect(parsed.position.x).toBe(10);
         expect(parsed.position.y).toBe(20);
@@ -2613,7 +2613,7 @@ describe('EntityUtils', () => {
 
   describe('parse', () => {
     describe('primitives', () => {
-      it('should parse string properties', () => {
+      it('should parse string properties', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -2625,13 +2625,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user).toBeInstanceOf(User);
         expect(user.name).toBe('John');
       });
 
-      it('should parse number properties', () => {
+      it('should parse number properties', async () => {
         @Entity()
         class User {
           @Property({ type: () => Number })
@@ -2643,13 +2643,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { age: 30 };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user).toBeInstanceOf(User);
         expect(user.age).toBe(30);
       });
 
-      it('should parse boolean properties', () => {
+      it('should parse boolean properties', async () => {
         @Entity()
         class User {
           @Property({ type: () => Boolean })
@@ -2661,13 +2661,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { active: true };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user).toBeInstanceOf(User);
         expect(user.active).toBe(true);
       });
 
-      it('should parse multiple primitive properties', () => {
+      it('should parse multiple primitive properties', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -2685,7 +2685,7 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John', age: 30, active: true };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.age).toBe(30);
@@ -2694,7 +2694,7 @@ describe('EntityUtils', () => {
     });
 
     describe('Date and BigInt', () => {
-      it('should parse Date from ISO string', () => {
+      it('should parse Date from ISO string', async () => {
         @Entity()
         class Event {
           @Property({ type: () => Date })
@@ -2706,13 +2706,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { createdAt: '2024-01-01T12:00:00.000Z' };
-        const event = EntityUtils.parse(Event, json);
+        const event = await EntityUtils.parse(Event, json);
 
         expect(event.createdAt).toBeInstanceOf(Date);
         expect(event.createdAt.toISOString()).toBe('2024-01-01T12:00:00.000Z');
       });
 
-      it('should parse Date from Date object', () => {
+      it('should parse Date from Date object', async () => {
         @Entity()
         class Event {
           @Property({ type: () => Date })
@@ -2725,12 +2725,12 @@ describe('EntityUtils', () => {
 
         const date = new Date('2024-01-01T12:00:00.000Z');
         const json = { createdAt: date };
-        const event = EntityUtils.parse(Event, json);
+        const event = await EntityUtils.parse(Event, json);
 
         expect(event.createdAt).toBe(date);
       });
 
-      it('should parse BigInt from string', () => {
+      it('should parse BigInt from string', async () => {
         @Entity()
         class Data {
           @Property({ type: () => BigInt })
@@ -2742,12 +2742,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { id: '12345678901234567890' };
-        const data = EntityUtils.parse(Data, json);
+        const data = await EntityUtils.parse(Data, json);
 
         expect(data.id).toBe(BigInt('12345678901234567890'));
       });
 
-      it('should parse BigInt from bigint', () => {
+      it('should parse BigInt from bigint', async () => {
         @Entity()
         class Data {
           @Property({ type: () => BigInt })
@@ -2759,14 +2759,14 @@ describe('EntityUtils', () => {
         }
 
         const json = { id: BigInt(123) };
-        const data = EntityUtils.parse(Data, json);
+        const data = await EntityUtils.parse(Data, json);
 
         expect(data.id).toBe(BigInt(123));
       });
     });
 
     describe('nested entities', () => {
-      it('should parse nested entities', () => {
+      it('should parse nested entities', async () => {
         @Entity()
         class Address {
           @Property({ type: () => String })
@@ -2801,7 +2801,7 @@ describe('EntityUtils', () => {
           },
         };
 
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.address).toBeInstanceOf(Address);
@@ -2809,7 +2809,7 @@ describe('EntityUtils', () => {
         expect(user.address.city).toBe('Boston');
       });
 
-      it('should parse deeply nested entities', () => {
+      it('should parse deeply nested entities', async () => {
         @Entity()
         class Country {
           @Property({ type: () => String })
@@ -2856,7 +2856,7 @@ describe('EntityUtils', () => {
           },
         };
 
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.address.country).toBeInstanceOf(Country);
         expect(user.address.country.name).toBe('USA');
@@ -2864,7 +2864,7 @@ describe('EntityUtils', () => {
     });
 
     describe('arrays', () => {
-      it('should parse arrays of primitives', () => {
+      it('should parse arrays of primitives', async () => {
         @Entity()
         class User {
           @Property({ type: () => String, array: true })
@@ -2875,13 +2875,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { tags: ['developer', 'typescript'] };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(Array.isArray(user.tags)).toBe(true);
         expect(user.tags).toEqual(['developer', 'typescript']);
       });
 
-      it('should parse arrays of numbers', () => {
+      it('should parse arrays of numbers', async () => {
         @Entity()
         class Data {
           @Property({ type: () => Number, array: true })
@@ -2892,12 +2892,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { scores: [95, 87, 92] };
-        const data = EntityUtils.parse(Data, json);
+        const data = await EntityUtils.parse(Data, json);
 
         expect(data.scores).toEqual([95, 87, 92]);
       });
 
-      it('should parse arrays of entities', () => {
+      it('should parse arrays of entities', async () => {
         @Entity()
         class Phone {
           @Property({ type: () => String })
@@ -2920,7 +2920,7 @@ describe('EntityUtils', () => {
           phones: [{ number: '555-0001' }, { number: '555-0002' }],
         };
 
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.phones).toHaveLength(2);
         expect(user.phones[0]).toBeInstanceOf(Phone);
@@ -2929,7 +2929,7 @@ describe('EntityUtils', () => {
         expect(user.phones[1].number).toBe('555-0002');
       });
 
-      it('should parse empty arrays', () => {
+      it('should parse empty arrays', async () => {
         @Entity()
         class User {
           @Property({ type: () => String, array: true })
@@ -2940,12 +2940,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { tags: [] };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.tags).toEqual([]);
       });
 
-      it('should reject null/undefined elements in non-sparse arrays', () => {
+      it('should reject null/undefined elements in non-sparse arrays', async () => {
         @Entity()
         class Data {
           @Property({ type: () => String, array: true })
@@ -2957,12 +2957,12 @@ describe('EntityUtils', () => {
 
         const json = { values: ['a', null, 'b'] };
 
-        expect(() => EntityUtils.parse(Data, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
           'values[1]: Cannot be null or undefined',
         );
       });
 
-      it('should reject undefined elements in non-sparse arrays', () => {
+      it('should reject undefined elements in non-sparse arrays', async () => {
         @Entity()
         class Data {
           @Property({ type: () => String, array: true })
@@ -2974,12 +2974,12 @@ describe('EntityUtils', () => {
 
         const json = { values: ['a', undefined, 'b'] };
 
-        expect(() => EntityUtils.parse(Data, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
           'values[1]: Cannot be null or undefined',
         );
       });
 
-      it('should allow null/undefined elements in sparse arrays', () => {
+      it('should allow null/undefined elements in sparse arrays', async () => {
         @Entity()
         class Data {
           @Property({ type: () => String, array: true, sparse: true })
@@ -2990,14 +2990,14 @@ describe('EntityUtils', () => {
         }
 
         const json = { values: ['a', null, 'b', undefined] };
-        const data = EntityUtils.parse(Data, json);
+        const data = await EntityUtils.parse(Data, json);
 
         expect(data.values).toEqual(['a', null, 'b', undefined]);
       });
     });
 
     describe('optional properties', () => {
-      it('should allow optional properties to be undefined', () => {
+      it('should allow optional properties to be undefined', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3011,13 +3011,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.nickname).toBeUndefined();
       });
 
-      it('should allow optional properties to be null', () => {
+      it('should allow optional properties to be null', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3031,13 +3031,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John', email: null };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.email).toBeNull();
       });
 
-      it('should parse optional properties when present', () => {
+      it('should parse optional properties when present', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3051,13 +3051,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John', nickname: 'Johnny' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.nickname).toBe('Johnny');
       });
 
-      it('should handle optional nested entities', () => {
+      it('should handle optional nested entities', async () => {
         @Entity()
         class Address {
           @Property({ type: () => String })
@@ -3080,13 +3080,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.address).toBeUndefined();
       });
 
-      it('should handle optional arrays', () => {
+      it('should handle optional arrays', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3100,7 +3100,7 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.tags).toBeUndefined();
@@ -3108,7 +3108,7 @@ describe('EntityUtils', () => {
     });
 
     describe('inheritance', () => {
-      it('should parse properties from parent and child classes', () => {
+      it('should parse properties from parent and child classes', async () => {
         @Entity()
         class BaseEntity {
           @Property({ type: () => Number })
@@ -3129,13 +3129,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { id: 1, name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.id).toBe(1);
         expect(user.name).toBe('John');
       });
 
-      it('should parse multi-level inheritance', () => {
+      it('should parse multi-level inheritance', async () => {
         @Entity()
         class BaseEntity {
           @Property({ type: () => Number })
@@ -3171,7 +3171,7 @@ describe('EntityUtils', () => {
           name: 'John',
         };
 
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.id).toBe(1);
         expect(user.createdAt).toBeInstanceOf(Date);
@@ -3180,7 +3180,7 @@ describe('EntityUtils', () => {
     });
 
     describe('round-trip serialization', () => {
-      it('should round-trip simple entities', () => {
+      it('should round-trip simple entities', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3196,12 +3196,12 @@ describe('EntityUtils', () => {
         const original = new User({ name: 'John', age: 30 });
 
         const json = EntityUtils.toJSON(original);
-        const parsed = EntityUtils.parse(User, json);
+        const parsed = await EntityUtils.parse(User, json);
 
         expect(EntityUtils.equals(original, parsed)).toBe(true);
       });
 
-      it('should round-trip entities with nested entities', () => {
+      it('should round-trip entities with nested entities', async () => {
         @Entity()
         class Address {
           @Property({ type: () => String })
@@ -3231,12 +3231,12 @@ describe('EntityUtils', () => {
         const original = new User({ name: 'John', address: address });
 
         const json = EntityUtils.toJSON(original);
-        const parsed = EntityUtils.parse(User, json);
+        const parsed = await EntityUtils.parse(User, json);
 
         expect(EntityUtils.equals(original, parsed)).toBe(true);
       });
 
-      it('should round-trip entities with arrays', () => {
+      it('should round-trip entities with arrays', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3255,12 +3255,12 @@ describe('EntityUtils', () => {
         });
 
         const json = EntityUtils.toJSON(original);
-        const parsed = EntityUtils.parse(User, json);
+        const parsed = await EntityUtils.parse(User, json);
 
         expect(EntityUtils.equals(original, parsed)).toBe(true);
       });
 
-      it('should round-trip entities with Dates and BigInts', () => {
+      it('should round-trip entities with Dates and BigInts', async () => {
         @Entity()
         class Data {
           @Property({ type: () => BigInt })
@@ -3279,7 +3279,7 @@ describe('EntityUtils', () => {
         });
 
         const json = EntityUtils.toJSON(original);
-        const parsed = EntityUtils.parse(Data, json);
+        const parsed = await EntityUtils.parse(Data, json);
 
         expect(parsed.id).toBe(original.id);
         expect(parsed.createdAt.getTime()).toBe(original.createdAt.getTime());
@@ -3287,7 +3287,7 @@ describe('EntityUtils', () => {
     });
 
     describe('error handling', () => {
-      it('should throw error when property metadata is missing', () => {
+      it('should throw error when property metadata is missing', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3298,13 +3298,13 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         // This test now verifies that with proper metadata, parsing works
         expect(user.name).toBe('John');
       });
 
-      it('should throw error when required property is missing', () => {
+      it('should throw error when required property is missing', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3319,12 +3319,12 @@ describe('EntityUtils', () => {
 
         const json = { name: 'John' };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'age: Required property is missing from input',
         );
       });
 
-      it('should throw error when required property is null', () => {
+      it('should throw error when required property is null', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3336,12 +3336,12 @@ describe('EntityUtils', () => {
 
         const json = { name: null };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'name: Cannot be null or undefined',
         );
       });
 
-      it('should throw error when required property is undefined', () => {
+      it('should throw error when required property is undefined', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3353,12 +3353,12 @@ describe('EntityUtils', () => {
 
         const json = { name: undefined };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'name: Cannot be null or undefined',
         );
       });
 
-      it('should throw error for type mismatch on string', () => {
+      it('should throw error for type mismatch on string', async () => {
         @Entity()
         class User {
           @Property({ type: () => String })
@@ -3370,12 +3370,12 @@ describe('EntityUtils', () => {
 
         const json = { name: 123 };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'name: Expects a string but received number',
         );
       });
 
-      it('should throw error for type mismatch on number', () => {
+      it('should throw error for type mismatch on number', async () => {
         @Entity()
         class User {
           @Property({ type: () => Number })
@@ -3387,12 +3387,12 @@ describe('EntityUtils', () => {
 
         const json = { age: 'not a number' };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'age: Expects a number but received string',
         );
       });
 
-      it('should throw error for type mismatch on boolean', () => {
+      it('should throw error for type mismatch on boolean', async () => {
         @Entity()
         class User {
           @Property({ type: () => Boolean })
@@ -3404,12 +3404,12 @@ describe('EntityUtils', () => {
 
         const json = { active: 'true' };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'active: Expects a boolean but received string',
         );
       });
 
-      it('should throw error for invalid Date string', () => {
+      it('should throw error for invalid Date string', async () => {
         @Entity()
         class Event {
           @Property({ type: () => Date })
@@ -3421,12 +3421,12 @@ describe('EntityUtils', () => {
 
         const json = { createdAt: 'not a date' };
 
-        expect(() => EntityUtils.parse(Event, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(Event, json)).rejects.toThrow(
           "createdAt: Cannot parse 'not a date' as Date",
         );
       });
 
-      it('should throw error for invalid BigInt string', () => {
+      it('should throw error for invalid BigInt string', async () => {
         @Entity()
         class Data {
           @Property({ type: () => BigInt })
@@ -3438,12 +3438,12 @@ describe('EntityUtils', () => {
 
         const json = { id: 'not a bigint' };
 
-        expect(() => EntityUtils.parse(Data, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
           "id: Cannot parse 'not a bigint' as BigInt",
         );
       });
 
-      it('should throw error when array expected but not received', () => {
+      it('should throw error when array expected but not received', async () => {
         @Entity()
         class User {
           @Property({ type: () => String, array: true })
@@ -3455,12 +3455,12 @@ describe('EntityUtils', () => {
 
         const json = { tags: 'not an array' };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'tags: Expects an array but received string',
         );
       });
 
-      it('should throw error for nested entity type mismatch', () => {
+      it('should throw error for nested entity type mismatch', async () => {
         @Entity()
         class Address {
           @Property({ type: () => String })
@@ -3481,12 +3481,12 @@ describe('EntityUtils', () => {
 
         const json = { address: 'not an object' };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'address: Expects an object but received string',
         );
       });
 
-      it('should throw error with correct property path in array', () => {
+      it('should throw error with correct property path in array', async () => {
         @Entity()
         class User {
           @Property({ type: () => Number, array: true })
@@ -3498,7 +3498,7 @@ describe('EntityUtils', () => {
 
         const json = { scores: [95, 'invalid', 92] };
 
-        expect(() => EntityUtils.parse(User, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(User, json)).rejects.toThrow(
           'scores[1]: Expects a number but received string',
         );
       });
@@ -3575,7 +3575,7 @@ describe('EntityUtils', () => {
         });
       });
 
-      it('should work with PassthroughProperty for deserialization', () => {
+      it('should work with PassthroughProperty for deserialization', async () => {
         @Entity()
         class Config {
           @StringProperty()
@@ -3596,7 +3596,7 @@ describe('EntityUtils', () => {
           metadata: { custom: 'value', nested: { data: 123 } },
         };
 
-        const config = EntityUtils.parse(Config, json);
+        const config = await EntityUtils.parse(Config, json);
 
         expect(config.name).toBe('test');
         expect(config.metadata).toEqual({
@@ -3605,7 +3605,7 @@ describe('EntityUtils', () => {
         });
       });
 
-      it('should round-trip with PassthroughProperty', () => {
+      it('should round-trip with PassthroughProperty', async () => {
         @Entity()
         class Config {
           @StringProperty()
@@ -3627,7 +3627,7 @@ describe('EntityUtils', () => {
         });
 
         const json = EntityUtils.toJSON(original);
-        const parsed = EntityUtils.parse(Config, json);
+        const parsed = await EntityUtils.parse(Config, json);
 
         expect(parsed.name).toBe(original.name);
         expect(parsed.data).toEqual(original.data);
@@ -3635,7 +3635,7 @@ describe('EntityUtils', () => {
     });
 
     describe('helper decorators', () => {
-      it('should work with StringProperty', () => {
+      it('should work with StringProperty', async () => {
         @Entity()
         class User {
           @StringProperty()
@@ -3646,12 +3646,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
       });
 
-      it('should work with NumberProperty', () => {
+      it('should work with NumberProperty', async () => {
         @Entity()
         class User {
           @NumberProperty()
@@ -3662,12 +3662,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { age: 30 };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.age).toBe(30);
       });
 
-      it('should work with BooleanProperty', () => {
+      it('should work with BooleanProperty', async () => {
         @Entity()
         class User {
           @BooleanProperty()
@@ -3678,12 +3678,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { active: true };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.active).toBe(true);
       });
 
-      it('should work with DateProperty', () => {
+      it('should work with DateProperty', async () => {
         @Entity()
         class Event {
           @DateProperty()
@@ -3694,12 +3694,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { createdAt: '2024-01-01T00:00:00.000Z' };
-        const event = EntityUtils.parse(Event, json);
+        const event = await EntityUtils.parse(Event, json);
 
         expect(event.createdAt).toBeInstanceOf(Date);
       });
 
-      it('should work with BigIntProperty', () => {
+      it('should work with BigIntProperty', async () => {
         @Entity()
         class Data {
           @BigIntProperty()
@@ -3710,12 +3710,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { id: '123' };
-        const data = EntityUtils.parse(Data, json);
+        const data = await EntityUtils.parse(Data, json);
 
         expect(data.id).toBe(BigInt(123));
       });
 
-      it('should work with EntityProperty', () => {
+      it('should work with EntityProperty', async () => {
         @Entity()
         class Address {
           @StringProperty()
@@ -3742,13 +3742,13 @@ describe('EntityUtils', () => {
           address: { street: '123 Main St' },
         };
 
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.address).toBeInstanceOf(Address);
         expect(user.address.street).toBe('123 Main St');
       });
 
-      it('should work with ArrayProperty', () => {
+      it('should work with ArrayProperty', async () => {
         @Entity()
         class User {
           @ArrayProperty(() => String)
@@ -3759,12 +3759,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { tags: ['dev', 'typescript'] };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.tags).toEqual(['dev', 'typescript']);
       });
 
-      it('should work with optional helper decorators', () => {
+      it('should work with optional helper decorators', async () => {
         @Entity()
         class User {
           @StringProperty()
@@ -3781,14 +3781,14 @@ describe('EntityUtils', () => {
         }
 
         const json = { name: 'John' };
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.name).toBe('John');
         expect(user.nickname).toBeUndefined();
         expect(user.age).toBeUndefined();
       });
 
-      it('should work with ArrayProperty of entities', () => {
+      it('should work with ArrayProperty of entities', async () => {
         @Entity()
         class Phone {
           @StringProperty()
@@ -3811,14 +3811,14 @@ describe('EntityUtils', () => {
           phones: [{ number: '555-0001' }, { number: '555-0002' }],
         };
 
-        const user = EntityUtils.parse(User, json);
+        const user = await EntityUtils.parse(User, json);
 
         expect(user.phones).toHaveLength(2);
         expect(user.phones[0]).toBeInstanceOf(Phone);
         expect(user.phones[0].number).toBe('555-0001');
       });
 
-      it('should work with sparse ArrayProperty', () => {
+      it('should work with sparse ArrayProperty', async () => {
         @Entity()
         class Data {
           @ArrayProperty(() => String, { sparse: true })
@@ -3829,12 +3829,12 @@ describe('EntityUtils', () => {
         }
 
         const json = { values: ['a', null, 'b', undefined] };
-        const data = EntityUtils.parse(Data, json);
+        const data = await EntityUtils.parse(Data, json);
 
         expect(data.values).toEqual(['a', null, 'b', undefined]);
       });
 
-      it('should reject null in non-sparse ArrayProperty', () => {
+      it('should reject null in non-sparse ArrayProperty', async () => {
         @Entity()
         class Data {
           @ArrayProperty(() => String)
@@ -3846,14 +3846,14 @@ describe('EntityUtils', () => {
 
         const json = { values: ['a', null, 'b'] };
 
-        expect(() => EntityUtils.parse(Data, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
           'values[1]: Cannot be null or undefined',
         );
       });
     });
 
     describe('passthrough option with explicit type', () => {
-      it('should throw error for unknown type without passthrough in parse', () => {
+      it('should throw error for unknown type without passthrough in parse', async () => {
         @Entity()
         class Data {
           @Property({ type: () => Symbol })
@@ -3865,7 +3865,7 @@ describe('EntityUtils', () => {
 
         const json = { value: 'test' };
 
-        expect(() => EntityUtils.parse(Data, json)).toThrow(
+        await expect(async () => await EntityUtils.parse(Data, json)).rejects.toThrow(
           'value: Has unknown type constructor',
         );
       });
@@ -3873,7 +3873,7 @@ describe('EntityUtils', () => {
   });
 
   describe('toJSON and parse round-trip', () => {
-    it('should handle complex entity with multiple property types through serialization and deserialization', () => {
+    it('should handle complex entity with multiple property types through serialization and deserialization', async () => {
       // Define nested entities
       @Entity()
       class Address {
@@ -3986,7 +3986,7 @@ describe('EntityUtils', () => {
       const json = EntityUtils.toJSON(originalUser);
 
       // Deserialize back to entity
-      const parsedUser = EntityUtils.parse(User, json);
+      const parsedUser = await EntityUtils.parse(User, json);
 
       // Use lodash isEqual to compare the entire structure
       expect(isEqual(originalUser, parsedUser)).toBe(true);

@@ -123,14 +123,14 @@ describe('Validation System', () => {
       }
     }
 
-    it('should validate properties and return no problems for valid data', () => {
-      const user = EntityUtils.parse(User, { name: 'John', age: 30 });
+    it('should validate properties and return no problems for valid data', async () => {
+      const user = await EntityUtils.parse(User, { name: 'John', age: 30 });
       const problems = EntityUtils.problems(user);
       expect(problems).toHaveLength(0);
     });
 
-    it('should detect property validation problems in non-strict mode', () => {
-      const user = EntityUtils.parse(User, { name: 'Jo', age: -5 });
+    it('should detect property validation problems in non-strict mode', async () => {
+      const user = await EntityUtils.parse(User, { name: 'Jo', age: -5 });
       const problems = EntityUtils.problems(user);
       expect(problems).toHaveLength(2);
       expect(problems[0].property).toBe('name');
@@ -139,18 +139,18 @@ describe('Validation System', () => {
       expect(problems[1].message).toBe('Age cannot be negative');
     });
 
-    it('should throw ValidationError in strict mode when validation fails', () => {
-      expect(() => {
-        EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
-      }).toThrow(ValidationError);
-      expect(() => {
-        EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
-      }).toThrow('name: Name must be at least 3 characters');
+    it('should throw ValidationError in strict mode when validation fails', async () => {
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
+      }).rejects.toThrow(ValidationError);
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
+      }).rejects.toThrow('name: Name must be at least 3 characters');
     });
 
-    it('should validate multiple problems on same property', () => {
+    it('should validate multiple problems on same property', async () => {
       const veryLongName = 'a'.repeat(51);
-      const user = EntityUtils.parse(User, { name: veryLongName, age: 30 });
+      const user = await EntityUtils.parse(User, { name: veryLongName, age: 30 });
       const problems = EntityUtils.problems(user);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('name');
@@ -203,8 +203,8 @@ describe('Validation System', () => {
       }
     }
 
-    it('should run entity validators after property validators', () => {
-      const person = EntityUtils.parse(Person, {
+    it('should run entity validators after property validators', async () => {
+      const person = await EntityUtils.parse(Person, {
         firstName: 'John',
         lastName: 'John',
         age: 16,
@@ -219,8 +219,8 @@ describe('Validation System', () => {
       expect(problems[1].message).toBe('Person must be at least 18 years old');
     });
 
-    it('should not run entity validators if all validations pass', () => {
-      const person = EntityUtils.parse(Person, {
+    it('should not run entity validators if all validations pass', async () => {
+      const person = await EntityUtils.parse(Person, {
         firstName: 'John',
         lastName: 'Doe',
         age: 30,
@@ -229,9 +229,9 @@ describe('Validation System', () => {
       expect(problems).toHaveLength(0);
     });
 
-    it('should throw in strict mode with entity validation failures', () => {
-      expect(() => {
-        EntityUtils.parse(
+    it('should throw in strict mode with entity validation failures', async () => {
+      await expect(async () => {
+        await EntityUtils.parse(
           Person,
           {
             firstName: 'John',
@@ -240,7 +240,7 @@ describe('Validation System', () => {
           },
           { strict: true },
         );
-      }).toThrow(ValidationError);
+      }).rejects.toThrow(ValidationError);
     });
   });
 
@@ -298,23 +298,23 @@ describe('Validation System', () => {
       }
     }
 
-    it('should manually validate an entity', () => {
+    it('should manually validate an entity', async () => {
       const product = new Product({ name: '', price: -5 });
-      const problems = EntityUtils.validate(product);
+      const problems = await EntityUtils.validate(product);
       expect(problems).toHaveLength(2);
       expect(problems[0].property).toBe('name');
       expect(problems[1].property).toBe('price');
     });
 
-    it('should return empty array for valid entity', () => {
+    it('should return empty array for valid entity', async () => {
       const product = new Product({ name: 'Widget', price: 10 });
-      const problems = EntityUtils.validate(product);
+      const problems = await EntityUtils.validate(product);
       expect(problems).toHaveLength(0);
     });
 
-    it('should run entity validators in manual validation', () => {
+    it('should run entity validators in manual validation', async () => {
       const product = new Product({ name: 'Free', price: 10 });
-      const problems = EntityUtils.validate(product);
+      const problems = await EntityUtils.validate(product);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('price');
       expect(problems[0].message).toBe(
@@ -322,10 +322,10 @@ describe('Validation System', () => {
       );
     });
 
-    it('should throw error for non-entity', () => {
-      expect(() => {
-        EntityUtils.validate({} as any);
-      }).toThrow('Cannot validate non-entity instance');
+    it('should throw error for non-entity', async () => {
+      await expect(
+        EntityUtils.validate({} as any)
+      ).rejects.toThrow('Cannot validate non-entity instance');
     });
   });
 
@@ -343,9 +343,9 @@ describe('Validation System', () => {
       }
     }
 
-    it('should retrieve raw input data', () => {
+    it('should retrieve raw input data', async () => {
       const input = { name: 'John', age: 30 };
-      const user = EntityUtils.parse(User, input);
+      const user = await EntityUtils.parse(User, input);
       const rawInput = EntityUtils.getRawInput(user);
       expect(rawInput).toEqual(input);
       expect(rawInput).toBe(input); // Returns reference, not a copy
@@ -382,39 +382,39 @@ describe('Validation System', () => {
       }
     }
 
-    it('should throw ValidationError for HARD errors (type mismatch)', () => {
-      expect(() => {
-        EntityUtils.parse(User, { name: 'John', age: 'thirty' as any });
-      }).toThrow(ValidationError);
-      expect(() => {
-        EntityUtils.parse(User, { name: 'John', age: 'thirty' as any });
-      }).toThrow('age: Expects a number but received string');
+    it('should throw ValidationError for HARD errors (type mismatch)', async () => {
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'John', age: 'thirty' as any });
+      }).rejects.toThrow(ValidationError);
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'John', age: 'thirty' as any });
+      }).rejects.toThrow('age: Expects a number but received string');
     });
 
-    it('should not throw for SOFT errors in non-strict mode', () => {
-      const user = EntityUtils.parse(User, { name: 'Jo', age: 30 });
+    it('should not throw for SOFT errors in non-strict mode', async () => {
+      const user = await EntityUtils.parse(User, { name: 'Jo', age: 30 });
       expect(user).toBeDefined();
       expect(user.name).toBe('Jo');
       const problems = EntityUtils.problems(user);
       expect(problems).toHaveLength(1);
     });
 
-    it('should throw for SOFT errors in strict mode', () => {
-      expect(() => {
-        EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
-      }).toThrow(ValidationError);
+    it('should throw for SOFT errors in strict mode', async () => {
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'Jo', age: 30 }, { strict: true });
+      }).rejects.toThrow(ValidationError);
     });
 
-    it('should throw for missing required properties (HARD error)', () => {
-      expect(() => {
-        EntityUtils.parse(User, { name: 'John' } as any);
-      }).toThrow(ValidationError);
-      expect(() => {
-        EntityUtils.parse(User, { name: 'John' } as any);
-      }).toThrow('age: Required property is missing from input');
+    it('should throw for missing required properties (HARD error)', async () => {
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'John' } as any);
+      }).rejects.toThrow(ValidationError);
+      await expect(async () => {
+        await EntityUtils.parse(User, { name: 'John' } as any);
+      }).rejects.toThrow('age: Required property is missing from input');
     });
 
-    it('should collect multiple HARD errors before throwing', () => {
+    it('should collect multiple HARD errors before throwing', async () => {
       @Entity()
       class MultiProblem {
         @StringProperty()
@@ -432,7 +432,7 @@ describe('Validation System', () => {
       }
 
       try {
-        EntityUtils.parse(MultiProblem, {
+        await EntityUtils.parse(MultiProblem, {
           name: 123 as any,
           age: 'not a number' as any,
           active: 'not a boolean' as any,
@@ -452,7 +452,7 @@ describe('Validation System', () => {
       }
     });
 
-    it('should collect errors from nested entities with proper paths', () => {
+    it('should collect errors from nested entities with proper paths', async () => {
       @Entity()
       class Address {
         @StringProperty()
@@ -480,7 +480,7 @@ describe('Validation System', () => {
       }
 
       try {
-        EntityUtils.parse(Person, {
+        await EntityUtils.parse(Person, {
           name: 123 as any,
           address: {
             street: 456 as any,
@@ -573,8 +573,8 @@ describe('Validation System', () => {
       }
     }
 
-    it('should run all validators and collect all problems', () => {
-      const account = EntityUtils.parse(Account, {
+    it('should run all validators and collect all problems', async () => {
+      const account = await EntityUtils.parse(Account, {
         username: 'JohnDoe',
         password: 'short',
         email: 'wrong@example.com',
@@ -595,8 +595,8 @@ describe('Validation System', () => {
       expect(emailProblems.length).toBeGreaterThan(0);
     });
 
-    it('should pass all validations with correct data', () => {
-      const account = EntityUtils.parse(Account, {
+    it('should pass all validations with correct data', async () => {
+      const account = await EntityUtils.parse(Account, {
         username: 'johndoe',
         password: 'securepassword123',
         email: 'johndoe@example.com',
@@ -661,8 +661,8 @@ describe('Validation System', () => {
       }
     }
 
-    it('should validate nested entities', () => {
-      const company = EntityUtils.parse(Company, {
+    it('should validate nested entities', async () => {
+      const company = await EntityUtils.parse(Company, {
         name: 'A',
         address: { street: '', city: 'Boston' },
       });
@@ -711,14 +711,14 @@ describe('Validation System', () => {
       }
     }
 
-    it('should not run validators for null/undefined optional properties', () => {
-      const profile = EntityUtils.parse(Profile, { username: 'john' });
+    it('should not run validators for null/undefined optional properties', async () => {
+      const profile = await EntityUtils.parse(Profile, { username: 'john' });
       const problems = EntityUtils.problems(profile);
       expect(problems).toHaveLength(0);
     });
 
-    it('should run validators for provided optional properties', () => {
-      const profile = EntityUtils.parse(Profile, {
+    it('should run validators for provided optional properties', async () => {
+      const profile = await EntityUtils.parse(Profile, {
         username: 'john',
         bio: 'short',
       });
@@ -779,8 +779,8 @@ describe('Validation System', () => {
       }
     }
 
-    it('should validate whole array when using arrayValidators', () => {
-      const todoList = EntityUtils.parse(TodoList, {
+    it('should validate whole array when using arrayValidators', async () => {
+      const todoList = await EntityUtils.parse(TodoList, {
         name: 'My List',
         tasksWhole: ['task1', 'task2'],
         tasksEach: ['task1', 'task2'],
@@ -791,8 +791,8 @@ describe('Validation System', () => {
       expect(problems).toHaveLength(0);
     });
 
-    it('should validate each array element when using validators', () => {
-      const todoList = EntityUtils.parse(TodoList, {
+    it('should validate each array element when using validators', async () => {
+      const todoList = await EntityUtils.parse(TodoList, {
         name: 'My List',
         tasksWhole: ['task1', 'task2'],
         tasksEach: ['a', 'b', 'task3'],
@@ -807,8 +807,8 @@ describe('Validation System', () => {
       expect(problems[1].message).toBe('Task must be at least 3 characters');
     });
 
-    it('should include element index in property path for element validators', () => {
-      const todoList = EntityUtils.parse(TodoList, {
+    it('should include element index in property path for element validators', async () => {
+      const todoList = await EntityUtils.parse(TodoList, {
         name: 'My List',
         tasksWhole: ['task1'],
         tasksEach: ['ok1', 'x', 'ok2'],
@@ -819,7 +819,7 @@ describe('Validation System', () => {
       expect(problems[0].property).toBe('tasksEach[1]');
     });
 
-    it('should validate whole array with arrayValidators', () => {
+    it('should validate whole array with arrayValidators', async () => {
       @Entity()
       class NumberList {
         @Property({
@@ -847,7 +847,7 @@ describe('Validation System', () => {
         }
       }
 
-      const list = EntityUtils.parse(NumberList, { numbers: [1] });
+      const list = await EntityUtils.parse(NumberList, { numbers: [1] });
       const problems = EntityUtils.problems(list);
 
       expect(problems).toHaveLength(1);
@@ -857,7 +857,7 @@ describe('Validation System', () => {
   });
 
   describe('PropertyValidator signature', () => {
-    it('should use new validator signature with destructured value parameter', () => {
+    it('should use new validator signature with destructured value parameter', async () => {
       @Entity()
       class TestEntity {
         @Property({
@@ -883,10 +883,10 @@ describe('Validation System', () => {
         }
       }
 
-      const validEntity = EntityUtils.parse(TestEntity, { field: 'test' });
+      const validEntity = await EntityUtils.parse(TestEntity, { field: 'test' });
       expect(EntityUtils.problems(validEntity)).toHaveLength(0);
 
-      const invalidEntity = EntityUtils.parse(TestEntity, { field: 'invalid' });
+      const invalidEntity = await EntityUtils.parse(TestEntity, { field: 'invalid' });
       const problems = EntityUtils.problems(invalidEntity);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('field');
@@ -895,7 +895,7 @@ describe('Validation System', () => {
   });
 
   describe('Passthrough Properties with Validators', () => {
-    it('should validate passthrough properties', () => {
+    it('should validate passthrough properties', async () => {
       @Entity()
       class Config {
         @Property({
@@ -934,13 +934,13 @@ describe('Validation System', () => {
       }
 
       // Valid passthrough data
-      const validConfig = EntityUtils.parse(Config, {
+      const validConfig = await EntityUtils.parse(Config, {
         settings: { apiKey: 'abc123', timeout: 5000 },
       });
       expect(EntityUtils.problems(validConfig)).toHaveLength(0);
 
       // Invalid passthrough data
-      const invalidConfig = EntityUtils.parse(Config, {
+      const invalidConfig = await EntityUtils.parse(Config, {
         settings: { timeout: -5 },
       });
       const problems = EntityUtils.problems(invalidConfig);
@@ -951,7 +951,7 @@ describe('Validation System', () => {
       expect(problems[1].message).toBe('Timeout must be positive');
     });
 
-    it('should validate passthrough properties with empty string for value-level problems', () => {
+    it('should validate passthrough properties with empty string for value-level problems', async () => {
       @Entity()
       class Data {
         @Property({
@@ -978,7 +978,7 @@ describe('Validation System', () => {
         }
       }
 
-      const invalidData = EntityUtils.parse(Data, { raw: 'not an object' });
+      const invalidData = await EntityUtils.parse(Data, { raw: 'not an object' });
       const problems = EntityUtils.problems(invalidData);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('raw');

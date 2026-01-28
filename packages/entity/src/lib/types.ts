@@ -204,32 +204,34 @@ export interface PropertyOptions<
 /**
  * A validator function for a property.
  * The validator receives the value and returns Problems with property paths relative to the value.
+ * Can be synchronous or asynchronous.
  * The calling code will prepend the actual property key to all returned problems.
  *
  * @param data - Object containing the value to validate
  * @param data.value - The value to validate
- * @returns Array of Problems (empty if valid). Problems should have empty property for the value itself,
+ * @returns Array of Problems (empty if valid) or Promise resolving to Problems.
+ *          Problems should have empty property for the value itself,
  *          or relative paths for nested properties (e.g., 'name', '[0]', 'address.street')
  *
  * @example
  * ```typescript
- * // Validator that checks the value itself
+ * // Synchronous validator
  * (({ value }) =>
  *   value.length < 3 ? [new Problem({ property: '', message: 'Too short' })] : [])
  *
- * // Validator that checks nested properties
- * (({ value }) => {
- *   const problems = [];
- *   if (value.street === '') problems.push(new Problem({ property: 'street', message: 'Required' }));
- *   return problems;
- * })
+ * // Asynchronous validator
+ * async ({ value }) => {
+ *   const exists = await checkDatabase(value);
+ *   return exists ? [] : [new Problem({ property: '', message: 'Not found' })];
+ * }
  * ```
  */
-export type PropertyValidator<T> = (data: { value: T }) => Problem[];
+export type PropertyValidator<T> = (data: { value: T }) => Problem[] | Promise<Problem[]>;
 
 /**
- * A validator function for an entity
+ * A validator function for an entity.
+ * Can be synchronous or asynchronous.
  * @param instance - The entity instance to validate
- * @returns Array of Problems (empty if valid)
+ * @returns Array of Problems (empty if valid) or Promise resolving to Problems
  */
-export type EntityValidatorFn<T = any> = (instance: T) => Problem[];
+export type EntityValidatorFn<T = any> = (instance: T) => Problem[] | Promise<Problem[]>;

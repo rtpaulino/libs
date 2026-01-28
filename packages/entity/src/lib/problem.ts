@@ -2,9 +2,6 @@ import 'reflect-metadata';
 import { Entity } from './entity.js';
 import { StringProperty } from './property.js';
 
-/**
- * Represents a SOFT validation problem
- */
 @Entity()
 export class Problem {
   @StringProperty()
@@ -13,8 +10,8 @@ export class Problem {
   @StringProperty()
   readonly message: string;
 
-  constructor(data: { property: string; message: string }) {
-    this.property = data.property;
+  constructor(data: { property?: string; message: string }) {
+    this.property = data.property ?? '';
     this.message = data.message;
   }
 

@@ -360,7 +360,7 @@ export class EntityUtils {
    * @param entityClass - The entity class constructor. Must accept a data object parameter.
    * @param plainObject - The plain object to deserialize
    * @param options - Parse options (strict mode)
-   * @returns A new instance of the entity with deserialized values
+   * @returns Promise resolving to a new instance of the entity with deserialized values
    *
    * @remarks
    * Deserialization rules:
@@ -377,6 +377,7 @@ export class EntityUtils {
    * - If strict: true - both HARD and SOFT problems throw ValidationError
    * - If strict: false (default) - HARD problems throw ValidationError, SOFT problems stored
    * - Property validators run first, then entity validators
+   * - Validators can be synchronous or asynchronous
    * - Problems are accessible via EntityUtils.problems()
    * - Raw input data is accessible via EntityUtils.getRawInput()
    *
@@ -393,15 +394,29 @@ export class EntityUtils {
    * }
    *
    * const json = { name: 'John', age: 30 };
-   * const user = EntityUtils.parse(User, json);
-   * const userStrict = EntityUtils.parse(User, json, { strict: true });
+   * const user = await EntityUtils.parse(User, json);
+   * const userStrict = await EntityUtils.parse(User, json, { strict: true });
    * ```
    */
-  static parse<T extends object>(
+  static async parse<T extends object>(
     entityClass: new (data: any) => T,
-    plainObject: Record<string, unknown>,
+    plainObject: unknown,
     options?: { strict?: boolean },
-  ): T {
+  ): Promise<T> {
+    if (plainObject == null) {
+      throw createValidationError(
+        `Expects an object but received ${typeof plainObject}`,
+      );
+    }
+    if (Array.isArray(plainObject)) {
+      throw createValidationError(`Expects an object but received array`);
+    }
+    if (typeof plainObject !== 'object') {
+      throw createValidationError(
+        `Expects an object but received ${typeof plainObject}`,
+      );
+    }
+
     const strict = options?.strict ?? false;
     const keys = this.getPropertyKeys(entityClass.prototype);
     const data: Record<string, unknown> = {};
@@ -423,13 +438,13 @@ export class EntityUtils {
         continue;
       }
 
+      const value = (plainObject as Record<string, unknown>)[key];
+
       if (propertyOptions.passthrough === true) {
-        const value = plainObject[key];
         data[key] = value;
         continue;
       }
 
-      const value = plainObject[key];
       const isOptional = propertyOptions.optional === true;
 
       if (!(key in plainObject)) {
@@ -458,7 +473,7 @@ export class EntityUtils {
       }
 
       try {
-        data[key] = this.deserializeValue(value, propertyOptions);
+        data[key] = await this.deserializeValue(value, propertyOptions);
       } catch (error) {
         if (error instanceof ValidationError) {
           const problems = prependPropertyPath(key, error);
@@ -482,9 +497,9 @@ export class EntityUtils {
 
     const instance = new entityClass(data);
 
-    rawInputStorage.set(instance, plainObject);
+    rawInputStorage.set(instance, plainObject as Record<string, unknown>);
 
-    const problems = this.validate(instance);
+    const problems = await this.validate(instance);
 
     if (problems.length > 0) {
       if (strict) {
@@ -501,10 +516,10 @@ export class EntityUtils {
    * Deserializes a single value according to the type metadata
    * @private
    */
-  private static deserializeValue(
+  private static async deserializeValue(
     value: unknown,
     options: PropertyOptions,
-  ): unknown {
+  ): Promise<unknown> {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const typeConstructor = options.type!();
     const isArray = options.array === true;
@@ -537,7 +552,9 @@ export class EntityUtils {
             if (options.deserialize) {
               result.push(options.deserialize(item));
             } else {
-              result.push(this.deserializeSingleValue(item, typeConstructor));
+              result.push(
+                await this.deserializeSingleValue(item, typeConstructor),
+              );
             }
           } catch (error) {
             if (error instanceof ValidationError) {
@@ -561,7 +578,7 @@ export class EntityUtils {
       return options.deserialize(value);
     }
 
-    return this.deserializeSingleValue(value, typeConstructor);
+    return await this.deserializeSingleValue(value, typeConstructor);
   }
 
   /**
@@ -569,10 +586,10 @@ export class EntityUtils {
    * Reports validation errors with empty property (caller will prepend context)
    * @private
    */
-  private static deserializeSingleValue(
+  private static async deserializeSingleValue(
     value: unknown,
     typeConstructor: any,
-  ): unknown {
+  ): Promise<unknown> {
     if (isPrimitiveConstructor(typeConstructor)) {
       return deserializePrimitive(value, typeConstructor);
     }
@@ -584,7 +601,7 @@ export class EntityUtils {
         );
       }
 
-      return this.parse(
+      return await this.parse(
         typeConstructor as new (data: any) => object,
         value as Record<string, unknown>,
       );
@@ -600,16 +617,16 @@ export class EntityUtils {
    * Prepends the property path to all returned problems.
    * @private
    */
-  private static validatePropertyValue(
+  private static async validatePropertyValue(
     propertyPath: string,
     value: unknown,
     validators: PropertyOptions['validators'],
-  ): Problem[] {
+  ): Promise<Problem[]> {
     const problems: Problem[] = [];
 
     if (validators) {
       for (const validator of validators) {
-        const validatorProblems = validator({ value });
+        const validatorProblems = await validator({ value });
         // Prepend propertyPath to all problems
         for (const problem of validatorProblems) {
           problems.push(
@@ -623,7 +640,7 @@ export class EntityUtils {
     }
 
     if (EntityUtils.isEntity(value)) {
-      const nestedProblems = EntityUtils.validate(value);
+      const nestedProblems = await EntityUtils.validate(value);
       const prependedProblems = prependPropertyPath(
         propertyPath,
         new ValidationError(nestedProblems),
@@ -638,17 +655,17 @@ export class EntityUtils {
    * Runs property validators for a given property value
    * @private
    */
-  private static runPropertyValidators(
+  private static async runPropertyValidators(
     key: string,
     value: unknown,
     options: PropertyOptions,
-  ): Problem[] {
+  ): Promise<Problem[]> {
     const problems: Problem[] = [];
     const isArray = options?.array === true;
     const isPassthrough = options?.passthrough === true;
 
     if (isPassthrough || !isArray) {
-      const valueProblems = this.validatePropertyValue(
+      const valueProblems = await this.validatePropertyValue(
         key,
         value,
         options.validators,
@@ -659,7 +676,7 @@ export class EntityUtils {
 
       const arrayValidators = options.arrayValidators || [];
       for (const validator of arrayValidators) {
-        const validatorProblems = validator({ value });
+        const validatorProblems = await validator({ value });
         for (const problem of validatorProblems) {
           problems.push(
             new Problem({
@@ -676,7 +693,7 @@ export class EntityUtils {
           const element = value[i];
           if (element !== null && element !== undefined) {
             const elementPath = `${key}[${i}]`;
-            const elementProblems = this.validatePropertyValue(
+            const elementProblems = await this.validatePropertyValue(
               elementPath,
               element,
               validators,
@@ -694,21 +711,21 @@ export class EntityUtils {
    * Validates an entity instance by running all property and entity validators
    *
    * @param instance - The entity instance to validate
-   * @returns Array of Problems found during validation (empty if valid)
+   * @returns Promise resolving to array of Problems found during validation (empty if valid)
    *
    * @remarks
    * - Property validators run first, then entity validators
-   * - Each validator returns an array of Problems
+   * - Each validator can be synchronous or asynchronous
    * - Empty array means no problems found
    *
    * @example
    * ```typescript
    * const user = new User({ name: '', age: -5 });
-   * const problems = EntityUtils.validate(user);
+   * const problems = await EntityUtils.validate(user);
    * console.log(problems); // [Problem, Problem, ...]
    * ```
    */
-  static validate<T extends object>(instance: T): Problem[] {
+  static async validate<T extends object>(instance: T): Promise<Problem[]> {
     if (!this.isEntity(instance)) {
       throw new Error('Cannot validate non-entity instance');
     }
@@ -721,7 +738,7 @@ export class EntityUtils {
       if (options) {
         const value = (instance as any)[key];
         if (value != null) {
-          const validationProblems = this.runPropertyValidators(
+          const validationProblems = await this.runPropertyValidators(
             key,
             value,
             options,
@@ -733,7 +750,7 @@ export class EntityUtils {
 
     const entityValidators = this.getEntityValidators(instance);
     for (const validatorMethod of entityValidators) {
-      const validatorProblems = (instance as any)[validatorMethod]();
+      const validatorProblems = await (instance as any)[validatorMethod]();
       if (Array.isArray(validatorProblems)) {
         problems.push(...validatorProblems);
       }
