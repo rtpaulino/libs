@@ -1,3 +1,13 @@
+## 0.14.1 (2026-01-28)
+
+### 🚀 Features
+
+- update EntityUtils to support asynchronous parsing and validation ([b8515bc](https://github.com/rtpaulino/libs/commit/b8515bc))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.14.0 (2026-01-28)
 
 ### 🚀 Features
