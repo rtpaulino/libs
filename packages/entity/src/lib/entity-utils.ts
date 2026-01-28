@@ -378,7 +378,7 @@ export class EntityUtils {
    * - If strict: false (default) - HARD problems throw ValidationError, SOFT problems stored
    * - Property validators run first, then entity validators
    * - Validators can be synchronous or asynchronous
-   * - Problems are accessible via EntityUtils.problems()
+   * - Problems are accessible via EntityUtils.getProblems()
    * - Raw input data is accessible via EntityUtils.getRawInput()
    *
    * @example
@@ -568,7 +568,7 @@ export class EntityUtils {
   > {
     try {
       const data = await this.parse(entityClass, plainObject, options);
-      const problems = this.problems(data);
+      const problems = this.getProblems(data);
 
       return {
         success: true,
@@ -848,12 +848,36 @@ export class EntityUtils {
    * @example
    * ```typescript
    * const user = EntityUtils.parse(User, data);
-   * const problems = EntityUtils.problems(user);
+   * const problems = EntityUtils.getProblems(user);
    * console.log(problems); // [Problem, ...]
    * ```
    */
-  static problems<T extends object>(instance: T): Problem[] {
+  static getProblems<T extends object>(instance: T): Problem[] {
     return problemsStorage.get(instance) || [];
+  }
+
+  /**
+   * Sets the validation problems for an entity instance
+   *
+   * @param instance - The entity instance
+   * @param problems - Array of Problems to associate with the instance
+   *
+   * @remarks
+   * - Overwrites any existing problems for the instance
+   * - Pass an empty array to clear problems
+   *
+   * @example
+   * ```typescript
+   * const user = new User({ name: 'John' });
+   * EntityUtils.setProblems(user, [new Problem({ property: 'name', message: 'Invalid name' })]);
+   * ```
+   */
+  static setProblems<T extends object>(instance: T, problems: Problem[]): void {
+    if (problems.length === 0) {
+      problemsStorage.delete(instance);
+    } else {
+      problemsStorage.set(instance, problems);
+    }
   }
 
   /**
@@ -877,6 +901,33 @@ export class EntityUtils {
     instance: T,
   ): Record<string, unknown> | undefined {
     return rawInputStorage.get(instance);
+  }
+
+  /**
+   * Sets the raw input data for an entity instance
+   *
+   * @param instance - The entity instance
+   * @param rawInput - The raw input object to associate with the instance
+   *
+   * @remarks
+   * - Overwrites any existing raw input for the instance
+   * - Pass undefined to clear the raw input
+   *
+   * @example
+   * ```typescript
+   * const user = new User({ name: 'John' });
+   * EntityUtils.setRawInput(user, { name: 'John', age: 30 });
+   * ```
+   */
+  static setRawInput<T extends object>(
+    instance: T,
+    rawInput: Record<string, unknown> | undefined,
+  ): void {
+    if (rawInput === undefined) {
+      rawInputStorage.delete(instance);
+    } else {
+      rawInputStorage.set(instance, rawInput);
+    }
   }
 
   /**

@@ -21,7 +21,7 @@ describe('ZodProperty', () => {
 
     const result = await EntityUtils.parse(TestEntity, { name: 'John' });
     expect(result.name).toBe('John');
-    expect(EntityUtils.problems(result)).toHaveLength(0);
+    expect(EntityUtils.getProblems(result)).toHaveLength(0);
   });
 
   it('should create problems for invalid string', async () => {
@@ -62,7 +62,7 @@ describe('ZodProperty', () => {
 
     const result = await EntityUtils.parse(TestEntity, {});
     expect(result.email).toBeUndefined();
-    expect(EntityUtils.problems(result)).toHaveLength(0);
+    expect(EntityUtils.getProblems(result)).toHaveLength(0);
   });
 
   it('should throw ValidationError when validation fails', async () => {
@@ -107,7 +107,7 @@ describe('ZodProperty', () => {
 
     const result = await EntityUtils.parse(TestEntity, { name: 'john' });
     expect(result.name).toBe('JOHN');
-    expect(EntityUtils.problems(result)).toHaveLength(0);
+    expect(EntityUtils.getProblems(result)).toHaveLength(0);
   });
 
   it('should combine with custom validators', async () => {
@@ -134,7 +134,7 @@ describe('ZodProperty', () => {
     }
 
     const result = await EntityUtils.parse(TestEntity, { name: 'forbidden' });
-    const problems = EntityUtils.problems(result);
+    const problems = EntityUtils.getProblems(result);
 
     expect(problems.length).toBeGreaterThan(0);
     const forbiddenProblem = problems.find((p) =>

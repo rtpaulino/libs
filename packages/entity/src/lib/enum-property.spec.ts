@@ -34,7 +34,7 @@ describe('EnumProperty', () => {
         status: 'active',
       });
       expect(task.status).toBe('active');
-      expect(EntityUtils.problems(task)).toHaveLength(0);
+      expect(EntityUtils.getProblems(task)).toHaveLength(0);
     });
 
     it('should accept all valid enum values', async () => {
@@ -42,9 +42,9 @@ describe('EnumProperty', () => {
       const task2 = await EntityUtils.parse(Task, { status: 'inactive' });
       const task3 = await EntityUtils.parse(Task, { status: 'pending' });
 
-      expect(EntityUtils.problems(task1)).toHaveLength(0);
-      expect(EntityUtils.problems(task2)).toHaveLength(0);
-      expect(EntityUtils.problems(task3)).toHaveLength(0);
+      expect(EntityUtils.getProblems(task1)).toHaveLength(0);
+      expect(EntityUtils.getProblems(task2)).toHaveLength(0);
+      expect(EntityUtils.getProblems(task3)).toHaveLength(0);
     });
 
     it('should accept valid optional enum value', async () => {
@@ -53,7 +53,7 @@ describe('EnumProperty', () => {
         priority: 'high',
       });
       expect(task.priority).toBe('high');
-      expect(EntityUtils.problems(task)).toHaveLength(0);
+      expect(EntityUtils.getProblems(task)).toHaveLength(0);
     });
 
     it('should accept undefined for optional enum', async () => {
@@ -61,7 +61,7 @@ describe('EnumProperty', () => {
         status: 'active',
       });
       expect(task.priority).toBeUndefined();
-      expect(EntityUtils.problems(task)).toHaveLength(0);
+      expect(EntityUtils.getProblems(task)).toHaveLength(0);
     });
   });
 
@@ -70,7 +70,7 @@ describe('EnumProperty', () => {
       const task = await EntityUtils.parse(Task, {
         status: 'invalid',
       });
-      const problems = EntityUtils.problems(task);
+      const problems = EntityUtils.getProblems(task);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('status');
       expect(problems[0].message).toContain(
@@ -92,7 +92,7 @@ describe('EnumProperty', () => {
         status: 'active',
         priority: 'urgent',
       });
-      const problems = EntityUtils.problems(task);
+      const problems = EntityUtils.getProblems(task);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('priority');
       expect(problems[0].message).toContain(
@@ -117,14 +117,14 @@ describe('EnumProperty', () => {
         statusHistory: ['pending', 'active', 'inactive'],
       });
       expect(project.statusHistory).toEqual(['pending', 'active', 'inactive']);
-      expect(EntityUtils.problems(project)).toHaveLength(0);
+      expect(EntityUtils.getProblems(project)).toHaveLength(0);
     });
 
     it('should reject array with invalid enum value', async () => {
       const project = await EntityUtils.parse(Project, {
         statusHistory: ['active', 'invalid', 'pending'],
       });
-      const problems = EntityUtils.problems(project);
+      const problems = EntityUtils.getProblems(project);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('statusHistory[1]');
       expect(problems[0].message).toContain('Expected one of');
@@ -158,7 +158,7 @@ describe('EnumProperty', () => {
 
     it('should run both enum validator and custom validators', async () => {
       const user = await EntityUtils.parse(User, { status: 'inactive' });
-      const problems = EntityUtils.problems(user);
+      const problems = EntityUtils.getProblems(user);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('status');
       expect(problems[0].message).toBe('Status cannot be inactive');
@@ -166,7 +166,7 @@ describe('EnumProperty', () => {
 
     it('should still validate enum first', async () => {
       const user = await EntityUtils.parse(User, { status: 'invalid' });
-      const problems = EntityUtils.problems(user);
+      const problems = EntityUtils.getProblems(user);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('status');
       expect(problems[0].message).toContain('Expected one of');

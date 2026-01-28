@@ -125,13 +125,13 @@ describe('Validation System', () => {
 
     it('should validate properties and return no problems for valid data', async () => {
       const user = await EntityUtils.parse(User, { name: 'John', age: 30 });
-      const problems = EntityUtils.problems(user);
+      const problems = EntityUtils.getProblems(user);
       expect(problems).toHaveLength(0);
     });
 
     it('should detect property validation problems in non-strict mode', async () => {
       const user = await EntityUtils.parse(User, { name: 'Jo', age: -5 });
-      const problems = EntityUtils.problems(user);
+      const problems = EntityUtils.getProblems(user);
       expect(problems).toHaveLength(2);
       expect(problems[0].property).toBe('name');
       expect(problems[0].message).toBe('Name must be at least 3 characters');
@@ -162,7 +162,7 @@ describe('Validation System', () => {
         name: veryLongName,
         age: 30,
       });
-      const problems = EntityUtils.problems(user);
+      const problems = EntityUtils.getProblems(user);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('name');
       expect(problems[0].message).toBe('Name must be at most 50 characters');
@@ -220,7 +220,7 @@ describe('Validation System', () => {
         lastName: 'John',
         age: 16,
       });
-      const problems = EntityUtils.problems(person);
+      const problems = EntityUtils.getProblems(person);
       expect(problems).toHaveLength(2);
       expect(problems[0].property).toBe('firstName');
       expect(problems[0].message).toBe(
@@ -236,7 +236,7 @@ describe('Validation System', () => {
         lastName: 'Doe',
         age: 30,
       });
-      const problems = EntityUtils.problems(person);
+      const problems = EntityUtils.getProblems(person);
       expect(problems).toHaveLength(0);
     });
 
@@ -406,7 +406,7 @@ describe('Validation System', () => {
       const user = await EntityUtils.parse(User, { name: 'Jo', age: 30 });
       expect(user).toBeDefined();
       expect(user.name).toBe('Jo');
-      const problems = EntityUtils.problems(user);
+      const problems = EntityUtils.getProblems(user);
       expect(problems).toHaveLength(1);
     });
 
@@ -594,7 +594,7 @@ describe('Validation System', () => {
         password: 'short',
         email: 'wrong@example.com',
       });
-      const problems = EntityUtils.problems(account);
+      const problems = EntityUtils.getProblems(account);
       expect(problems.length).toBeGreaterThan(0);
 
       const usernameProblems = problems.filter(
@@ -616,7 +616,7 @@ describe('Validation System', () => {
         password: 'securepassword123',
         email: 'johndoe@example.com',
       });
-      const problems = EntityUtils.problems(account);
+      const problems = EntityUtils.getProblems(account);
       expect(problems).toHaveLength(0);
     });
   });
@@ -682,7 +682,7 @@ describe('Validation System', () => {
         address: { street: '', city: 'Boston' },
       });
 
-      const problems = EntityUtils.problems(company);
+      const problems = EntityUtils.getProblems(company);
       expect(problems).toHaveLength(2);
       // Nested entity validation happens first (during property validation)
       expect(problems[0].property).toBe('address.street');
@@ -690,7 +690,7 @@ describe('Validation System', () => {
       expect(problems[1].property).toBe('name');
 
       // Check nested entity has its own problems
-      const addressProblems = EntityUtils.problems(company.address);
+      const addressProblems = EntityUtils.getProblems(company.address);
       expect(addressProblems).toHaveLength(1);
       expect(addressProblems[0].property).toBe('street');
     });
@@ -728,7 +728,7 @@ describe('Validation System', () => {
 
     it('should not run validators for null/undefined optional properties', async () => {
       const profile = await EntityUtils.parse(Profile, { username: 'john' });
-      const problems = EntityUtils.problems(profile);
+      const problems = EntityUtils.getProblems(profile);
       expect(problems).toHaveLength(0);
     });
 
@@ -737,7 +737,7 @@ describe('Validation System', () => {
         username: 'john',
         bio: 'short',
       });
-      const problems = EntityUtils.problems(profile);
+      const problems = EntityUtils.getProblems(profile);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('bio');
     });
@@ -800,7 +800,7 @@ describe('Validation System', () => {
         tasksWhole: ['task1', 'task2'],
         tasksEach: ['task1', 'task2'],
       });
-      const problems = EntityUtils.problems(todoList);
+      const problems = EntityUtils.getProblems(todoList);
 
       // Both arrays are valid, no problems
       expect(problems).toHaveLength(0);
@@ -812,7 +812,7 @@ describe('Validation System', () => {
         tasksWhole: ['task1', 'task2'],
         tasksEach: ['a', 'b', 'task3'],
       });
-      const problems = EntityUtils.problems(todoList);
+      const problems = EntityUtils.getProblems(todoList);
 
       // tasksEach validates each element individually
       expect(problems).toHaveLength(2);
@@ -828,7 +828,7 @@ describe('Validation System', () => {
         tasksWhole: ['task1'],
         tasksEach: ['ok1', 'x', 'ok2'],
       });
-      const problems = EntityUtils.problems(todoList);
+      const problems = EntityUtils.getProblems(todoList);
 
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('tasksEach[1]');
@@ -863,7 +863,7 @@ describe('Validation System', () => {
       }
 
       const list = await EntityUtils.parse(NumberList, { numbers: [1] });
-      const problems = EntityUtils.problems(list);
+      const problems = EntityUtils.getProblems(list);
 
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('numbers');
@@ -901,12 +901,12 @@ describe('Validation System', () => {
       const validEntity = await EntityUtils.parse(TestEntity, {
         field: 'test',
       });
-      expect(EntityUtils.problems(validEntity)).toHaveLength(0);
+      expect(EntityUtils.getProblems(validEntity)).toHaveLength(0);
 
       const invalidEntity = await EntityUtils.parse(TestEntity, {
         field: 'invalid',
       });
-      const problems = EntityUtils.problems(invalidEntity);
+      const problems = EntityUtils.getProblems(invalidEntity);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('field');
       expect(problems[0].message).toBe('Value cannot be "invalid"');
@@ -956,13 +956,13 @@ describe('Validation System', () => {
       const validConfig = await EntityUtils.parse(Config, {
         settings: { apiKey: 'abc123', timeout: 5000 },
       });
-      expect(EntityUtils.problems(validConfig)).toHaveLength(0);
+      expect(EntityUtils.getProblems(validConfig)).toHaveLength(0);
 
       // Invalid passthrough data
       const invalidConfig = await EntityUtils.parse(Config, {
         settings: { timeout: -5 },
       });
-      const problems = EntityUtils.problems(invalidConfig);
+      const problems = EntityUtils.getProblems(invalidConfig);
       expect(problems).toHaveLength(2);
       expect(problems[0].property).toBe('settings.apiKey');
       expect(problems[0].message).toBe('API key is required');
@@ -1000,7 +1000,7 @@ describe('Validation System', () => {
       const invalidData = await EntityUtils.parse(Data, {
         raw: 'not an object',
       });
-      const problems = EntityUtils.problems(invalidData);
+      const problems = EntityUtils.getProblems(invalidData);
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('raw');
       expect(problems[0].message).toBe('Must be an object');
