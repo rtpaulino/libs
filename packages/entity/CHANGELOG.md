@@ -1,3 +1,13 @@
+## 0.15.0 (2026-01-28)
+
+### 🚀 Features
+
+- add validation decorators for StringProperty, NumberProperty, and ArrayProperty ([fa53af7](https://github.com/rtpaulino/libs/commit/fa53af7))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.14.2 (2026-01-28)
 
 ### 🚀 Features
