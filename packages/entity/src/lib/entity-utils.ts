@@ -501,12 +501,8 @@ export class EntityUtils {
 
     const problems = await this.validate(instance);
 
-    if (problems.length > 0) {
-      if (strict) {
-        throw new ValidationError(problems);
-      } else {
-        problemsStorage.set(instance, problems);
-      }
+    if (problems.length > 0 && strict) {
+      throw new ValidationError(problems);
     }
 
     return instance;
@@ -715,7 +711,12 @@ export class EntityUtils {
     }
 
     if (EntityUtils.isEntity(value)) {
-      const nestedProblems = await EntityUtils.validate(value);
+      const existingProblems = problemsStorage.get(value);
+      const nestedProblems =
+        existingProblems && existingProblems.length > 0
+          ? existingProblems
+          : await EntityUtils.validate(value);
+
       const prependedProblems = prependPropertyPath(
         propertyPath,
         new ValidationError(nestedProblems),
@@ -830,6 +831,8 @@ export class EntityUtils {
         problems.push(...validatorProblems);
       }
     }
+
+    EntityUtils.setProblems(instance, problems);
 
     return problems;
   }
