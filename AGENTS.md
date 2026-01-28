@@ -1,3 +1,4 @@
 - This project use `nx`.
 - To run tests: `nx test <project> --no-tui`
 - To typecheck: `nx typecheck <project> --no-tui`
+- Do not use `timeout` when running `nx` commands

@@ -9,6 +9,7 @@ import {
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
 } from './types.js';
+import { enumValidator, intValidator } from './validators.js';
 
 /**
  * Property decorator that marks class properties with metadata.
@@ -125,6 +126,36 @@ export function StringProperty(
 }
 
 /**
+ * Helper decorator for enum properties (string enums)
+ * Validates that the string value matches one of the enum values
+ * @param enumType - The enum object (e.g., MyEnum)
+ * @param options - Additional property options
+ * @example
+ * enum Status {
+ *   Active = 'active',
+ *   Inactive = 'inactive'
+ * }
+ *
+ * class User {
+ *   @EnumProperty(Status)
+ *   status!: Status;
+ *
+ *   @EnumProperty(Status, { optional: true })
+ *   previousStatus?: Status;
+ * }
+ */
+export function EnumProperty<T extends Record<string, string>>(
+  enumType: T,
+  options?: Omit<PropertyOptions<string, StringConstructor>, 'type'>,
+): PropertyDecorator {
+  const validators = options?.validators
+    ? [enumValidator(enumType), ...options.validators]
+    : [enumValidator(enumType)];
+
+  return Property({ ...options, type: () => String, validators });
+}
+
+/**
  * Helper decorator for number properties
  * @example
  * class User {
@@ -139,6 +170,28 @@ export function NumberProperty(
   options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'>,
 ): PropertyDecorator {
   return Property({ ...options, type: () => Number });
+}
+
+/**
+ * Helper decorator for integer properties
+ * Validates that the number is an integer (no decimal places)
+ * @example
+ * class User {
+ *   @IntProperty()
+ *   age!: number;
+ *
+ *   @IntProperty({ optional: true })
+ *   count?: number;
+ * }
+ */
+export function IntProperty(
+  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'>,
+): PropertyDecorator {
+  const validators = options?.validators
+    ? [intValidator(), ...options.validators]
+    : [intValidator()];
+
+  return Property({ ...options, type: () => Number, validators });
 }
 
 /**
