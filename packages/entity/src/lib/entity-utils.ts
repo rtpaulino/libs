@@ -513,6 +513,81 @@ export class EntityUtils {
   }
 
   /**
+   * Safely deserializes a plain object to an entity instance without throwing errors
+   *
+   * @param entityClass - The entity class constructor. Must accept a data object parameter.
+   * @param plainObject - The plain object to deserialize
+   * @param options - Parse options (strict mode)
+   * @returns Promise resolving to a result object with success flag, data, and problems
+   *
+   * @remarks
+   * Similar to parse() but returns a result object instead of throwing errors:
+   * - On success with strict: true - returns { success: true, data, problems: [] }
+   * - On success with strict: false - returns { success: true, data, problems: [...] } (may include soft problems)
+   * - On failure - returns { success: false, data: undefined, problems: [...] }
+   *
+   * All deserialization and validation rules from parse() apply.
+   * See parse() documentation for detailed deserialization behavior.
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class User {
+   *   @Property({ type: () => String }) name!: string;
+   *   @Property({ type: () => Number }) age!: number;
+   *
+   *   constructor(data: Partial<User>) {
+   *     Object.assign(this, data);
+   *   }
+   * }
+   *
+   * const result = await EntityUtils.safeParse(User, { name: 'John', age: 30 });
+   * if (result.success) {
+   *   console.log(result.data); // User instance
+   *   console.log(result.problems); // [] or soft problems if not strict
+   * } else {
+   *   console.log(result.problems); // Hard problems
+   * }
+   * ```
+   */
+  static async safeParse<T extends object>(
+    entityClass: new (data: any) => T,
+    plainObject: unknown,
+    options?: { strict?: boolean },
+  ): Promise<
+    | {
+        success: true;
+        data: T;
+        problems: Problem[];
+      }
+    | {
+        success: false;
+        data: undefined;
+        problems: Problem[];
+      }
+  > {
+    try {
+      const data = await this.parse(entityClass, plainObject, options);
+      const problems = this.problems(data);
+
+      return {
+        success: true,
+        data,
+        problems,
+      };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return {
+          success: false,
+          data: undefined,
+          problems: error.problems,
+        };
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Deserializes a single value according to the type metadata
    * @private
    */
