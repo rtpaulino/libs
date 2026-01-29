@@ -447,6 +447,120 @@ export class EntityUtils {
   }
 
   /**
+   * Internal parse implementation with extended options
+   * @private
+   */
+  private static async _parseInternal<T extends object>(
+    entityClass: new (data: any) => T,
+    plainObject: unknown,
+    options: {
+      strict?: boolean;
+      skipDefaults?: boolean;
+      skipMissing?: boolean;
+    } = {},
+  ): Promise<{ data: Record<string, unknown>; hardProblems: Problem[] }> {
+    if (this.isCollectionEntity(entityClass)) {
+      plainObject = { collection: plainObject };
+    }
+    if (plainObject == null) {
+      throw createValidationError(
+        `Expects an object but received ${typeof plainObject}`,
+      );
+    }
+    if (Array.isArray(plainObject)) {
+      throw createValidationError(`Expects an object but received array`);
+    }
+    if (typeof plainObject !== 'object') {
+      throw createValidationError(
+        `Expects an object but received ${typeof plainObject}`,
+      );
+    }
+
+    const strict = options.strict ?? false;
+    const skipDefaults = options.skipDefaults ?? false;
+    const skipMissing = options.skipMissing ?? false;
+    const keys = this.getPropertyKeys(entityClass.prototype);
+    const data: Record<string, unknown> = {};
+    const hardProblems: Problem[] = [];
+
+    for (const key of keys) {
+      const propertyOptions = this.getPropertyOptions(
+        entityClass.prototype,
+        key,
+      );
+
+      if (!propertyOptions) {
+        hardProblems.push(
+          new Problem({
+            property: key,
+            message: `Property has no metadata. This should not happen if @Property() was used correctly.`,
+          }),
+        );
+        continue;
+      }
+
+      const value = (plainObject as Record<string, unknown>)[key];
+
+      if (propertyOptions.passthrough === true) {
+        data[key] = value;
+        continue;
+      }
+
+      const isOptional = propertyOptions.optional === true;
+
+      if (!(key in plainObject) || value == null) {
+        if (skipMissing) {
+          continue;
+        }
+
+        let valueToSet = value;
+
+        if (!skipDefaults && propertyOptions.default !== undefined) {
+          valueToSet =
+            typeof propertyOptions.default === 'function'
+              ? await propertyOptions.default()
+              : propertyOptions.default;
+        }
+
+        if (!isOptional && valueToSet == null) {
+          hardProblems.push(
+            new Problem({
+              property: key,
+              message:
+                'Required property is missing, null or undefined from input',
+            }),
+          );
+        }
+        data[key] = valueToSet;
+        continue;
+      }
+
+      try {
+        // Only pass strict to nested deserialization, not skipDefaults/skipMissing
+        data[key] = await this.deserializeValue(value, propertyOptions, {
+          strict,
+        });
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          const problems = prependPropertyPath(key, error);
+          hardProblems.push(...problems);
+        } else if (error instanceof Error) {
+          hardProblems.push(
+            new Problem({
+              property: key,
+              message: error.message,
+            }),
+          );
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return { data, hardProblems };
+  }
+
+  /**
    * Deserializes a plain object to an entity instance
    *
    * @param entityClass - The entity class constructor. Must accept a data object parameter.
@@ -495,98 +609,13 @@ export class EntityUtils {
     plainObject: unknown,
     parseOptions: ParseOptions = {},
   ): Promise<T> {
-    if (this.isCollectionEntity(entityClass)) {
-      plainObject = { collection: plainObject };
-    }
-    if (plainObject == null) {
-      throw createValidationError(
-        `Expects an object but received ${typeof plainObject}`,
-      );
-    }
-    if (Array.isArray(plainObject)) {
-      throw createValidationError(`Expects an object but received array`);
-    }
-    if (typeof plainObject !== 'object') {
-      throw createValidationError(
-        `Expects an object but received ${typeof plainObject}`,
-      );
-    }
-
     const strict = parseOptions?.strict ?? false;
-    const keys = this.getPropertyKeys(entityClass.prototype);
-    const data: Record<string, unknown> = {};
-    const hardProblems: Problem[] = [];
 
-    for (const key of keys) {
-      const propertyOptions = this.getPropertyOptions(
-        entityClass.prototype,
-        key,
-      );
-
-      if (!propertyOptions) {
-        hardProblems.push(
-          new Problem({
-            property: key,
-            message: `Property has no metadata. This should not happen if @Property() was used correctly.`,
-          }),
-        );
-        continue;
-      }
-
-      const value = (plainObject as Record<string, unknown>)[key];
-
-      if (propertyOptions.passthrough === true) {
-        data[key] = value;
-        continue;
-      }
-
-      const isOptional = propertyOptions.optional === true;
-
-      if (!(key in plainObject) || value == null) {
-        let valueToSet = value;
-
-        if (propertyOptions.default !== undefined) {
-          valueToSet =
-            typeof propertyOptions.default === 'function'
-              ? await propertyOptions.default()
-              : propertyOptions.default;
-        }
-
-        if (!isOptional && valueToSet == null) {
-          hardProblems.push(
-            new Problem({
-              property: key,
-              message:
-                'Required property is missing, null or undefined from input',
-            }),
-          );
-        }
-        data[key] = valueToSet;
-        continue;
-      }
-
-      try {
-        data[key] = await this.deserializeValue(
-          value,
-          propertyOptions,
-          parseOptions,
-        );
-      } catch (error) {
-        if (error instanceof ValidationError) {
-          const problems = prependPropertyPath(key, error);
-          hardProblems.push(...problems);
-        } else if (error instanceof Error) {
-          hardProblems.push(
-            new Problem({
-              property: key,
-              message: error.message,
-            }),
-          );
-        } else {
-          throw error;
-        }
-      }
-    }
+    const { data, hardProblems } = await this._parseInternal(
+      entityClass,
+      plainObject,
+      { strict },
+    );
 
     if (hardProblems.length > 0) {
       throw new ValidationError(hardProblems);
@@ -669,6 +698,134 @@ export class EntityUtils {
       }
       throw error;
     }
+  }
+
+  /**
+   * Partially deserializes a plain object, returning a plain object with only present properties
+   *
+   * @param entityClass - The entity class constructor
+   * @param plainObject - The plain object to deserialize
+   * @param options - Options with strict mode
+   * @returns Promise resolving to a plain object with deserialized properties (Partial<T>)
+   *
+   * @remarks
+   * Differences from parse():
+   * - Returns a plain object, not an entity instance
+   * - Ignores missing properties (does not include them in result)
+   * - Does NOT apply default values to missing properties
+   * - When strict: false (default), properties with HARD problems are excluded from result but problems are tracked
+   * - When strict: true, any HARD problem throws ValidationError
+   * - Nested entities/arrays are still fully deserialized and validated as normal
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class User {
+   *   @Property({ type: () => String }) name!: string;
+   *   @Property({ type: () => Number, default: 0 }) age!: number;
+   *
+   *   constructor(data: Partial<User>) {
+   *     Object.assign(this, data);
+   *   }
+   * }
+   *
+   * const partial = await EntityUtils.partialParse(User, { name: 'John' });
+   * // partial = { name: 'John' } (age is not included, default not applied)
+   *
+   * const partialWithError = await EntityUtils.partialParse(User, { name: 'John', age: 'invalid' });
+   * // partialWithError = { name: 'John' } (age excluded due to HARD problem)
+   * // Access problems via second return value
+   * ```
+   */
+  static async partialParse<T extends object>(
+    entityClass: new (data: any) => T,
+    plainObject: unknown,
+    options: { strict?: boolean } = {},
+  ): Promise<Partial<T>> {
+    const strict = options?.strict ?? false;
+
+    const { data, hardProblems } = await this._parseInternal(
+      entityClass,
+      plainObject,
+      { strict, skipDefaults: true, skipMissing: true },
+    );
+
+    // When strict mode, throw on any hard problems
+    if (strict && hardProblems.length > 0) {
+      throw new ValidationError(hardProblems);
+    }
+
+    this.setProblems(data, hardProblems);
+
+    return data as Partial<T>;
+  }
+
+  /**
+   * Safely performs partial deserialization without throwing errors
+   *
+   * @param entityClass - The entity class constructor
+   * @param plainObject - The plain object to deserialize
+   * @param options - Options with strict mode
+   * @returns Promise resolving to a result object with success flag, partial data, and problems
+   *
+   * @remarks
+   * Similar to partialParse() but returns a result object instead of throwing errors:
+   * - On success with strict: true - returns { success: true, data: Partial<T>, problems: [] }
+   * - On success with strict: false - returns { success: true, data: Partial<T>, problems: [...] } (includes hard problems for excluded properties)
+   * - On failure (strict mode only) - returns { success: false, data: undefined, problems: [...] }
+   *
+   * All partial deserialization rules from partialParse() apply.
+   * See partialParse() documentation for detailed behavior.
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class User {
+   *   @Property({ type: () => String }) name!: string;
+   *   @Property({ type: () => Number }) age!: number;
+   *
+   *   constructor(data: Partial<User>) {
+   *     Object.assign(this, data);
+   *   }
+   * }
+   *
+   * const result = await EntityUtils.safePartialParse(User, { name: 'John', age: 'invalid' });
+   * if (result.success) {
+   *   console.log(result.data); // { name: 'John' }
+   *   console.log(result.problems); // [Problem for age property]
+   * } else {
+   *   console.log(result.problems); // Hard problems (only in strict mode)
+   * }
+   * ```
+   */
+  static async safePartialParse<T extends object>(
+    entityClass: new (data: any) => T,
+    plainObject: unknown,
+    options?: { strict?: boolean },
+  ): Promise<SafeOperationResult<Partial<T>>> {
+    const strict = options?.strict ?? false;
+
+    const { data, hardProblems } = await this._parseInternal(
+      entityClass,
+      plainObject,
+      { strict, skipDefaults: true, skipMissing: true },
+    );
+
+    if (strict && hardProblems.length > 0) {
+      return {
+        success: false,
+        data: undefined,
+        problems: hardProblems,
+      };
+    }
+
+    this.setProblems(data, hardProblems);
+
+    return {
+      success: true,
+      data: data as Partial<T>,
+      problems: hardProblems,
+    };
   }
 
   /**
