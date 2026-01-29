@@ -1,3 +1,13 @@
+## 0.19.0 (2026-01-29)
+
+### 🚀 Features
+
+- add CollectionProperty decorator for handling collection entities ([fc3b8f3](https://github.com/rtpaulino/libs/commit/fc3b8f3))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.18.0 (2026-01-29)
 
 ### 🚀 Features
