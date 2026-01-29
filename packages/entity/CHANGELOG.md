@@ -1,3 +1,13 @@
+## 0.20.0 (2026-01-29)
+
+### 🚀 Features
+
+- implement collection entity support with serialization and deserialization ([84eb50b](https://github.com/rtpaulino/libs/commit/84eb50b))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.19.0 (2026-01-29)
 
 ### 🚀 Features
