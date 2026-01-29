@@ -1,3 +1,13 @@
+## 0.17.0 (2026-01-29)
+
+### 🚀 Features
+
+- implement dependency injection system with EntityDI and InjectedProperty decorator ([2a82abf](https://github.com/rtpaulino/libs/commit/2a82abf))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.16.2 (2026-01-28)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
