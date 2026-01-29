@@ -6,6 +6,11 @@ import {
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
 } from './types.js';
+import {
+  getInjectedPropertyNames,
+  getInjectedPropertyOptions,
+} from './injected-property.js';
+import { EntityDI } from './entity-di.js';
 import { isEqualWith } from 'lodash-es';
 import { ValidationError } from './validation-error.js';
 import { Problem } from './problem.js';
@@ -495,6 +500,8 @@ export class EntityUtils {
       throw new ValidationError(hardProblems);
     }
 
+    await this.addInjectedDependencies(data, entityClass.prototype);
+
     const instance = new entityClass(data);
 
     rawInputStorage.set(instance, plainObject as Record<string, unknown>);
@@ -781,6 +788,26 @@ export class EntityUtils {
     }
 
     return problems;
+  }
+
+  private static async addInjectedDependencies(
+    data: Record<string, unknown>,
+    prototype: object,
+  ): Promise<void> {
+    const injectedPropertyNames = getInjectedPropertyNames(prototype);
+    if (injectedPropertyNames.length === 0) {
+      return;
+    }
+
+    const injectedPropertyOptions = getInjectedPropertyOptions(prototype);
+
+    for (const propertyName of injectedPropertyNames) {
+      const token = injectedPropertyOptions[propertyName];
+      if (token) {
+        const dependency = await EntityDI.get(token);
+        data[propertyName] = dependency;
+      }
+    }
   }
 
   /**

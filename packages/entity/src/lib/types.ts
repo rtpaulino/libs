@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-wrapper-object-types */
 import type { Problem } from './problem.js';
@@ -26,7 +27,20 @@ export const ENTITY_VALIDATOR_METADATA_KEY = Symbol(
   'entity:validator:metadata',
 );
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+/**
+ * Metadata key used to store injected property information
+ */
+export const INJECTED_PROPERTY_METADATA_KEY = Symbol(
+  'injected-property:metadata',
+);
+
+/**
+ * Metadata key used to store injected property options (tokens)
+ */
+export const INJECTED_PROPERTY_OPTIONS_METADATA_KEY = Symbol(
+  'injected-property:options:metadata',
+);
+
 export type AnyCtor<T = any> = Function & { prototype: T };
 
 export type BuiltinCtors =
@@ -239,3 +253,28 @@ export type PropertyValidator<T> = (data: {
 export type EntityValidatorFn<T = any> = (
   instance: T,
 ) => Problem[] | Promise<Problem[]>;
+
+export interface Type<T = any> extends Function {
+  new (...args: any[]): T;
+}
+
+export type EntityDIToken<T = any> =
+  | string
+  | symbol
+  | Function
+  | AnyCtor<T>
+  | Type<T>;
+
+export type EntityDIProvider<T = any> =
+  | {
+      provide: EntityDIToken<T>;
+      useValue?: T;
+      useFactory?: never;
+    }
+  | {
+      provide: EntityDIToken<T>;
+      useValue?: never;
+      useFactory?: () => T | Promise<T>;
+    };
+
+export type EntityDIFallbackFn = (token: EntityDIToken) => Promise<any>;
