@@ -16,6 +16,10 @@ export class Problem {
   }
 
   toString(): string {
-    return `${this.property}: ${this.message}`;
+    if (this.property) {
+      return `${this.property}: ${this.message}`;
+    } else {
+      return this.message;
+    }
   }
 }
