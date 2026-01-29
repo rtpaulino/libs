@@ -206,7 +206,7 @@ describe('EntityUtils', () => {
           expect(result.problems).toHaveLength(1);
           expect(result.problems[0].property).toBe('name');
           expect(result.problems[0].message).toBe(
-            'Required property is missing from input',
+            'Required property is missing, null or undefined from input',
           );
         }
       });
@@ -231,7 +231,7 @@ describe('EntityUtils', () => {
           expect(result.problems).toHaveLength(1);
           expect(result.problems[0].property).toBe('name');
           expect(result.problems[0].message).toBe(
-            'Cannot be null or undefined',
+            'Required property is missing, null or undefined from input',
           );
         }
       });

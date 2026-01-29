@@ -61,6 +61,7 @@ function zodIssuesToProblems(issues: z.core.$ZodIssue[]): Problem[] {
  * }
  * ```
  */
+// TODO: fix type inference
 export function ZodProperty<T = any>(
   schema: z.ZodTypeAny,
   options?: Omit<
@@ -72,6 +73,7 @@ export function ZodProperty<T = any>(
 ): PropertyDecorator {
   return Property({
     ...options,
+    default: options?.default as any,
     type: () => Object,
     serialize: (value: any) => value,
     deserialize: (value: unknown): any => {

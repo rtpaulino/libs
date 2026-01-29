@@ -117,6 +117,17 @@ export interface PropertyOptions<
   array?: boolean;
 
   /**
+   * Whether this property is a collection entity. Defaults to false.
+   * When true, the property is an entity with a 'collection' array property.
+   * During serialization, the collection entity is unwrapped to just the array.
+   * During deserialization, the array is wrapped in a collection entity.
+   * @example
+   * @Property({ type: () => MyCollection, collection: true })
+   * myCollection!: MyCollection;
+   */
+  collection?: boolean;
+
+  /**
    * Whether this property is optional. Defaults to false.
    * When true, the property can be undefined or null.
    * When false, the property must be present and not null/undefined.
@@ -157,6 +168,24 @@ export interface PropertyOptions<
    * id!: string; // This property cannot be updated
    */
   preventUpdates?: boolean;
+
+  /**
+   * Default value for the property when not provided during deserialization.
+   * Can be a static value or a function that returns the default value.
+   * The function can be async and return a Promise.
+   * @example
+   * @Property({ type: () => String, default: 'N/A' })
+   * nickname?: string;
+   *
+   * @Property({ type: () => Date, default: () => new Date() })
+   * createdAt!: Date;
+   *
+   * @Property({ type: () => String, default: async () => await fetchDefaultValue() })
+   * value!: string;
+   */
+  default?:
+    | InstanceOfCtorLike<C>
+    | (() => InstanceOfCtorLike<C> | Promise<InstanceOfCtorLike<C>>);
 
   /**
    * Custom serialization function to convert the property value to JSON-compatible format.
@@ -297,3 +326,5 @@ export type SafeOperationResult<T> = Promise<
   | { success: true; data: T; problems: Problem[] }
   | { success: false; data: undefined; problems: Problem[] }
 >;
+
+export type ParseOptions = { strict?: boolean };

@@ -2,6 +2,7 @@
 import {
   ENTITY_METADATA_KEY,
   ENTITY_VALIDATOR_METADATA_KEY,
+  ParseOptions,
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
@@ -35,7 +36,7 @@ const problemsStorage = new WeakMap<object, Problem[]>();
 /**
  * WeakMap to store raw input data for entity instances
  */
-const rawInputStorage = new WeakMap<object, Record<string, unknown>>();
+const rawInputStorage = new WeakMap<object, unknown>();
 
 export class EntityUtils {
   /**
@@ -323,6 +324,23 @@ export class EntityUtils {
       return value;
     }
 
+    if (options?.collection === true) {
+      if (!this.isEntity(value)) {
+        throw new Error(
+          `Expected collection entity but received non-entity value`,
+        );
+      }
+
+      const collectionArray = (value as any).collection;
+      if (!Array.isArray(collectionArray)) {
+        throw new Error(
+          `Collection entity must have a 'collection' property that is an array`,
+        );
+      }
+
+      return collectionArray.map((item) => this.serializeValue(item));
+    }
+
     if (Array.isArray(value)) {
       if (options?.serialize) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -365,7 +383,7 @@ export class EntityUtils {
    *
    * @param entityClass - The entity class constructor. Must accept a data object parameter.
    * @param plainObject - The plain object to deserialize
-   * @param options - Parse options (strict mode)
+   * @param parseOptions - Parse options (strict mode)
    * @returns Promise resolving to a new instance of the entity with deserialized values
    *
    * @remarks
@@ -407,7 +425,8 @@ export class EntityUtils {
   static async parse<T extends object>(
     entityClass: new (data: any) => T,
     plainObject: unknown,
-    options?: { strict?: boolean },
+    parseOptions: ParseOptions = {},
+    knownProblems?: Problem[],
   ): Promise<T> {
     if (plainObject == null) {
       throw createValidationError(
@@ -423,7 +442,7 @@ export class EntityUtils {
       );
     }
 
-    const strict = options?.strict ?? false;
+    const strict = parseOptions?.strict ?? false;
     const keys = this.getPropertyKeys(entityClass.prototype);
     const data: Record<string, unknown> = {};
     const hardProblems: Problem[] = [];
@@ -453,33 +472,35 @@ export class EntityUtils {
 
       const isOptional = propertyOptions.optional === true;
 
-      if (!(key in plainObject)) {
-        if (!isOptional) {
-          hardProblems.push(
-            new Problem({
-              property: key,
-              message: 'Required property is missing from input',
-            }),
-          );
-        }
-        continue;
-      }
+      if (!(key in plainObject) || value == null) {
+        let valueToSet = value;
 
-      if (value === null || value === undefined) {
-        if (!isOptional) {
+        if (propertyOptions.default !== undefined) {
+          valueToSet =
+            typeof propertyOptions.default === 'function'
+              ? await propertyOptions.default()
+              : propertyOptions.default;
+        }
+
+        if (!isOptional && valueToSet == null) {
           hardProblems.push(
             new Problem({
               property: key,
-              message: 'Cannot be null or undefined',
+              message:
+                'Required property is missing, null or undefined from input',
             }),
           );
         }
-        data[key] = value;
+        data[key] = valueToSet;
         continue;
       }
 
       try {
-        data[key] = await this.deserializeValue(value, propertyOptions);
+        data[key] = await this.deserializeValue(
+          value,
+          propertyOptions,
+          parseOptions,
+        );
       } catch (error) {
         if (error instanceof ValidationError) {
           const problems = prependPropertyPath(key, error);
@@ -507,7 +528,7 @@ export class EntityUtils {
 
     rawInputStorage.set(instance, plainObject as Record<string, unknown>);
 
-    const problems = await this.validate(instance);
+    const problems = await this.validate(instance, knownProblems);
 
     if (problems.length > 0 && strict) {
       throw new ValidationError(problems);
@@ -521,7 +542,7 @@ export class EntityUtils {
    *
    * @param entityClass - The entity class constructor. Must accept a data object parameter.
    * @param plainObject - The plain object to deserialize
-   * @param options - Parse options (strict mode)
+   * @param parseOptions - Parse options (strict mode)
    * @returns Promise resolving to a result object with success flag, data, and problems
    *
    * @remarks
@@ -557,10 +578,10 @@ export class EntityUtils {
   static async safeParse<T extends object>(
     entityClass: new (data: any) => T,
     plainObject: unknown,
-    options?: { strict?: boolean },
+    parseOptions?: ParseOptions,
   ): SafeOperationResult<T> {
     try {
-      const data = await this.parse(entityClass, plainObject, options);
+      const data = await this.parse(entityClass, plainObject, parseOptions);
       const problems = this.getProblems(data);
 
       return {
@@ -729,11 +750,45 @@ export class EntityUtils {
   private static async deserializeValue(
     value: unknown,
     options: PropertyOptions,
+    parseOptions: ParseOptions,
   ): Promise<unknown> {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const typeConstructor = options.type!();
     const isArray = options.array === true;
+    const isCollection = options.collection === true;
     const isSparse = options.sparse === true;
+
+    const problems: Problem[] = [];
+
+    if (isCollection) {
+      if (!this.isEntity(typeConstructor)) {
+        throw createValidationError(
+          `Collection property type must be an @Entity() class`,
+        );
+      }
+
+      if (!Array.isArray(value)) {
+        problems.push(
+          new Problem({
+            message: `Collection property expects an array but received ${typeof value}`,
+          }),
+        );
+      }
+
+      const collectionInstance = await this.parse(
+        typeConstructor as new (data: any) => object,
+        {
+          collection: Array.isArray(value) ? value : [],
+        },
+        parseOptions,
+        problems,
+      );
+
+      // override raw input to be the array only
+      rawInputStorage.set(collectionInstance, value);
+
+      return collectionInstance;
+    }
 
     if (isArray) {
       if (!Array.isArray(value)) {
@@ -763,7 +818,11 @@ export class EntityUtils {
               result.push(options.deserialize(item));
             } else {
               result.push(
-                await this.deserializeSingleValue(item, typeConstructor),
+                await this.deserializeSingleValue(
+                  item,
+                  typeConstructor,
+                  parseOptions,
+                ),
               );
             }
           } catch (error) {
@@ -788,7 +847,11 @@ export class EntityUtils {
       return options.deserialize(value);
     }
 
-    return await this.deserializeSingleValue(value, typeConstructor);
+    return await this.deserializeSingleValue(
+      value,
+      typeConstructor,
+      parseOptions,
+    );
   }
 
   /**
@@ -799,6 +862,7 @@ export class EntityUtils {
   private static async deserializeSingleValue(
     value: unknown,
     typeConstructor: any,
+    parseOptions: ParseOptions,
   ): Promise<unknown> {
     if (isPrimitiveConstructor(typeConstructor)) {
       return deserializePrimitive(value, typeConstructor);
@@ -814,6 +878,7 @@ export class EntityUtils {
       return await this.parse(
         typeConstructor as new (data: any) => object,
         value as Record<string, unknown>,
+        parseOptions,
       );
     }
 
@@ -960,7 +1025,10 @@ export class EntityUtils {
    * console.log(problems); // [Problem, Problem, ...]
    * ```
    */
-  static async validate<T extends object>(instance: T): Promise<Problem[]> {
+  static async validate<T extends object>(
+    instance: T,
+    knownProblems: Problem[] = [],
+  ): Promise<Problem[]> {
     if (!this.isEntity(instance)) {
       throw new Error('Cannot validate non-entity instance');
     }
@@ -991,9 +1059,11 @@ export class EntityUtils {
       }
     }
 
-    EntityUtils.setProblems(instance, problems);
+    const allProblems = [...knownProblems, ...problems];
 
-    return problems;
+    EntityUtils.setProblems(instance, allProblems);
+
+    return allProblems;
   }
 
   /**
@@ -1059,9 +1129,7 @@ export class EntityUtils {
    * console.log(rawInput); // { name: 'John', age: 30 }
    * ```
    */
-  static getRawInput<T extends object>(
-    instance: T,
-  ): Record<string, unknown> | undefined {
+  static getRawInput<T extends object>(instance: T): unknown {
     return rawInputStorage.get(instance);
   }
 

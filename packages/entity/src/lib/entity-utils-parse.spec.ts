@@ -726,7 +726,9 @@ describe('EntityUtils', () => {
 
         await expect(
           async () => await EntityUtils.parse(User, json),
-        ).rejects.toThrow('age: Required property is missing from input');
+        ).rejects.toThrow(
+          'Validation failed with 1 error(s): age: Required property is missing, null or undefined from input',
+        );
       });
 
       it('should throw error when required property is null', async () => {
@@ -743,7 +745,9 @@ describe('EntityUtils', () => {
 
         await expect(
           async () => await EntityUtils.parse(User, json),
-        ).rejects.toThrow('name: Cannot be null or undefined');
+        ).rejects.toThrow(
+          'Validation failed with 1 error(s): name: Required property is missing, null or undefined from input',
+        );
       });
 
       it('should throw error when required property is undefined', async () => {
@@ -760,7 +764,9 @@ describe('EntityUtils', () => {
 
         await expect(
           async () => await EntityUtils.parse(User, json),
-        ).rejects.toThrow('name: Cannot be null or undefined');
+        ).rejects.toThrow(
+          'Validation failed with 1 error(s): name: Required property is missing, null or undefined from input',
+        );
       });
 
       it('should throw error for type mismatch on string', async () => {

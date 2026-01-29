@@ -62,6 +62,11 @@ export function Property<T, C extends CtorLike<T>>(
           `Property '${propertyKey}' has passthrough: true and array: true. Passthrough cannot be combined with array.`,
         );
       }
+      if (options.collection === true) {
+        throw new Error(
+          `Property '${propertyKey}' has passthrough: true and collection: true. Passthrough cannot be combined with collection.`,
+        );
+      }
       if (options.optional === true) {
         throw new Error(
           `Property '${propertyKey}' has passthrough: true and optional: true. Passthrough cannot be combined with optional.`,
@@ -92,6 +97,27 @@ export function Property<T, C extends CtorLike<T>>(
       throw new Error(
         `Property '${propertyKey}' has arrayValidators defined but array is not true. The arrayValidators option only applies to arrays.`,
       );
+    }
+
+    if (options.collection === true) {
+      if (options.array === true) {
+        throw new Error(
+          `Property '${propertyKey}' has collection: true and array: true. Collection cannot be combined with array.`,
+        );
+      }
+      if (options.passthrough === true) {
+        throw new Error(
+          `Property '${propertyKey}' has collection: true and passthrough: true. Collection cannot be combined with passthrough.`,
+        );
+      }
+      if (
+        options.serialize !== undefined ||
+        options.deserialize !== undefined
+      ) {
+        throw new Error(
+          `Property '${propertyKey}' has collection: true and custom serialize/deserialize functions. Collection cannot be combined with serialize or deserialize.`,
+        );
+      }
     }
 
     // Validate serialize/deserialize pairing

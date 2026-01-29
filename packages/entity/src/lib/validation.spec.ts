@@ -426,7 +426,9 @@ describe('Validation System', () => {
       }).rejects.toThrow(ValidationError);
       await expect(async () => {
         await EntityUtils.parse(User, { name: 'John' } as any);
-      }).rejects.toThrow('age: Required property is missing from input');
+      }).rejects.toThrow(
+        'Validation failed with 1 error(s): age: Required property is missing, null or undefined from input',
+      );
     });
 
     it('should collect multiple HARD errors before throwing', async () => {
