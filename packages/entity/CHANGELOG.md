@@ -1,3 +1,13 @@
+## 0.18.0 (2026-01-29)
+
+### 🚀 Features
+
+- add update and safeUpdate methods to EntityUtils with preventUpdates support ([99ca1ae](https://github.com/rtpaulino/libs/commit/99ca1ae))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.17.1 (2026-01-29)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
