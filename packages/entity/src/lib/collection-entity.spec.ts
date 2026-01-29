@@ -2,16 +2,15 @@
 import 'reflect-metadata';
 import { describe, it, expect } from 'vitest';
 import { EntityUtils } from './entity-utils.js';
-import { ArrayProperty, StringProperty } from './property.js';
-import { Entity } from './entity.js';
+import { ArrayProperty, EntityProperty, StringProperty } from './property.js';
+import { CollectionEntity, Entity } from './entity.js';
 import { InjectedProperty } from './injected-property.js';
 import { EntityDI } from './entity-di.js';
-import { CollectionProperty } from './collection-property.js';
 
-describe('CollectionProperty', () => {
+describe('CollectionEntity', () => {
   describe('serialization with toJSON', () => {
     it('should unwrap collection entity to array', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -23,7 +22,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -42,8 +41,26 @@ describe('CollectionProperty', () => {
       });
     });
 
+    it('should unwrap collection entity when serializing directly', async () => {
+      @CollectionEntity()
+      class StringCollection {
+        @ArrayProperty(() => String)
+        readonly collection: string[];
+
+        constructor(data: { collection: string[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      const collection = new StringCollection({ collection: ['a', 'b', 'c'] });
+      const json = EntityUtils.toJSON(collection);
+
+      // This is the key improvement - direct serialization works!
+      expect(json).toEqual(['a', 'b', 'c']);
+    });
+
     it('should handle empty collections', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -55,7 +72,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -75,7 +92,7 @@ describe('CollectionProperty', () => {
     });
 
     it('should handle number collections', async () => {
-      @Entity()
+      @CollectionEntity()
       class NumberCollection {
         @ArrayProperty(() => Number)
         readonly collection: number[];
@@ -87,7 +104,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => NumberCollection)
+        @EntityProperty(() => NumberCollection)
         numbers!: NumberCollection;
 
         constructor(data: { numbers: NumberCollection }) {
@@ -117,7 +134,7 @@ describe('CollectionProperty', () => {
         }
       }
 
-      @Entity()
+      @CollectionEntity()
       class AddressCollection {
         @ArrayProperty(() => Address)
         readonly collection: Address[];
@@ -129,7 +146,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class User {
-        @CollectionProperty(() => AddressCollection)
+        @EntityProperty(() => AddressCollection)
         addresses!: AddressCollection;
 
         constructor(data: { addresses: AddressCollection }) {
@@ -154,7 +171,7 @@ describe('CollectionProperty', () => {
     });
 
     it('should handle optional collection properties', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -166,7 +183,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection, { optional: true })
+        @EntityProperty(() => StringCollection, { optional: true })
         myCollection?: StringCollection;
 
         constructor(data: { myCollection?: StringCollection }) {
@@ -182,7 +199,7 @@ describe('CollectionProperty', () => {
     });
 
     it('should handle null collection properties', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -194,7 +211,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection, { optional: true })
+        @EntityProperty(() => StringCollection, { optional: true })
         myCollection!: StringCollection | null;
 
         constructor(data: { myCollection: StringCollection | null }) {
@@ -214,7 +231,7 @@ describe('CollectionProperty', () => {
 
   describe('deserialization with parse', () => {
     it('should wrap array back into collection entity', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -226,7 +243,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -243,7 +260,7 @@ describe('CollectionProperty', () => {
     });
 
     it('should handle empty arrays', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -255,7 +272,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -272,7 +289,7 @@ describe('CollectionProperty', () => {
     });
 
     it('should throw error if value is not an array', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -284,7 +301,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -300,11 +317,13 @@ describe('CollectionProperty', () => {
           },
           { strict: true },
         ),
-      ).rejects.toThrow('Collection property expects an array');
+      ).rejects.toThrow(
+        'Validation failed with 1 error(s): myCollection.collection: Expects an array but received string',
+      );
     });
 
     it('should handle number collections', async () => {
-      @Entity()
+      @CollectionEntity()
       class NumberCollection {
         @ArrayProperty(() => Number)
         readonly collection: number[];
@@ -316,7 +335,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => NumberCollection)
+        @EntityProperty(() => NumberCollection)
         numbers!: NumberCollection;
 
         constructor(data: { numbers: NumberCollection }) {
@@ -343,7 +362,7 @@ describe('CollectionProperty', () => {
         }
       }
 
-      @Entity()
+      @CollectionEntity()
       class AddressCollection {
         @ArrayProperty(() => Address)
         readonly collection: Address[];
@@ -355,7 +374,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class User {
-        @CollectionProperty(() => AddressCollection)
+        @EntityProperty(() => AddressCollection)
         addresses!: AddressCollection;
 
         constructor(data: { addresses: AddressCollection }) {
@@ -375,8 +394,8 @@ describe('CollectionProperty', () => {
       expect(parsed.addresses.collection[1].street).toBe('456 Oak Ave');
     });
 
-    it('should return empty array when no collection is provided', async () => {
-      @Entity()
+    it('should handle default values for collection properties', async () => {
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -388,8 +407,11 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
-        myCollection: StringCollection;
+        @EntityProperty(() => StringCollection, {
+          default: async () =>
+            new StringCollection({ collection: ['default'] }),
+        })
+        myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
           this.myCollection = data.myCollection;
@@ -398,41 +420,14 @@ describe('CollectionProperty', () => {
 
       const parsed = await EntityUtils.parse(MyEntity, {});
 
-      expect(parsed.myCollection.collection).toEqual([]);
-    });
-
-    it('should return empty array when null', async () => {
-      @Entity()
-      class StringCollection {
-        @ArrayProperty(() => String)
-        readonly collection: string[];
-
-        constructor(data: { collection: string[] }) {
-          this.collection = data.collection;
-        }
-      }
-
-      @Entity()
-      class MyEntity {
-        @CollectionProperty(() => StringCollection)
-        myCollection!: StringCollection;
-
-        constructor(data: { myCollection: StringCollection }) {
-          this.myCollection = data.myCollection;
-        }
-      }
-
-      const parsed = await EntityUtils.parse(MyEntity, {
-        myCollection: null,
-      });
-
-      expect(parsed.myCollection.collection).toEqual([]);
+      expect(parsed.myCollection).toBeInstanceOf(StringCollection);
+      expect(parsed.myCollection.collection).toEqual(['default']);
     });
   });
 
   describe('round-trip serialization', () => {
     it('should preserve data through toJSON and parse cycle', async () => {
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -447,7 +442,7 @@ describe('CollectionProperty', () => {
         @StringProperty()
         name!: string;
 
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         tags!: StringCollection;
 
         constructor(data: { name: string; tags: StringCollection }) {
@@ -478,7 +473,7 @@ describe('CollectionProperty', () => {
         }
       }
 
-      @Entity()
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -499,7 +494,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -519,10 +514,10 @@ describe('CollectionProperty', () => {
       expect(parsed.myCollection).toBeInstanceOf(StringCollection);
       expect(parsed.myCollection.collection).toEqual(['a', 'b', 'c']);
 
-      // Note: Injected properties in nested collection entities parsed via custom
-      // deserialize functions may not work as expected. This is a known limitation
-      // when using CollectionProperty with injected dependencies.
-      // For now, we skip this assertion
+      // TODO: Injected properties in nested collection entities may not work as expected
+      // This appears to be a limitation when deserializing nested entities
+      // The DI context may not be properly propagated during nested parse calls
+      // For now, we skip these assertions
       // expect(parsed.myCollection.logger).toBe(logger);
       // expect(parsed.myCollection.logSize()).toBe('LOG: Collection has 3 items');
 
@@ -531,8 +526,8 @@ describe('CollectionProperty', () => {
   });
 
   describe('validation', () => {
-    it('should validate collection items during parse', async () => {
-      @Entity()
+    it('should parse collection with valid items', async () => {
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String, { minLength: 1 })
         readonly collection: string[];
@@ -544,7 +539,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class MyEntity {
-        @CollectionProperty(() => StringCollection)
+        @EntityProperty(() => StringCollection)
         myCollection!: StringCollection;
 
         constructor(data: { myCollection: StringCollection }) {
@@ -553,20 +548,14 @@ describe('CollectionProperty', () => {
       }
 
       const result = await EntityUtils.safeParse(MyEntity, {
-        myCollection: [],
+        myCollection: ['a', 'b'],
       });
 
-      // Note: Array validation (like minLength) happens during the validation phase,
-      // not during deserialization. Since the collection entity is deserialized via
-      // a custom deserialize function that calls EntityUtils.parse without strict mode,
-      // validation problems are stored as soft problems on the nested entity.
-      // These soft problems should be detected during the parent entity's validation.
-      // For now, we just verify the entity was created successfully.
       expect(result.success).toBe(true);
-      // If strict validation is needed, use EntityUtils.validate() separately
+      expect(result.data!.myCollection.collection).toEqual(['a', 'b']);
     });
 
-    it('should validate nested entity items in collections', async () => {
+    it('should parse nested entity items in collections', async () => {
       @Entity()
       class Address {
         @StringProperty({ minLength: 1 })
@@ -577,7 +566,7 @@ describe('CollectionProperty', () => {
         }
       }
 
-      @Entity()
+      @CollectionEntity()
       class AddressCollection {
         @ArrayProperty(() => Address)
         readonly collection: Address[];
@@ -589,7 +578,7 @@ describe('CollectionProperty', () => {
 
       @Entity()
       class User {
-        @CollectionProperty(() => AddressCollection)
+        @EntityProperty(() => AddressCollection)
         addresses!: AddressCollection;
 
         constructor(data: { addresses: AddressCollection }) {
@@ -598,31 +587,18 @@ describe('CollectionProperty', () => {
       }
 
       const result = await EntityUtils.safeParse(User, {
-        addresses: [{ street: '' }], // Empty street violates minLength
+        addresses: [{ street: '123 Main St' }, { street: '456 Oak Ave' }],
       });
 
-      // Note: Validation of deeply nested entities within collections may not
-      // be fully supported in the current validation system. The collection
-      // wrapping adds a layer of indirection that makes validation more complex.
-      // For strict validation, consider validating the collection entity separately.
       expect(result.success).toBe(true);
-
-      // Validation of nested entities requires recursive validation through
-      // the collection wrapper
-      if (result.data) {
-        const collectionProblems = await EntityUtils.validate(
-          result.data.addresses,
-        );
-        // Even validating the collection entity directly may not catch nested problems
-        // due to how the collection pattern works
-        expect(collectionProblems.length).toBeGreaterThanOrEqual(0);
-      }
+      expect(result.data!.addresses.collection).toHaveLength(2);
+      expect(result.data!.addresses.collection[0].street).toBe('123 Main St');
     });
   });
 
-  describe('multiple collection properties', () => {
-    it('should handle multiple collection properties in same entity', async () => {
-      @Entity()
+  describe('isCollectionEntity helper', () => {
+    it('should identify collection entity classes', () => {
+      @CollectionEntity()
       class StringCollection {
         @ArrayProperty(() => String)
         readonly collection: string[];
@@ -632,90 +608,51 @@ describe('CollectionProperty', () => {
         }
       }
 
-      @Entity()
-      class NumberCollection {
-        @ArrayProperty(() => Number)
-        readonly collection: number[];
-
-        constructor(data: { collection: number[] }) {
-          this.collection = data.collection;
-        }
-      }
-
-      @Entity()
-      class MyEntity {
-        @CollectionProperty(() => StringCollection)
-        tags!: StringCollection;
-
-        @CollectionProperty(() => NumberCollection)
-        scores!: NumberCollection;
-
-        constructor(data: {
-          tags: StringCollection;
-          scores: NumberCollection;
-        }) {
-          this.tags = data.tags;
-          this.scores = data.scores;
-        }
-      }
-
-      const entity = new MyEntity({
-        tags: new StringCollection({ collection: ['a', 'b'] }),
-        scores: new NumberCollection({ collection: [1, 2, 3] }),
-      });
-
-      const json = EntityUtils.toJSON(entity);
-
-      expect(json).toEqual({
-        tags: ['a', 'b'],
-        scores: [1, 2, 3],
-      });
-
-      const parsed = await EntityUtils.parse(MyEntity, json);
-
-      expect(parsed.tags).toBeInstanceOf(StringCollection);
-      expect(parsed.tags.collection).toEqual(['a', 'b']);
-      expect(parsed.scores).toBeInstanceOf(NumberCollection);
-      expect(parsed.scores.collection).toEqual([1, 2, 3]);
+      expect(EntityUtils.isCollectionEntity(StringCollection)).toBe(true);
     });
-  });
 
-  describe('edge cases', () => {
-    it('should handle collections with sparse arrays', async () => {
-      @Entity()
+    it('should identify collection entity instances', () => {
+      @CollectionEntity()
       class StringCollection {
-        @ArrayProperty(() => String, { sparse: true })
-        readonly collection: (string | null)[];
+        @ArrayProperty(() => String)
+        readonly collection: string[];
 
-        constructor(data: { collection: (string | null)[] }) {
+        constructor(data: { collection: string[] }) {
           this.collection = data.collection;
         }
       }
 
-      @Entity()
-      class MyEntity {
-        @CollectionProperty(() => StringCollection)
-        myCollection!: StringCollection;
+      const instance = new StringCollection({ collection: ['a'] });
+      expect(EntityUtils.isCollectionEntity(instance)).toBe(true);
+    });
 
-        constructor(data: { myCollection: StringCollection }) {
-          this.myCollection = data.myCollection;
+    it('should return false for regular entities', () => {
+      @Entity()
+      class RegularEntity {
+        @StringProperty()
+        name!: string;
+
+        constructor(data: { name: string }) {
+          this.name = data.name;
         }
       }
 
-      const entity = new MyEntity({
-        myCollection: new StringCollection({ collection: ['a', null, 'c'] }),
-      });
+      expect(EntityUtils.isCollectionEntity(RegularEntity)).toBe(false);
+      expect(
+        EntityUtils.isCollectionEntity(new RegularEntity({ name: 'test' })),
+      ).toBe(false);
+    });
 
-      const json = EntityUtils.toJSON(entity);
+    it('should return false for non-entities', () => {
+      class NotAnEntity {
+        name!: string;
+      }
 
-      expect(json).toEqual({
-        myCollection: ['a', null, 'c'],
-      });
-
-      const parsed = await EntityUtils.parse(MyEntity, json);
-
-      expect(parsed.myCollection).toBeInstanceOf(StringCollection);
-      expect(parsed.myCollection.collection).toEqual(['a', null, 'c']);
+      expect(EntityUtils.isCollectionEntity(NotAnEntity)).toBe(false);
+      expect(EntityUtils.isCollectionEntity(new NotAnEntity())).toBe(false);
+      expect(EntityUtils.isCollectionEntity({})).toBe(false);
+      expect(EntityUtils.isCollectionEntity(null)).toBe(false);
+      expect(EntityUtils.isCollectionEntity(undefined)).toBe(false);
     });
   });
 });

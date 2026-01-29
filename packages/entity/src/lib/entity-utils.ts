@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ENTITY_METADATA_KEY,
+  ENTITY_OPTIONS_METADATA_KEY,
   ENTITY_VALIDATOR_METADATA_KEY,
   ParseOptions,
   PROPERTY_METADATA_KEY,
@@ -8,6 +10,7 @@ import {
   PropertyOptions,
   SafeOperationResult,
 } from './types.js';
+import type { EntityOptions } from './entity.js';
 import {
   getInjectedPropertyNames,
   getInjectedPropertyOptions,
@@ -76,6 +79,55 @@ export class EntityUtils {
 
     const constructor = Object.getPrototypeOf(obj).constructor;
     return Reflect.hasMetadata(ENTITY_METADATA_KEY, constructor);
+  }
+
+  /**
+   * Gets the entity options for a given constructor
+   *
+   * @param entityOrClass - The entity class constructor or instance
+   * @returns EntityOptions object (empty object if no options are defined)
+   * @private
+   */
+  private static getEntityOptions(entityOrClass: unknown): EntityOptions {
+    const constructor =
+      typeof entityOrClass === 'function'
+        ? entityOrClass
+        : Object.getPrototypeOf(entityOrClass).constructor;
+
+    const options: EntityOptions | undefined = Reflect.getMetadata(
+      ENTITY_OPTIONS_METADATA_KEY,
+      constructor,
+    );
+    return options ?? {};
+  }
+
+  /**
+   * Checks if a given entity is marked as a collection entity
+   *
+   * @param entityOrClass - The entity instance or class to check
+   * @returns true if the entity is a collection entity, false otherwise
+   *
+   * @example
+   * ```typescript
+   * @CollectionEntity()
+   * class Tags {
+   *   @ArrayProperty(() => String)
+   *   collection: string[];
+   * }
+   *
+   * const tags = new Tags({ collection: ['a', 'b'] });
+   * console.log(EntityUtils.isCollectionEntity(tags)); // true
+   * console.log(EntityUtils.isCollectionEntity(Tags)); // true
+   * ```
+   */
+  static isCollectionEntity(entityOrClass: unknown): boolean {
+    if (!this.isEntity(entityOrClass)) {
+      return false;
+    }
+
+    const options = this.getEntityOptions(entityOrClass);
+
+    return options.collection === true;
   }
 
   static sameEntity(a: object, b: object): boolean {
@@ -238,7 +290,7 @@ export class EntityUtils {
    * Serializes an entity to a plain object, converting only properties decorated with @Property()
    *
    * @param entity - The entity instance to serialize
-   * @returns A plain object containing only the serialized decorated properties
+   * @returns A plain object containing only the serialized decorated properties, or an array for collection entities
    *
    * @remarks
    * Serialization rules:
@@ -251,6 +303,7 @@ export class EntityUtils {
    * - undefined values are excluded from the output
    * - null values are included in the output
    * - Circular references are not supported (will cause stack overflow)
+   * - Collection entities (@CollectionEntity) are unwrapped to just their array
    *
    * @example
    * ```typescript
@@ -282,9 +335,41 @@ export class EntityUtils {
    * //   address: { street: '123 Main St', city: 'Boston' },
    * //   createdAt: '2024-01-01T00:00:00.000Z'
    * // }
+   *
+   * @CollectionEntity()
+   * class Tags {
+   *   @ArrayProperty(() => String)
+   *   collection: string[];
+   * }
+   *
+   * const tags = new Tags({ collection: ['a', 'b'] });
+   * const json = EntityUtils.toJSON(tags);
+   * // ['a', 'b'] - unwrapped to array
    * ```
    */
-  static toJSON<T extends object>(entity: T): Record<string, unknown> {
+  static toJSON<T extends object>(entity: T): unknown {
+    if (this.isCollectionEntity(entity)) {
+      const collectionPropertyOptions = this.getPropertyOptions(
+        entity,
+        'collection',
+      );
+      if (!collectionPropertyOptions) {
+        throw new Error(
+          `Collection entity 'collection' property is missing metadata`,
+        );
+      }
+      if (!collectionPropertyOptions.array) {
+        throw new Error(
+          `Collection entity 'collection' property must be an array`,
+        );
+      }
+
+      return this.serializeValue(
+        (entity as any).collection,
+        collectionPropertyOptions,
+      );
+    }
+
     const result: Record<string, unknown> = {};
     const keys = this.getPropertyKeys(entity);
 
@@ -322,23 +407,6 @@ export class EntityUtils {
     const passthrough = options?.passthrough === true;
     if (passthrough) {
       return value;
-    }
-
-    if (options?.collection === true) {
-      if (!this.isEntity(value)) {
-        throw new Error(
-          `Expected collection entity but received non-entity value`,
-        );
-      }
-
-      const collectionArray = (value as any).collection;
-      if (!Array.isArray(collectionArray)) {
-        throw new Error(
-          `Collection entity must have a 'collection' property that is an array`,
-        );
-      }
-
-      return collectionArray.map((item) => this.serializeValue(item));
     }
 
     if (Array.isArray(value)) {
@@ -426,8 +494,10 @@ export class EntityUtils {
     entityClass: new (data: any) => T,
     plainObject: unknown,
     parseOptions: ParseOptions = {},
-    knownProblems?: Problem[],
   ): Promise<T> {
+    if (this.isCollectionEntity(entityClass)) {
+      plainObject = { collection: plainObject };
+    }
     if (plainObject == null) {
       throw createValidationError(
         `Expects an object but received ${typeof plainObject}`,
@@ -528,7 +598,7 @@ export class EntityUtils {
 
     rawInputStorage.set(instance, plainObject as Record<string, unknown>);
 
-    const problems = await this.validate(instance, knownProblems);
+    const problems = await this.validate(instance);
 
     if (problems.length > 0 && strict) {
       throw new ValidationError(problems);
@@ -755,40 +825,7 @@ export class EntityUtils {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const typeConstructor = options.type!();
     const isArray = options.array === true;
-    const isCollection = options.collection === true;
     const isSparse = options.sparse === true;
-
-    const problems: Problem[] = [];
-
-    if (isCollection) {
-      if (!this.isEntity(typeConstructor)) {
-        throw createValidationError(
-          `Collection property type must be an @Entity() class`,
-        );
-      }
-
-      if (!Array.isArray(value)) {
-        problems.push(
-          new Problem({
-            message: `Collection property expects an array but received ${typeof value}`,
-          }),
-        );
-      }
-
-      const collectionInstance = await this.parse(
-        typeConstructor as new (data: any) => object,
-        {
-          collection: Array.isArray(value) ? value : [],
-        },
-        parseOptions,
-        problems,
-      );
-
-      // override raw input to be the array only
-      rawInputStorage.set(collectionInstance, value);
-
-      return collectionInstance;
-    }
 
     if (isArray) {
       if (!Array.isArray(value)) {
@@ -869,12 +906,6 @@ export class EntityUtils {
     }
 
     if (this.isEntity(typeConstructor)) {
-      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        throw createValidationError(
-          `Expects an object but received ${typeof value}`,
-        );
-      }
-
       return await this.parse(
         typeConstructor as new (data: any) => object,
         value as Record<string, unknown>,
@@ -1025,10 +1056,7 @@ export class EntityUtils {
    * console.log(problems); // [Problem, Problem, ...]
    * ```
    */
-  static async validate<T extends object>(
-    instance: T,
-    knownProblems: Problem[] = [],
-  ): Promise<Problem[]> {
+  static async validate<T extends object>(instance: T): Promise<Problem[]> {
     if (!this.isEntity(instance)) {
       throw new Error('Cannot validate non-entity instance');
     }
@@ -1059,11 +1087,9 @@ export class EntityUtils {
       }
     }
 
-    const allProblems = [...knownProblems, ...problems];
+    EntityUtils.setProblems(instance, problems);
 
-    EntityUtils.setProblems(instance, allProblems);
-
-    return allProblems;
+    return problems;
   }
 
   /**

@@ -801,7 +801,7 @@ describe('EntityUtils', () => {
 
         const user = new User({ metadata: { nested: { data: 'value' } } });
 
-        const json = EntityUtils.toJSON(user);
+        const json = EntityUtils.toJSON(user) as Record<string, unknown>;
         expect(json.metadata).toEqual({ nested: { data: 'value' } });
 
         const parsed = await EntityUtils.parse(User, json);
@@ -916,7 +916,7 @@ describe('EntityUtils', () => {
         data.last = new Wrapper('c');
 
         const json = EntityUtils.toJSON(data);
-        const keys = Object.keys(json);
+        const keys = Object.keys(json as Record<string, unknown>);
         expect(keys).toEqual(['first', 'middle', 'last']);
       });
     });

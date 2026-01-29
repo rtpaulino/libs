@@ -21,6 +21,11 @@ export const PROPERTY_OPTIONS_METADATA_KEY = Symbol(
 export const ENTITY_METADATA_KEY = Symbol('entity:metadata');
 
 /**
+ * Metadata key used to store entity options
+ */
+export const ENTITY_OPTIONS_METADATA_KEY = Symbol('entity:options:metadata');
+
+/**
  * Metadata key used to store entity validator methods
  */
 export const ENTITY_VALIDATOR_METADATA_KEY = Symbol(
@@ -115,17 +120,6 @@ export interface PropertyOptions<
    * tags!: string[];
    */
   array?: boolean;
-
-  /**
-   * Whether this property is a collection entity. Defaults to false.
-   * When true, the property is an entity with a 'collection' array property.
-   * During serialization, the collection entity is unwrapped to just the array.
-   * During deserialization, the array is wrapped in a collection entity.
-   * @example
-   * @Property({ type: () => MyCollection, collection: true })
-   * myCollection!: MyCollection;
-   */
-  collection?: boolean;
 
   /**
    * Whether this property is optional. Defaults to false.
