@@ -5,6 +5,7 @@ import {
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
   PropertyOptions,
+  SafeOperationResult,
 } from './types.js';
 import {
   getInjectedPropertyNames,
@@ -557,18 +558,7 @@ export class EntityUtils {
     entityClass: new (data: any) => T,
     plainObject: unknown,
     options?: { strict?: boolean },
-  ): Promise<
-    | {
-        success: true;
-        data: T;
-        problems: Problem[];
-      }
-    | {
-        success: false;
-        data: undefined;
-        problems: Problem[];
-      }
-  > {
+  ): SafeOperationResult<T> {
     try {
       const data = await this.parse(entityClass, plainObject, options);
       const problems = this.getProblems(data);
@@ -576,6 +566,148 @@ export class EntityUtils {
       return {
         success: true,
         data,
+        problems,
+      };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return {
+          success: false,
+          data: undefined,
+          problems: error.problems,
+        };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Updates an entity instance with new values, respecting preventUpdates flags on properties
+   *
+   * @param instance - The entity instance to update. Must be an Entity.
+   * @param updates - Partial object with properties to update
+   * @param options - Update options (strict mode)
+   * @returns Promise resolving to a new instance with updated values
+   *
+   * @remarks
+   * Update behavior:
+   * - Creates a shallow copy of the instance
+   * - For each @Property(), copies the value from updates if it exists
+   * - Properties with preventUpdates: true will not be copied from updates
+   * - Runs entity validators after applying updates
+   * - Throws ValidationError if validation fails and strict: true
+   * - Soft problems are stored on the instance if strict: false (default)
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class User {
+   *   @Property({ type: () => String }) name!: string;
+   *   @Property({ type: () => String, preventUpdates: true }) id!: string;
+   *
+   *   constructor(data: Partial<User>) {
+   *     Object.assign(this, data);
+   *   }
+   * }
+   *
+   * const user = new User({ id: '123', name: 'John' });
+   * const updated = await EntityUtils.update(user, { id: '456', name: 'Jane' });
+   * // updated.id === '123' (not updated due to preventUpdates: true)
+   * // updated.name === 'Jane'
+   * ```
+   */
+  static async update<T extends object>(
+    instance: T,
+    updates: Partial<T>,
+    options?: { strict?: boolean },
+  ): Promise<T> {
+    if (!this.isEntity(instance)) {
+      throw new Error('Cannot update non-entity instance');
+    }
+
+    const strict = options?.strict ?? false;
+    const Constructor = Object.getPrototypeOf(instance).constructor;
+    const keys = this.getPropertyKeys(instance);
+    const data: Record<string, unknown> = {};
+
+    // Copy existing properties
+    for (const key of keys) {
+      const value = (instance as any)[key];
+      data[key] = value;
+    }
+
+    // Apply updates, respecting preventUpdates flag
+    for (const key of keys) {
+      if (key in updates) {
+        const propertyOptions = this.getPropertyOptions(instance, key);
+        if (propertyOptions && propertyOptions.preventUpdates === true) {
+          // Skip updating this property
+          continue;
+        }
+        data[key] = (updates as any)[key];
+      }
+    }
+
+    const newInstance = new Constructor(data);
+
+    const problems = await this.validate(newInstance);
+
+    if (problems.length > 0 && strict) {
+      throw new ValidationError(problems);
+    }
+
+    return newInstance;
+  }
+
+  /**
+   * Safely updates an entity instance without throwing errors
+   *
+   * @param instance - The entity instance to update. Must be an Entity.
+   * @param updates - Partial object with properties to update
+   * @param options - Update options (strict mode)
+   * @returns Promise resolving to a result object with success flag, data, and problems
+   *
+   * @remarks
+   * Similar to update() but returns a result object instead of throwing errors:
+   * - On success with strict: true - returns { success: true, data, problems: [] }
+   * - On success with strict: false - returns { success: true, data, problems: [...] } (may include soft problems)
+   * - On failure - returns { success: false, data: undefined, problems: [...] }
+   *
+   * All update and validation rules from update() apply.
+   * See update() documentation for detailed update behavior.
+   *
+   * @example
+   * ```typescript
+   * @Entity()
+   * class User {
+   *   @Property({ type: () => String }) name!: string;
+   *
+   *   constructor(data: Partial<User>) {
+   *     Object.assign(this, data);
+   *   }
+   * }
+   *
+   * const user = new User({ name: 'John' });
+   * const result = await EntityUtils.safeUpdate(user, { name: 'Jane' });
+   * if (result.success) {
+   *   console.log(result.data); // Updated User instance
+   *   console.log(result.problems); // [] or soft problems if not strict
+   * } else {
+   *   console.log(result.problems); // Hard problems
+   * }
+   * ```
+   */
+  static async safeUpdate<T extends object>(
+    instance: T,
+    updates: Partial<T>,
+    options?: { strict?: boolean },
+  ): SafeOperationResult<T> {
+    try {
+      const updatedInstance = await this.update(instance, updates, options);
+      const problems = this.getProblems(updatedInstance);
+
+      return {
+        success: true,
+        data: updatedInstance,
         problems,
       };
     } catch (error) {

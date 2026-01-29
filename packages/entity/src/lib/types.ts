@@ -149,6 +149,16 @@ export interface PropertyOptions<
   passthrough?: boolean;
 
   /**
+   * Whether to prevent this property from being updated via EntityUtils.update().
+   * When true, this property cannot be modified through update operations.
+   * Defaults to false, allowing the property to be updated.
+   * @example
+   * @Property({ type: () => String, preventUpdates: true })
+   * id!: string; // This property cannot be updated
+   */
+  preventUpdates?: boolean;
+
+  /**
    * Custom serialization function to convert the property value to JSON-compatible format.
    * Must be paired with deserialize - both must be defined together or both omitted.
    * Not used when passthrough is true.
@@ -278,3 +288,12 @@ export type EntityDIProvider<T = any> =
     };
 
 export type EntityDIFallbackFn = (token: EntityDIToken) => Promise<any>;
+
+/**
+ * Generic type for safe operation results that can succeed or fail
+ * @template T - The data type on success
+ */
+export type SafeOperationResult<T> = Promise<
+  | { success: true; data: T; problems: Problem[] }
+  | { success: false; data: undefined; problems: Problem[] }
+>;
