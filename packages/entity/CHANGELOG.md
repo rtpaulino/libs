@@ -1,3 +1,14 @@
+## 0.21.0 (2026-01-30)
+
+### 🚀 Features
+
+- add property validation to partialParse and safePartialParse methods ([eddbed2](https://github.com/rtpaulino/libs/commit/eddbed2))
+- implement partial parsing and safe parsing for entity deserialization ([74695e4](https://github.com/rtpaulino/libs/commit/74695e4))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.20.0 (2026-01-29)
 
 ### 🚀 Features
