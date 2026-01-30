@@ -10,6 +10,7 @@ import {
 } from './property.js';
 import { Entity } from './entity.js';
 import { ValidationError } from './validation-error.js';
+import { minLengthValidator, minValidator } from './validators.js';
 
 describe('EntityUtils', () => {
   describe('partialParse', () => {
@@ -649,6 +650,312 @@ describe('EntityUtils', () => {
         expect(result.data).toEqual({ name: 'John' });
         expect('age' in result.data!).toBe(false);
         expect('status' in result.data!).toBe(false);
+      });
+    });
+
+    describe('property validation', () => {
+      describe('partialParse', () => {
+        it('should run property validators on successfully parsed properties', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(3)] })
+            name!: string;
+
+            @NumberProperty({ validators: [minValidator(18)] })
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.partialParse(User, {
+            name: 'John',
+            age: 25,
+          });
+
+          expect(result).toEqual({ name: 'John', age: 25 });
+          const problems = EntityUtils.getProblems(result as any);
+          expect(problems).toEqual([]);
+        });
+
+        it('should collect validation problems in non-strict mode', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            name!: string;
+
+            @NumberProperty({ validators: [minValidator(18)] })
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.partialParse(User, {
+            name: 'Jo',
+            age: 15,
+          });
+
+          expect(result).toEqual({ name: 'Jo', age: 15 });
+          const problems = EntityUtils.getProblems(result as any);
+          expect(problems.length).toBe(2);
+          expect(problems.some((p) => p.property === 'name')).toBe(true);
+          expect(problems.some((p) => p.property === 'age')).toBe(true);
+        });
+
+        it('should throw validation errors in strict mode', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            name!: string;
+
+            @NumberProperty()
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          await expect(
+            EntityUtils.partialParse(
+              User,
+              { name: 'Jo', age: 25 },
+              { strict: true },
+            ),
+          ).rejects.toThrow(ValidationError);
+        });
+
+        it('should validate only present properties, not missing ones', async () => {
+          @Entity()
+          class User {
+            @StringProperty()
+            name!: string;
+
+            @NumberProperty({ validators: [minValidator(18)] })
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          // age is missing, so its validator should not run
+          const result = await EntityUtils.partialParse(User, {
+            name: 'John',
+          });
+
+          expect(result).toEqual({ name: 'John' });
+          const problems = EntityUtils.getProblems(result as any);
+          expect(problems).toEqual([]);
+        });
+
+        it('should validate nested entities', async () => {
+          @Entity()
+          class Address {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            street!: string;
+
+            constructor(data: Partial<Address>) {
+              Object.assign(this, data);
+            }
+          }
+
+          @Entity()
+          class User {
+            @StringProperty()
+            name!: string;
+
+            @EntityProperty(() => Address)
+            address!: Address;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.partialParse(User, {
+            name: 'John',
+            address: { street: 'St' },
+          });
+
+          expect(result.name).toBe('John');
+          expect(result.address).toBeInstanceOf(Address);
+
+          const problems = EntityUtils.getProblems(result as any);
+          expect(problems.length).toBeGreaterThan(0);
+          expect(problems.some((p) => p.property.includes('address'))).toBe(
+            true,
+          );
+        });
+
+        it('should validate array elements', async () => {
+          @Entity()
+          class User {
+            @StringProperty()
+            name!: string;
+
+            @ArrayProperty(() => Number, { validators: [minValidator(0)] })
+            scores!: number[];
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.partialParse(User, {
+            name: 'John',
+            scores: [10, -5, 20],
+          });
+
+          expect(result).toEqual({ name: 'John', scores: [10, -5, 20] });
+          const problems = EntityUtils.getProblems(result as any);
+          expect(problems.length).toBeGreaterThan(0);
+          expect(problems.some((p) => p.property.includes('scores'))).toBe(
+            true,
+          );
+        });
+
+        it('should combine hard problems and validation problems', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            name!: string;
+
+            @NumberProperty()
+            age!: number;
+
+            @StringProperty()
+            email!: string;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          // name has validation problem, age has type problem
+          const result = await EntityUtils.partialParse(User, {
+            name: 'Jo',
+            age: 'invalid' as any,
+            email: 'test@example.com',
+          });
+
+          // age should be excluded due to hard problem, name should be included but have validation problem
+          expect(result).toEqual({ name: 'Jo', email: 'test@example.com' });
+          const problems = EntityUtils.getProblems(result as any);
+          expect(problems.length).toBeGreaterThanOrEqual(2);
+          expect(problems.some((p) => p.property === 'name')).toBe(true);
+          expect(problems.some((p) => p.property === 'age')).toBe(true);
+        });
+      });
+
+      describe('safePartialParse', () => {
+        it('should return validation problems in the result', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            name!: string;
+
+            @NumberProperty({ validators: [minValidator(18)] })
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.safePartialParse(User, {
+            name: 'Jo',
+            age: 15,
+          });
+
+          expect(result.success).toBe(true);
+          expect(result.data).toEqual({ name: 'Jo', age: 15 });
+          expect(result.problems.length).toBe(2);
+          expect(result.problems.some((p) => p.property === 'name')).toBe(true);
+          expect(result.problems.some((p) => p.property === 'age')).toBe(true);
+        });
+
+        it('should return failure in strict mode with validation problems', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            name!: string;
+
+            @NumberProperty()
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.safePartialParse(
+            User,
+            { name: 'Jo', age: 25 },
+            { strict: true },
+          );
+
+          expect(result.success).toBe(false);
+          expect(result.data).toBeUndefined();
+          expect(result.problems.length).toBeGreaterThan(0);
+          expect(result.problems.some((p) => p.property === 'name')).toBe(true);
+        });
+
+        it('should return success in strict mode when all validations pass', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(3)] })
+            name!: string;
+
+            @NumberProperty({ validators: [minValidator(18)] })
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.safePartialParse(
+            User,
+            { name: 'John', age: 25 },
+            { strict: true },
+          );
+
+          expect(result.success).toBe(true);
+          expect(result.data).toEqual({ name: 'John', age: 25 });
+          expect(result.problems).toEqual([]);
+        });
+
+        it('should include both hard and validation problems', async () => {
+          @Entity()
+          class User {
+            @StringProperty({ validators: [minLengthValidator(5)] })
+            name!: string;
+
+            @NumberProperty()
+            age!: number;
+
+            constructor(data: Partial<User>) {
+              Object.assign(this, data);
+            }
+          }
+
+          const result = await EntityUtils.safePartialParse(User, {
+            name: 'Jo',
+            age: 'invalid' as any,
+          });
+
+          expect(result.success).toBe(true);
+          expect(result.data).toEqual({ name: 'Jo' });
+          expect(result.problems.length).toBeGreaterThanOrEqual(2);
+
+          const problemProperties = result.problems.map((p) => p.property);
+          expect(problemProperties).toContain('name');
+          expect(problemProperties).toContain('age');
+        });
       });
     });
   });

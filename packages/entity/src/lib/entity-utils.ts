@@ -742,22 +742,17 @@ export class EntityUtils {
     plainObject: unknown,
     options: { strict?: boolean } = {},
   ): Promise<Partial<T>> {
-    const strict = options?.strict ?? false;
-
-    const { data, hardProblems } = await this._parseInternal(
+    const result = await this.safePartialParse(
       entityClass,
       plainObject,
-      { strict, skipDefaults: true, skipMissing: true },
+      options,
     );
 
-    // When strict mode, throw on any hard problems
-    if (strict && hardProblems.length > 0) {
-      throw new ValidationError(hardProblems);
+    if (!result.success) {
+      throw new ValidationError(result.problems);
     }
 
-    this.setProblems(data, hardProblems);
-
-    return data as Partial<T>;
+    return result.data;
   }
 
   /**
@@ -819,12 +814,26 @@ export class EntityUtils {
       };
     }
 
-    this.setProblems(data, hardProblems);
+    const propertyProblems = await this.validateProperties(
+      data,
+      entityClass.prototype,
+    );
+    const validationProblems = [...hardProblems, ...propertyProblems];
+
+    if (strict && propertyProblems.length > 0) {
+      return {
+        success: false,
+        data: undefined,
+        problems: validationProblems,
+      };
+    }
+
+    this.setProblems(data, validationProblems);
 
     return {
       success: true,
       data: data as Partial<T>,
-      problems: hardProblems,
+      problems: validationProblems,
     };
   }
 
@@ -1175,6 +1184,35 @@ export class EntityUtils {
     return problems;
   }
 
+  /**
+   * Validates all properties on an object (entity instance or plain object)
+   * @private
+   */
+  private static async validateProperties(
+    dataOrInstance: Record<string, unknown> | object,
+    prototype: object,
+  ): Promise<Problem[]> {
+    const problems: Problem[] = [];
+    const keys = Object.keys(dataOrInstance);
+
+    for (const key of keys) {
+      const options = this.getPropertyOptions(prototype, key);
+      if (options) {
+        const value = (dataOrInstance as any)[key];
+        if (value != null) {
+          const validationProblems = await this.runPropertyValidators(
+            key,
+            value,
+            options,
+          );
+          problems.push(...validationProblems);
+        }
+      }
+    }
+
+    return problems;
+  }
+
   private static async addInjectedDependencies(
     data: Record<string, unknown>,
     prototype: object,
@@ -1220,21 +1258,8 @@ export class EntityUtils {
 
     const problems: Problem[] = [];
 
-    const keys = this.getPropertyKeys(instance);
-    for (const key of keys) {
-      const options = this.getPropertyOptions(instance, key);
-      if (options) {
-        const value = (instance as any)[key];
-        if (value != null) {
-          const validationProblems = await this.runPropertyValidators(
-            key,
-            value,
-            options,
-          );
-          problems.push(...validationProblems);
-        }
-      }
-    }
+    const propertyProblems = await this.validateProperties(instance, instance);
+    problems.push(...propertyProblems);
 
     const entityValidators = this.getEntityValidators(instance);
     for (const validatorMethod of entityValidators) {
