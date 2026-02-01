@@ -153,10 +153,7 @@ describe('Stringifiable', () => {
 
     it('should serialize array of stringifiable to array of strings', () => {
       const article = new Article();
-      article.tags = [
-        new Tag({ value: 'tag1' }),
-        new Tag({ value: 'tag2' }),
-      ];
+      article.tags = [new Tag({ value: 'tag1' }), new Tag({ value: 'tag2' })];
       article.title = 'Test Article';
 
       const json = EntityUtils.toJSON(article);
@@ -431,7 +428,9 @@ describe('Stringifiable', () => {
       user.id = new MutableId({ value: 'old-id' });
       user.name = 'John';
 
-      await EntityUtils.update(user, { id: new MutableId({ value: 'new-id' }) });
+      await EntityUtils.update(user, {
+        id: new MutableId({ value: 'new-id' }),
+      });
 
       expect(user.id.value).toBe('old-id'); // original unchanged
     });

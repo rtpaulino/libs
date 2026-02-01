@@ -395,10 +395,7 @@ export class EntityUtils {
         );
       }
 
-      return this.serializeValue(
-        (entity as any).value,
-        valuePropertyOptions,
-      );
+      return this.serializeValue((entity as any).value, valuePropertyOptions);
     }
 
     if (this.isCollectionEntity(entity)) {
