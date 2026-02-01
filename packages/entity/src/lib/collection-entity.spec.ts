@@ -2,10 +2,16 @@
 import 'reflect-metadata';
 import { describe, it, expect } from 'vitest';
 import { EntityUtils } from './entity-utils.js';
-import { ArrayProperty, EntityProperty, StringProperty } from './property.js';
+import {
+  ArrayProperty,
+  EntityProperty,
+  StringProperty,
+  Property,
+} from './property.js';
 import { CollectionEntity, Entity } from './entity.js';
 import { InjectedProperty } from './injected-property.js';
 import { EntityDI } from './entity-di.js';
+import { Problem } from './problem.js';
 
 describe('CollectionEntity', () => {
   describe('serialization with toJSON', () => {
@@ -593,6 +599,328 @@ describe('CollectionEntity', () => {
       expect(result.success).toBe(true);
       expect(result.data!.addresses.collection).toHaveLength(2);
       expect(result.data!.addresses.collection[0].street).toBe('123 Main St');
+    });
+
+    // TODO: These tests document expected behavior for soft validation problems in CollectionEntity items
+    // Currently, soft validation problems from nested entities within collection items are not properly
+    // collected and displayed. This is a known limitation that should be addressed.
+    // The validation system needs to be enhanced to:
+    // 1. Validate nested entities within collection items during parse
+    // 2. Collect and prepend proper property paths (e.g., 'addresses.collection[0].street')
+    // 3. Expose these problems via getProblems() and safeParse() result
+
+    it.skip('should collect soft validation problems from collection items in non-strict mode', async () => {
+      @Entity()
+      class Address {
+        @StringProperty({ minLength: 10 })
+        street!: string;
+
+        constructor(data: { street: string }) {
+          this.street = data.street;
+        }
+      }
+
+      @CollectionEntity()
+      class AddressCollection {
+        @ArrayProperty(() => Address)
+        readonly collection: Address[];
+
+        constructor(data: { collection: Address[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      @Entity()
+      class User {
+        @EntityProperty(() => AddressCollection)
+        addresses!: AddressCollection;
+
+        constructor(data: { addresses: AddressCollection }) {
+          this.addresses = data.addresses;
+        }
+      }
+
+      // Parse with soft validation problems (street too short)
+      const result = await EntityUtils.safeParse(
+        User,
+        {
+          addresses: [{ street: 'Main' }, { street: '456 Oak Ave' }],
+        },
+        { strict: false },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data!.addresses.collection).toHaveLength(2);
+      expect(result.data!.addresses.collection[0].street).toBe('Main');
+      expect(result.data!.addresses.collection[1].street).toBe('456 Oak Ave');
+
+      // Should have soft problems
+      expect(result.problems).toHaveLength(1);
+      expect(result.problems[0].property).toBe(
+        'addresses.collection[0].street',
+      );
+      expect(result.problems[0].message).toContain('at least 10 characters');
+    });
+
+    it.skip('should retrieve soft problems from collection using getProblems()', async () => {
+      @Entity()
+      class Address {
+        @StringProperty({ minLength: 10 })
+        street!: string;
+
+        constructor(data: { street: string }) {
+          this.street = data.street;
+        }
+      }
+
+      @CollectionEntity()
+      class AddressCollection {
+        @ArrayProperty(() => Address)
+        readonly collection: Address[];
+
+        constructor(data: { collection: Address[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      @Entity()
+      class User {
+        @EntityProperty(() => AddressCollection)
+        addresses!: AddressCollection;
+
+        constructor(data: { addresses: AddressCollection }) {
+          this.addresses = data.addresses;
+        }
+      }
+
+      // Parse in non-strict mode with validation problems
+      const user = await EntityUtils.parse(
+        User,
+        {
+          addresses: [{ street: 'Short' }, { street: 'Also Short' }],
+        },
+        { strict: false },
+      );
+
+      // Retrieve problems using getProblems
+      const problems = EntityUtils.getProblems(user);
+
+      expect(problems).toHaveLength(2);
+      expect(problems[0].property).toBe('addresses.collection[0].street');
+      expect(problems[0].message).toContain('at least 10 characters');
+      expect(problems[1].property).toBe('addresses.collection[1].street');
+      expect(problems[1].message).toContain('at least 10 characters');
+    });
+
+    it.skip('should throw in strict mode when collection items have validation problems', async () => {
+      @Entity()
+      class Address {
+        @StringProperty({ minLength: 10 })
+        street!: string;
+
+        constructor(data: { street: string }) {
+          this.street = data.street;
+        }
+      }
+
+      @CollectionEntity()
+      class AddressCollection {
+        @ArrayProperty(() => Address)
+        readonly collection: Address[];
+
+        constructor(data: { collection: Address[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      @Entity()
+      class User {
+        @EntityProperty(() => AddressCollection)
+        addresses!: AddressCollection;
+
+        constructor(data: { addresses: AddressCollection }) {
+          this.addresses = data.addresses;
+        }
+      }
+
+      const result = await EntityUtils.safeParse(
+        User,
+        {
+          addresses: [{ street: 'Short' }],
+        },
+        { strict: true },
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.data).toBeUndefined();
+      expect(result.problems.length).toBeGreaterThan(0);
+      expect(result.problems[0].property).toContain('addresses.collection');
+    });
+
+    it.skip('should handle multiple validation problems across collection items', async () => {
+      @Entity()
+      class Product {
+        @StringProperty({ minLength: 3 })
+        name!: string;
+
+        @Property({
+          type: () => Number,
+          validators: [
+            ({ value }) => {
+              if (typeof value === 'number' && value <= 0) {
+                return [
+                  new Problem({
+                    property: '',
+                    message: 'Price must be positive',
+                  }),
+                ];
+              }
+              return [];
+            },
+          ],
+        })
+        price!: number;
+
+        constructor(data: { name: string; price: number }) {
+          this.name = data.name;
+          this.price = data.price;
+        }
+      }
+
+      @CollectionEntity()
+      class ProductCollection {
+        @ArrayProperty(() => Product)
+        readonly collection: Product[];
+
+        constructor(data: { collection: Product[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      @Entity()
+      class Order {
+        @EntityProperty(() => ProductCollection)
+        products!: ProductCollection;
+
+        constructor(data: { products: ProductCollection }) {
+          this.products = data.products;
+        }
+      }
+
+      const result = await EntityUtils.safeParse(
+        Order,
+        {
+          products: [
+            { name: 'AB', price: -10 }, // Both validations fail
+            { name: 'Valid Product', price: 100 }, // All valid
+            { name: 'OK', price: 0 }, // Price validation fails
+          ],
+        },
+        { strict: false },
+      );
+
+      expect(result.success).toBe(true);
+      const problems = result.problems;
+
+      // Should have 3 problems: name length (item 0), price (item 0), price (item 2)
+      expect(problems.length).toBeGreaterThanOrEqual(3);
+
+      // Check that problems reference correct items
+      const problemPaths = problems.map((p) => p.property);
+      expect(
+        problemPaths.some((p) => p.includes('products.collection[0].name')),
+      ).toBe(true);
+      expect(
+        problemPaths.some((p) => p.includes('products.collection[0].price')),
+      ).toBe(true);
+      expect(
+        problemPaths.some((p) => p.includes('products.collection[2].price')),
+      ).toBe(true);
+    });
+
+    it('should handle empty collections without validation problems', async () => {
+      @Entity()
+      class Address {
+        @StringProperty({ minLength: 10 })
+        street!: string;
+
+        constructor(data: { street: string }) {
+          this.street = data.street;
+        }
+      }
+
+      @CollectionEntity()
+      class AddressCollection {
+        @ArrayProperty(() => Address)
+        readonly collection: Address[];
+
+        constructor(data: { collection: Address[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      @Entity()
+      class User {
+        @EntityProperty(() => AddressCollection)
+        addresses!: AddressCollection;
+
+        constructor(data: { addresses: AddressCollection }) {
+          this.addresses = data.addresses;
+        }
+      }
+
+      const result = await EntityUtils.safeParse(
+        User,
+        { addresses: [] },
+        { strict: true },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data!.addresses.collection).toHaveLength(0);
+      expect(result.problems).toEqual([]);
+    });
+
+    it.skip('should display problems correctly when directly parsing a CollectionEntity', async () => {
+      @Entity()
+      class Task {
+        @StringProperty({ minLength: 5 })
+        title!: string;
+
+        constructor(data: { title: string }) {
+          this.title = data.title;
+        }
+      }
+
+      @CollectionEntity()
+      class TaskCollection {
+        @ArrayProperty(() => Task)
+        readonly collection: Task[];
+
+        constructor(data: { collection: Task[] }) {
+          this.collection = data.collection;
+        }
+      }
+
+      // Directly parse the collection (not nested in another entity)
+      const result = await EntityUtils.safeParse(
+        TaskCollection,
+        [
+          { title: 'Buy groceries' }, // Valid
+          { title: 'Fix' }, // Too short
+          { title: 'Read' }, // Too short
+        ],
+        { strict: false },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data!.collection).toHaveLength(3);
+
+      const problems = result.problems;
+      expect(problems.length).toBe(2);
+      expect(problems[0].property).toBe('collection[1].title');
+      expect(problems[0].message).toContain('at least 5 characters');
+      expect(problems[1].property).toBe('collection[2].title');
+      expect(problems[1].message).toContain('at least 5 characters');
     });
   });
 
