@@ -247,16 +247,36 @@ export function NumberProperty(
  *
  *   @IntProperty({ optional: true })
  *   count?: number;
+ *
+ *   @IntProperty({ min: 0, max: 100 })
+ *   percentage!: number;
  * }
  */
 export function IntProperty(
-  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'>,
+  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
+    min?: number;
+    max?: number;
+  },
 ): PropertyDecorator {
-  const validators = options?.validators
-    ? [intValidator(), ...options.validators]
-    : [intValidator()];
+  const validators = [...(options?.validators || [])];
 
-  return Property({ ...options, type: () => Number, validators });
+  if (options?.min !== undefined) {
+    validators.unshift(minValidator(options.min));
+  }
+  if (options?.max !== undefined) {
+    validators.unshift(maxValidator(options.max));
+  }
+
+  validators.unshift(intValidator());
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { min, max, ...restOptions } = options || {};
+
+  return Property({
+    ...restOptions,
+    type: () => Number,
+    validators: validators.length > 0 ? validators : undefined,
+  });
 }
 
 /**
