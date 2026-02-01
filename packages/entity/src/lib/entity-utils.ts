@@ -130,6 +130,35 @@ export class EntityUtils {
     return options.collection === true;
   }
 
+  /**
+   * Checks if a given entity is marked as a stringifiable entity
+   *
+   * @param entityOrClass - The entity instance or class to check
+   * @returns true if the entity is a stringifiable entity, false otherwise
+   *
+   * @example
+   * ```typescript
+   * @Stringifiable()
+   * class UserId {
+   *   @StringProperty()
+   *   value: string;
+   * }
+   *
+   * const userId = new UserId({ value: 'user-123' });
+   * console.log(EntityUtils.isStringifiable(userId)); // true
+   * console.log(EntityUtils.isStringifiable(UserId)); // true
+   * ```
+   */
+  static isStringifiable(entityOrClass: unknown): boolean {
+    if (!this.isEntity(entityOrClass)) {
+      return false;
+    }
+
+    const options = this.getEntityOptions(entityOrClass);
+
+    return options.stringifiable === true;
+  }
+
   static sameEntity(a: object, b: object): boolean {
     if (!this.isEntity(a) || !this.isEntity(b)) {
       return false;
@@ -348,6 +377,30 @@ export class EntityUtils {
    * ```
    */
   static toJSON<T extends object>(entity: T): unknown {
+    if (this.isStringifiable(entity)) {
+      const valuePropertyOptions = this.getPropertyOptions(entity, 'value');
+      if (!valuePropertyOptions) {
+        throw new Error(
+          `Stringifiable entity 'value' property is missing metadata`,
+        );
+      }
+      if (valuePropertyOptions.array) {
+        throw new Error(
+          `Stringifiable entity 'value' property must not be an array`,
+        );
+      }
+      if (valuePropertyOptions.type?.() !== String) {
+        throw new Error(
+          `Stringifiable entity 'value' property must be of type String`,
+        );
+      }
+
+      return this.serializeValue(
+        (entity as any).value,
+        valuePropertyOptions,
+      );
+    }
+
     if (this.isCollectionEntity(entity)) {
       const collectionPropertyOptions = this.getPropertyOptions(
         entity,
@@ -459,7 +512,9 @@ export class EntityUtils {
       skipMissing?: boolean;
     } = {},
   ): Promise<{ data: Record<string, unknown>; hardProblems: Problem[] }> {
-    if (this.isCollectionEntity(entityClass)) {
+    if (this.isStringifiable(entityClass)) {
+      plainObject = { value: plainObject };
+    } else if (this.isCollectionEntity(entityClass)) {
       plainObject = { collection: plainObject };
     }
     if (plainObject == null) {

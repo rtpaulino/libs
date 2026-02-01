@@ -15,6 +15,13 @@ export interface EntityOptions {
    * When deserialized from an array, the array is wrapped in { collection: [...] }.
    */
   collection?: boolean;
+  /**
+   * Whether this entity represents a stringifiable value.
+   * Stringifiable classes must have a 'value' property that is a string.
+   * When serialized, stringifiable instances are unwrapped to just their string.
+   * When deserialized from a string, the string is wrapped in { value: "..." }.
+   */
+  stringifiable?: boolean;
 }
 
 /**
@@ -85,6 +92,50 @@ export function Entity(options: EntityOptions = {}): ClassDecorator {
  */
 export function CollectionEntity(): ClassDecorator {
   return Entity({ collection: true });
+}
+
+/**
+ * Decorator that marks a class as Stringifiable.
+ * This is syntax sugar for @Entity({ stringifiable: true }).
+ *
+ * Stringifiable classes must have a 'value' property that is a string.
+ * When serialized with EntityUtils.toJSON(), they are unwrapped to just the string.
+ * When deserialized from a string, the string is wrapped in { value: "..." }.
+ *
+ * @example
+ * ```typescript
+ * @Stringifiable()
+ * class UserId {
+ *   @StringProperty()
+ *   readonly value: string;
+ *
+ *   constructor(data: { value: string }) {
+ *     this.value = data.value;
+ *   }
+ * }
+ *
+ * @Entity()
+ * class User {
+ *   @EntityProperty(() => UserId)
+ *   id!: UserId;
+ * }
+ *
+ * const user = new User(...);
+ * const json = EntityUtils.toJSON(user);
+ * // { id: "user-123" } - unwrapped to string
+ *
+ * // Also works when serializing the stringifiable directly:
+ * const userId = new UserId({ value: "user-123" });
+ * const idJson = EntityUtils.toJSON(userId);
+ * // "user-123" - unwrapped to string
+ *
+ * // Parse from string:
+ * const parsed = await EntityUtils.parse(UserId, "user-456");
+ * // UserId { value: "user-456" }
+ * ```
+ */
+export function Stringifiable(): ClassDecorator {
+  return Entity({ stringifiable: true });
 }
 
 /**
