@@ -1,3 +1,14 @@
+## 0.22.0 (2026-02-01)
+
+### 🚀 Features
+
+- add Stringifiable decorator and related functionality for entity serialization ([bb9892c](https://github.com/rtpaulino/libs/commit/bb9892c))
+- enhance IntProperty with min and max validation options ([6cd93e1](https://github.com/rtpaulino/libs/commit/6cd93e1))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.21.0 (2026-01-30)
 
 ### 🚀 Features
