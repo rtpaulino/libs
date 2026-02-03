@@ -30,6 +30,7 @@ import {
   deserializePrimitive,
 } from './primitive-deserializers.js';
 import { ok } from 'assert';
+import { EntityRegistry } from './entity-registry.js';
 
 /**
  * WeakMap to store validation problems for entity instances
@@ -99,6 +100,32 @@ export class EntityUtils {
       constructor,
     );
     return options ?? {};
+  }
+
+  /**
+   * Gets the registered name for an entity class or instance
+   *
+   * @param entityOrClass - The entity class constructor or instance
+   * @returns The entity name, or undefined if not found
+   *
+   * @example
+   * ```typescript
+   * @Entity({ name: 'CustomUser' })
+   * class User {
+   *   name: string;
+   * }
+   *
+   * console.log(EntityUtils.getEntityName(User)); // 'CustomUser'
+   * console.log(EntityUtils.getEntityName(new User())); // 'CustomUser'
+   * ```
+   */
+  static getEntityName(entityOrClass: unknown): string | undefined {
+    if (!this.isEntity(entityOrClass)) {
+      return undefined;
+    }
+
+    const options = this.getEntityOptions(entityOrClass);
+    return options.name;
   }
 
   /**
@@ -464,7 +491,7 @@ export class EntityUtils {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return value.map((item) => options.serialize!(item as any));
       }
-      return value.map((item) => this.serializeValue(item));
+      return value.map((item) => this.serializeValue(item, options));
     }
 
     if (options?.serialize) {
@@ -480,7 +507,39 @@ export class EntityUtils {
     }
 
     if (this.isEntity(value)) {
-      return this.toJSON(value);
+      const serialized = this.toJSON(value);
+
+      // If this is a discriminated entity property, add the discriminator inline
+      if (options?.discriminated === true) {
+        const discriminatorProperty = options.discriminatorProperty;
+        ok(discriminatorProperty, 'Discriminator property must be defined');
+
+        const entityClass = Object.getPrototypeOf(value).constructor;
+        const entityName = this.getEntityName(entityClass);
+
+        if (!entityName) {
+          throw new Error(
+            `Cannot serialize discriminated entity: Entity class '${entityClass.name}' is not registered. Ensure it's decorated with @Entity().`,
+          );
+        }
+
+        if (
+          typeof serialized !== 'object' ||
+          Array.isArray(serialized) ||
+          serialized === null
+        ) {
+          throw new Error(
+            `Cannot serialize discriminated entity: Expected serialized value to be an object.`,
+          );
+        }
+
+        return {
+          ...serialized,
+          [discriminatorProperty]: entityName,
+        } as Record<string, unknown>;
+      }
+
+      return serialized;
     }
 
     if (
@@ -1040,10 +1099,9 @@ export class EntityUtils {
     options: PropertyOptions,
     parseOptions: ParseOptions,
   ): Promise<unknown> {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const typeConstructor = options.type!();
     const isArray = options.array === true;
     const isSparse = options.sparse === true;
+    const isDiscriminated = options.discriminated === true;
 
     if (isArray) {
       if (!Array.isArray(value)) {
@@ -1071,7 +1129,13 @@ export class EntityUtils {
           try {
             if (options.deserialize) {
               result.push(options.deserialize(item));
+            } else if (isDiscriminated) {
+              result.push(
+                await this.deserializeDiscriminatedValue(item, options),
+              );
             } else {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const typeConstructor = options.type!();
               result.push(
                 await this.deserializeSingleValue(
                   item,
@@ -1102,6 +1166,12 @@ export class EntityUtils {
       return options.deserialize(value);
     }
 
+    if (isDiscriminated) {
+      return await this.deserializeDiscriminatedValue(value, options);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const typeConstructor = options.type!();
     return await this.deserializeSingleValue(
       value,
       typeConstructor,
@@ -1133,6 +1203,57 @@ export class EntityUtils {
 
     throw createValidationError(
       `Has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, and @Entity() classes. Use passthrough: true to explicitly allow unknown types.`,
+    );
+  }
+
+  /**
+   * Deserializes a discriminated entity value by reading the discriminator and looking up the entity class
+   * @private
+   */
+  private static async deserializeDiscriminatedValue(
+    value: unknown,
+    options: PropertyOptions,
+  ): Promise<unknown> {
+    if (value == null) {
+      throw createValidationError(
+        `Cannot deserialize discriminated entity from null or undefined`,
+      );
+    }
+
+    if (typeof value !== 'object' || Array.isArray(value)) {
+      throw createValidationError(
+        `Discriminated entity must be an object, received ${typeof value}`,
+      );
+    }
+
+    const discriminatorProperty = options.discriminatorProperty;
+    ok(discriminatorProperty, 'Discriminator property must be defined');
+
+    const discriminatorValue = (value as Record<string, unknown>)[
+      discriminatorProperty
+    ];
+
+    if (
+      typeof discriminatorValue !== 'string' ||
+      discriminatorValue.trim() === ''
+    ) {
+      throw createValidationError(
+        `Missing or invalid discriminator property '${discriminatorProperty}'. Expected a non-empty string.`,
+      );
+    }
+
+    const entityClass = EntityRegistry.get(discriminatorValue);
+
+    if (!entityClass) {
+      throw createValidationError(
+        `Unknown entity type '${discriminatorValue}'. No entity registered with this name.`,
+      );
+    }
+
+    return await this.parse(
+      entityClass as new (data: any) => object,
+      value as Record<string, unknown>,
+      {},
     );
   }
 

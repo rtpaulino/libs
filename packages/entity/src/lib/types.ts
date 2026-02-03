@@ -103,6 +103,7 @@ export interface PropertyOptions<
   /**
    * Type constructor for this property. Required for EntityUtils.parse() support.
    * Use a function that returns the type constructor to support forward references.
+   * Not required for discriminated entity properties nor passthrough properties.
    * @example
    * @Property({ type: () => String })
    * name!: string;
@@ -110,7 +111,7 @@ export interface PropertyOptions<
    * @Property({ type: () => Address })
    * address!: Address;
    */
-  type: () => C;
+  type?: () => C;
 
   /**
    * Whether this property is an array. Defaults to false.
@@ -246,6 +247,27 @@ export interface PropertyOptions<
    * scores!: number[];
    */
   arrayValidators?: PropertyValidator<InstanceOfCtorLike<C>[]>[];
+
+  /**
+   * Indicates this property uses discriminated entity types.
+   * The discriminator property name (e.g., '__type') is used to determine the entity type at runtime.
+   * When true, serialization will include the discriminator inline with the entity.
+   * During deserialization, the discriminator value is used to lookup the entity class in EntityRegistry.
+   * @example
+   * @DiscriminatedEntityProperty({ discriminatorProperty: '__type' })
+   * item!: BaseItem; // Could be ItemA or ItemB at runtime
+   */
+  discriminated?: boolean;
+
+  /**
+   * The property name to use as the discriminator for discriminated entity properties.
+   * Defaults to '__type' if not specified.
+   * Only applicable when discriminated is true.
+   * @example
+   * @DiscriminatedEntityProperty({ discriminatorProperty: 'entityType' })
+   * item!: BaseItem;
+   */
+  discriminatorProperty?: string;
 }
 
 /**

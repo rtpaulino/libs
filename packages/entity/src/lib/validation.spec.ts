@@ -61,7 +61,7 @@ describe('Validation System', () => {
   });
 
   describe('Property Validators', () => {
-    @Entity()
+    @Entity({ name: 'ValidationTestUser1' })
     class User {
       @Property({
         type: () => String,
@@ -170,7 +170,7 @@ describe('Validation System', () => {
   });
 
   describe('Entity Validators', () => {
-    @Entity()
+    @Entity({ name: 'ValidationPerson2' })
     class Person {
       @StringProperty()
       firstName!: string;
@@ -256,7 +256,7 @@ describe('Validation System', () => {
   });
 
   describe('EntityUtils.validate()', () => {
-    @Entity()
+    @Entity({ name: 'ValidationProduct' })
     class Product {
       @Property({
         type: () => String,
@@ -341,7 +341,7 @@ describe('Validation System', () => {
   });
 
   describe('EntityUtils.getRawInput()', () => {
-    @Entity()
+    @Entity({ name: 'ValidationTestUser2' })
     class User {
       @StringProperty()
       name!: string;
@@ -370,7 +370,7 @@ describe('Validation System', () => {
   });
 
   describe('HARD vs SOFT Errors', () => {
-    @Entity()
+    @Entity({ name: 'ValidationTestUser3' })
     class User {
       @Property({
         type: () => String,
@@ -470,7 +470,7 @@ describe('Validation System', () => {
     });
 
     it('should collect errors from nested entities with proper paths', async () => {
-      @Entity()
+      @Entity({ name: 'ValidationAddress1' })
       class Address {
         @StringProperty()
         street!: string;
@@ -483,7 +483,7 @@ describe('Validation System', () => {
         }
       }
 
-      @Entity()
+      @Entity({ name: 'ValidationPerson1' })
       class Person {
         @StringProperty()
         name!: string;

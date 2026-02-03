@@ -244,7 +244,7 @@ describe('@InjectedProperty', () => {
         query: async (sql: string) => [{ id: 1 }],
       };
 
-      @Entity()
+      @Entity({ name: 'DIUserService1' })
       class UserService {
         @StringProperty()
         name!: string;
@@ -273,7 +273,7 @@ describe('@InjectedProperty', () => {
       const DatabaseToken = Symbol('Database');
       const mockDatabase = { query: async () => [] };
 
-      @Entity()
+      @Entity({ name: 'DIUserService2' })
       class UserService {
         @StringProperty()
         name!: string;
@@ -302,7 +302,7 @@ describe('@InjectedProperty', () => {
       const DatabaseToken = Symbol('Database');
       const mockDatabase = { connected: true };
 
-      @Entity()
+      @Entity({ name: 'DIService1' })
       class Service {
         @StringProperty()
         name!: string;
@@ -333,7 +333,7 @@ describe('@InjectedProperty', () => {
       const originalDb = { original: true };
       const injectedDb = { injected: true };
 
-      @Entity()
+      @Entity({ name: 'DIService2' })
       class Service {
         @StringProperty()
         name!: string;
@@ -351,7 +351,6 @@ describe('@InjectedProperty', () => {
         providers: [{ provide: DatabaseToken, useValue: injectedDb }],
       });
 
-      // JSON contains db but it should be ignored in parsing
       const json = { name: 'MyService', db: originalDb };
       const service = await EntityUtils.parse(Service, json);
 
@@ -368,7 +367,7 @@ describe('@InjectedProperty', () => {
       const mockDatabase = { name: 'db' };
       const mockLogger = { name: 'logger' };
 
-      @Entity()
+      @Entity({ name: 'DIService3' })
       class Service {
         @StringProperty()
         name!: string;
@@ -439,7 +438,7 @@ describe('@InjectedProperty', () => {
     it('should call factory for each parse', async () => {
       const ServiceToken = Symbol('Service');
 
-      @Entity()
+      @Entity({ name: 'DIConsumer2' })
       class Consumer {
         @StringProperty()
         name!: string;
@@ -453,7 +452,10 @@ describe('@InjectedProperty', () => {
         }
       }
 
-      const factory = () => ({ id: Math.random() });
+      const factory = () => ({
+        id: Math.random(),
+        getName: () => 'DynamicService',
+      });
 
       EntityDI.configure({
         providers: [{ provide: ServiceToken, useFactory: factory }],
@@ -544,7 +546,7 @@ describe('@InjectedProperty', () => {
       const DatabaseToken = Symbol('Database');
       const mockDatabase = { fallback: true };
 
-      @Entity()
+      @Entity({ name: 'DIFallbackService1' })
       class Service {
         @StringProperty()
         name!: string;
@@ -572,7 +574,7 @@ describe('@InjectedProperty', () => {
     it('should throw error if token cannot be resolved', async () => {
       const DatabaseToken = Symbol('Database');
 
-      @Entity()
+      @Entity({ name: 'DIFallbackService2' })
       class Service {
         @StringProperty()
         name!: string;
@@ -634,7 +636,7 @@ describe('@InjectedProperty', () => {
       const DatabaseToken = Symbol('Database');
       const mockDatabase = { connected: true };
 
-      @Entity()
+      @Entity({ name: 'DIRegularPropertiesService' })
       class Service {
         @StringProperty()
         name!: string;

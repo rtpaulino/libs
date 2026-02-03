@@ -3,11 +3,18 @@ import {
   ENTITY_OPTIONS_METADATA_KEY,
   ENTITY_VALIDATOR_METADATA_KEY,
 } from './types.js';
+import { EntityRegistry } from './entity-registry.js';
 
 /**
  * Options for Entity decorator
  */
 export interface EntityOptions {
+  /**
+   * Optional name for the entity. Used for discriminated entity deserialization.
+   * If not specified, the class name will be used.
+   * Must be unique across all entities - conflicts will throw an error.
+   */
+  name?: string;
   /**
    * Whether this entity represents a collection.
    * Collection entities must have a 'collection' property that is an array.
@@ -37,6 +44,11 @@ export interface EntityOptions {
  *   name: string;
  * }
  *
+ * @Entity({ name: 'CustomUser' })
+ * class User {
+ *   name: string;
+ * }
+ *
  * @Entity({ collection: true })
  * class Tags {
  *   @ArrayProperty(() => String)
@@ -49,9 +61,21 @@ export function Entity(options: EntityOptions = {}): ClassDecorator {
   return function (target: Function) {
     // Store metadata on the class constructor
     Reflect.defineMetadata(ENTITY_METADATA_KEY, true, target);
-    if (options) {
-      Reflect.defineMetadata(ENTITY_OPTIONS_METADATA_KEY, options, target);
-    }
+
+    // Determine the entity name - use provided name or fall back to class name
+    const entityName = options.name ?? target.name;
+
+    // Register the entity in the global registry
+    EntityRegistry.register(entityName, target);
+
+    // Store the name in options for later retrieval
+    const optionsWithName = { ...options, name: entityName };
+
+    Reflect.defineMetadata(
+      ENTITY_OPTIONS_METADATA_KEY,
+      optionsWithName,
+      target,
+    );
   };
 }
 
@@ -90,8 +114,10 @@ export function Entity(options: EntityOptions = {}): ClassDecorator {
  * // ["tag1", "tag2"] - unwrapped to array
  * ```
  */
-export function CollectionEntity(): ClassDecorator {
-  return Entity({ collection: true });
+export function CollectionEntity(
+  options: Pick<EntityOptions, 'name'> = {},
+): ClassDecorator {
+  return Entity({ collection: true, ...options });
 }
 
 /**
@@ -134,8 +160,10 @@ export function CollectionEntity(): ClassDecorator {
  * // UserId { value: "user-456" }
  * ```
  */
-export function Stringifiable(): ClassDecorator {
-  return Entity({ stringifiable: true });
+export function Stringifiable(
+  options: Pick<EntityOptions, 'name'> = {},
+): ClassDecorator {
+  return Entity({ stringifiable: true, ...options });
 }
 
 /**

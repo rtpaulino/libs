@@ -9,92 +9,275 @@ import {
   NumberProperty,
 } from './property.js';
 
+// ============================================================================
+// Entity Definitions
+// ============================================================================
+
+@Stringifiable({ name: 'StringifiableUserId1' })
+class StringifiableUserId1 {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiableNonStringUser' })
+class StringifiableNonStringUser {
+  @StringProperty()
+  name!: string;
+}
+
+@Stringifiable({ name: 'StringifiableUserId2' })
+class StringifiableUserId2 {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiableTestUser' })
+class StringifiableTestUser {
+  @EntityProperty(() => StringifiableUserId2)
+  id!: StringifiableUserId2;
+
+  @StringProperty()
+  name!: string;
+
+  constructor(data: Partial<StringifiableTestUser> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableTag' })
+class StringifiableTag {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiableArticle' })
+class StringifiableArticle {
+  @ArrayProperty(() => StringifiableTag)
+  tags!: StringifiableTag[];
+
+  @StringProperty()
+  title!: string;
+
+  constructor(data: Partial<StringifiableArticle> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableOptionalId' })
+class StringifiableOptionalId {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiableDocument' })
+class StringifiableDocument {
+  @EntityProperty(() => StringifiableOptionalId, { optional: true })
+  externalId?: StringifiableOptionalId;
+
+  @StringProperty()
+  title!: string;
+
+  constructor(data: Partial<StringifiableDocument> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableNestedId' })
+class StringifiableNestedId {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiableAuthor' })
+class StringifiableAuthor {
+  @EntityProperty(() => StringifiableNestedId)
+  id!: StringifiableNestedId;
+
+  @StringProperty()
+  name!: string;
+
+  constructor(data: Partial<StringifiableAuthor> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiablePost' })
+class StringifiablePost {
+  @EntityProperty(() => StringifiableNestedId)
+  id!: StringifiableNestedId;
+
+  @EntityProperty(() => StringifiableAuthor)
+  author!: StringifiableAuthor;
+
+  @StringProperty()
+  content!: string;
+
+  constructor(data: Partial<StringifiablePost> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableBadEntity1' })
+class StringifiableBadEntity1 {
+  // Missing metadata on value property
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableBadEntity2' })
+class StringifiableBadEntity2 {
+  @ArrayProperty(() => String)
+  readonly value!: string[]; // Array instead of single value
+
+  constructor(data: { value: string[] }) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableBadEntity3' })
+class StringifiableBadEntity3 {
+  @NumberProperty()
+  readonly value!: number; // Wrong type - should be string
+
+  constructor(data: { value: number }) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableStrictId' })
+class StringifiableStrictId {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiableMutableId' })
+class StringifiableMutableId {
+  @StringProperty()
+  value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiableMutableUser' })
+class StringifiableMutableUser {
+  @EntityProperty(() => StringifiableMutableId)
+  id!: StringifiableMutableId;
+
+  @StringProperty()
+  name!: string;
+
+  constructor(data: Partial<StringifiableMutableUser> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+@Stringifiable({ name: 'StringifiablePartialId' })
+class StringifiablePartialId {
+  @StringProperty()
+  readonly value!: string;
+
+  constructor(data: { value: string }) {
+    Object.assign(this, data);
+  }
+}
+
+@Entity({ name: 'StringifiablePartialUser' })
+class StringifiablePartialUser {
+  @EntityProperty(() => StringifiablePartialId)
+  id!: StringifiablePartialId;
+
+  @StringProperty()
+  name!: string;
+
+  constructor(data: Partial<StringifiablePartialUser> = {}) {
+    Object.assign(this, data);
+  }
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
 describe('Stringifiable', () => {
   describe('Basic functionality', () => {
-    @Stringifiable()
-    class UserId {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should parse from string', async () => {
-      const userId = await EntityUtils.parse(UserId, 'user-123');
-      expect(userId).toBeInstanceOf(UserId);
+      const userId = await EntityUtils.parse(StringifiableUserId1, 'user-123');
+      expect(userId).toBeInstanceOf(StringifiableUserId1);
       expect(userId.value).toBe('user-123');
     });
 
     it('should serialize to string', () => {
-      const userId = new UserId({ value: 'user-456' });
+      const userId = new StringifiableUserId1({ value: 'user-456' });
       const json = EntityUtils.toJSON(userId);
       expect(json).toBe('user-456');
     });
 
     it('should round-trip correctly', async () => {
-      const original = new UserId({ value: 'user-789' });
+      const original = new StringifiableUserId1({ value: 'user-789' });
       const json = EntityUtils.toJSON(original);
-      const parsed = await EntityUtils.parse(UserId, json);
+      const parsed = await EntityUtils.parse(StringifiableUserId1, json);
       expect(parsed.value).toBe(original.value);
     });
 
     it('should detect stringifiable entity', () => {
-      const userId = new UserId({ value: 'test' });
+      const userId = new StringifiableUserId1({ value: 'test' });
       expect(EntityUtils.isStringifiable(userId)).toBe(true);
-      expect(EntityUtils.isStringifiable(UserId)).toBe(true);
+      expect(EntityUtils.isStringifiable(StringifiableUserId1)).toBe(true);
     });
 
     it('should not detect non-stringifiable as stringifiable', () => {
-      @Entity()
-      class User {
-        @StringProperty()
-        name!: string;
-      }
-
-      expect(EntityUtils.isStringifiable(new User())).toBe(false);
-      expect(EntityUtils.isStringifiable(User)).toBe(false);
+      expect(
+        EntityUtils.isStringifiable(new StringifiableNonStringUser()),
+      ).toBe(false);
+      expect(EntityUtils.isStringifiable(StringifiableNonStringUser)).toBe(
+        false,
+      );
     });
   });
 
   describe('Nested in other entities', () => {
-    @Stringifiable()
-    class UserId {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class User {
-      @EntityProperty(() => UserId)
-      id!: UserId;
-
-      @StringProperty()
-      name!: string;
-
-      constructor(data: Partial<User> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should parse stringifiable property from string', async () => {
-      const user = await EntityUtils.parse(User, {
+      const user = await EntityUtils.parse(StringifiableTestUser, {
         id: 'user-123',
         name: 'John',
       });
-      expect(user.id).toBeInstanceOf(UserId);
+      expect(user.id).toBeInstanceOf(StringifiableUserId2);
       expect(user.id.value).toBe('user-123');
       expect(user.name).toBe('John');
     });
 
     it('should serialize stringifiable property to string', () => {
-      const user = new User();
-      user.id = new UserId({ value: 'user-456' });
+      const user = new StringifiableTestUser();
+      user.id = new StringifiableUserId2({ value: 'user-456' });
       user.name = 'Jane';
 
       const json = EntityUtils.toJSON(user);
@@ -109,51 +292,31 @@ describe('Stringifiable', () => {
         id: 'user-789',
         name: 'Bob',
       };
-      const parsed = await EntityUtils.parse(User, original);
+      const parsed = await EntityUtils.parse(StringifiableTestUser, original);
       const json = EntityUtils.toJSON(parsed);
       expect(json).toEqual(original);
     });
   });
 
   describe('Arrays of stringifiable entities', () => {
-    @Stringifiable()
-    class Tag {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class Article {
-      @ArrayProperty(() => Tag)
-      tags!: Tag[];
-
-      @StringProperty()
-      title!: string;
-
-      constructor(data: Partial<Article> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should parse array of stringifiable from array of strings', async () => {
-      const article = await EntityUtils.parse(Article, {
+      const article = await EntityUtils.parse(StringifiableArticle, {
         tags: ['tech', 'programming', 'typescript'],
         title: 'My Article',
       });
       expect(article.tags).toHaveLength(3);
-      expect(article.tags[0]).toBeInstanceOf(Tag);
+      expect(article.tags[0]).toBeInstanceOf(StringifiableTag);
       expect(article.tags[0].value).toBe('tech');
       expect(article.tags[1].value).toBe('programming');
       expect(article.tags[2].value).toBe('typescript');
     });
 
     it('should serialize array of stringifiable to array of strings', () => {
-      const article = new Article();
-      article.tags = [new Tag({ value: 'tag1' }), new Tag({ value: 'tag2' })];
+      const article = new StringifiableArticle();
+      article.tags = [
+        new StringifiableTag({ value: 'tag1' }),
+        new StringifiableTag({ value: 'tag2' }),
+      ];
       article.title = 'Test Article';
 
       const json = EntityUtils.toJSON(article);
@@ -168,55 +331,32 @@ describe('Stringifiable', () => {
         tags: ['a', 'b', 'c'],
         title: 'Test',
       };
-      const parsed = await EntityUtils.parse(Article, original);
+      const parsed = await EntityUtils.parse(StringifiableArticle, original);
       const json = EntityUtils.toJSON(parsed);
       expect(json).toEqual(original);
     });
   });
 
   describe('Optional stringifiable entities', () => {
-    @Stringifiable()
-    class OptionalId {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class Document {
-      @EntityProperty(() => OptionalId, { optional: true })
-      externalId?: OptionalId;
-
-      @StringProperty()
-      title!: string;
-
-      constructor(data: Partial<Document> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should parse optional stringifiable when present', async () => {
-      const doc = await EntityUtils.parse(Document, {
+      const doc = await EntityUtils.parse(StringifiableDocument, {
         externalId: 'ext-123',
         title: 'Document',
       });
-      expect(doc.externalId).toBeInstanceOf(OptionalId);
+      expect(doc.externalId).toBeInstanceOf(StringifiableOptionalId);
       expect(doc.externalId!.value).toBe('ext-123');
     });
 
     it('should parse optional stringifiable when missing', async () => {
-      const doc = await EntityUtils.parse(Document, {
+      const doc = await EntityUtils.parse(StringifiableDocument, {
         title: 'Document',
       });
       expect(doc.externalId).toBeUndefined();
     });
 
     it('should serialize optional stringifiable when present', () => {
-      const doc = new Document();
-      doc.externalId = new OptionalId({ value: 'ext-456' });
+      const doc = new StringifiableDocument();
+      doc.externalId = new StringifiableOptionalId({ value: 'ext-456' });
       doc.title = 'Test';
 
       const json = EntityUtils.toJSON(doc);
@@ -227,7 +367,7 @@ describe('Stringifiable', () => {
     });
 
     it('should serialize optional stringifiable when missing', () => {
-      const doc = new Document();
+      const doc = new StringifiableDocument();
       doc.title = 'Test';
 
       const json = EntityUtils.toJSON(doc);
@@ -238,47 +378,8 @@ describe('Stringifiable', () => {
   });
 
   describe('Deeply nested stringifiable entities', () => {
-    @Stringifiable()
-    class Id {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class Author {
-      @EntityProperty(() => Id)
-      id!: Id;
-
-      @StringProperty()
-      name!: string;
-
-      constructor(data: Partial<Author> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class Post {
-      @EntityProperty(() => Id)
-      id!: Id;
-
-      @EntityProperty(() => Author)
-      author!: Author;
-
-      @StringProperty()
-      content!: string;
-
-      constructor(data: Partial<Post> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should parse deeply nested stringifiable entities', async () => {
-      const post = await EntityUtils.parse(Post, {
+      const post = await EntityUtils.parse(StringifiablePost, {
         id: 'post-123',
         author: {
           id: 'author-456',
@@ -287,20 +388,20 @@ describe('Stringifiable', () => {
         content: 'Hello world',
       });
 
-      expect(post.id).toBeInstanceOf(Id);
+      expect(post.id).toBeInstanceOf(StringifiableNestedId);
       expect(post.id.value).toBe('post-123');
-      expect(post.author).toBeInstanceOf(Author);
-      expect(post.author.id).toBeInstanceOf(Id);
+      expect(post.author).toBeInstanceOf(StringifiableAuthor);
+      expect(post.author.id).toBeInstanceOf(StringifiableNestedId);
       expect(post.author.id.value).toBe('author-456');
       expect(post.author.name).toBe('John Doe');
       expect(post.content).toBe('Hello world');
     });
 
     it('should serialize deeply nested stringifiable entities', () => {
-      const post = new Post();
-      post.id = new Id({ value: 'post-789' });
-      post.author = new Author();
-      post.author.id = new Id({ value: 'author-111' });
+      const post = new StringifiablePost();
+      post.id = new StringifiableNestedId({ value: 'post-789' });
+      post.author = new StringifiableAuthor();
+      post.author.id = new StringifiableNestedId({ value: 'author-111' });
       post.author.name = 'Jane Smith';
       post.content = 'Test content';
 
@@ -317,52 +418,22 @@ describe('Stringifiable', () => {
   });
 
   describe('Error handling', () => {
-    @Stringifiable()
-    class BadEntity1 {
-      // Missing metadata on value property
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Stringifiable()
-    class BadEntity2 {
-      @ArrayProperty(() => String)
-      readonly value!: string[]; // Array instead of single value
-
-      constructor(data: { value: string[] }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Stringifiable()
-    class BadEntity3 {
-      @NumberProperty()
-      readonly value!: number; // Wrong type - should be string
-
-      constructor(data: { value: number }) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should throw error if value property has no metadata', () => {
-      const entity = new BadEntity1({ value: 'test' });
+      const entity = new StringifiableBadEntity1({ value: 'test' });
       expect(() => EntityUtils.toJSON(entity)).toThrow(
         `Stringifiable entity 'value' property is missing metadata`,
       );
     });
 
     it('should throw error if value property is an array', () => {
-      const entity = new BadEntity2({ value: ['test'] });
+      const entity = new StringifiableBadEntity2({ value: ['test'] });
       expect(() => EntityUtils.toJSON(entity)).toThrow(
         `Stringifiable entity 'value' property must not be an array`,
       );
     });
 
     it('should throw error if value property is not of type String', () => {
-      const entity = new BadEntity3({ value: 123 });
+      const entity = new StringifiableBadEntity3({ value: 123 });
       expect(() => EntityUtils.toJSON(entity)).toThrow(
         `Stringifiable entity 'value' property must be of type String`,
       );
@@ -370,27 +441,20 @@ describe('Stringifiable', () => {
   });
 
   describe('SafeParse', () => {
-    @Stringifiable()
-    class StrictId {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should successfully safe parse valid string', async () => {
-      const result = await EntityUtils.safeParse(StrictId, 'valid-id');
+      const result = await EntityUtils.safeParse(
+        StringifiableStrictId,
+        'valid-id',
+      );
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toBeInstanceOf(StrictId);
+        expect(result.data).toBeInstanceOf(StringifiableStrictId);
         expect(result.data.value).toBe('valid-id');
       }
     });
 
     it('should handle safe parse errors', async () => {
-      const result = await EntityUtils.safeParse(StrictId, null);
+      const result = await EntityUtils.safeParse(StringifiableStrictId, null);
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.problems).toBeDefined();
@@ -400,48 +464,25 @@ describe('Stringifiable', () => {
   });
 
   describe('Update functionality', () => {
-    @Stringifiable()
-    class MutableId {
-      @StringProperty()
-      value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class MutableUser {
-      @EntityProperty(() => MutableId)
-      id!: MutableId;
-
-      @StringProperty()
-      name!: string;
-
-      constructor(data: Partial<MutableUser> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should update stringifiable property', async () => {
-      const user = new MutableUser();
-      user.id = new MutableId({ value: 'old-id' });
+      const user = new StringifiableMutableUser();
+      user.id = new StringifiableMutableId({ value: 'old-id' });
       user.name = 'John';
 
       await EntityUtils.update(user, {
-        id: new MutableId({ value: 'new-id' }),
+        id: new StringifiableMutableId({ value: 'new-id' }),
       });
 
       expect(user.id.value).toBe('old-id'); // original unchanged
     });
 
     it('should update multiple properties including stringifiable', async () => {
-      const user = new MutableUser();
-      user.id = new MutableId({ value: 'id-1' });
+      const user = new StringifiableMutableUser();
+      user.id = new StringifiableMutableId({ value: 'id-1' });
       user.name = 'Alice';
 
       const updated = await EntityUtils.update(user, {
-        id: new MutableId({ value: 'id-2' }),
+        id: new StringifiableMutableId({ value: 'id-2' }),
         name: 'Bob',
       });
 
@@ -452,41 +493,18 @@ describe('Stringifiable', () => {
   });
 
   describe('PartialParse functionality', () => {
-    @Stringifiable()
-    class PartialId {
-      @StringProperty()
-      readonly value!: string;
-
-      constructor(data: { value: string }) {
-        Object.assign(this, data);
-      }
-    }
-
-    @Entity()
-    class PartialUser {
-      @EntityProperty(() => PartialId)
-      id!: PartialId;
-
-      @StringProperty()
-      name!: string;
-
-      constructor(data: Partial<PartialUser> = {}) {
-        Object.assign(this, data);
-      }
-    }
-
     it('should partial parse with stringifiable property', async () => {
-      const result = await EntityUtils.partialParse(PartialUser, {
+      const result = await EntityUtils.partialParse(StringifiablePartialUser, {
         id: 'user-123',
       });
 
-      expect(result.id).toBeInstanceOf(PartialId);
+      expect(result.id).toBeInstanceOf(StringifiablePartialId);
       expect(result.id!.value).toBe('user-123');
       expect(result.name).toBeUndefined();
     });
 
     it('should partial parse without stringifiable property', async () => {
-      const result = await EntityUtils.partialParse(PartialUser, {
+      const result = await EntityUtils.partialParse(StringifiablePartialUser, {
         name: 'John',
       });
 

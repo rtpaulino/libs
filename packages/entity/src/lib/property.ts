@@ -411,8 +411,7 @@ export function ArrayProperty<T, C extends CtorLike<T>>(
  * }
  */
 export function PassthroughProperty(): PropertyDecorator {
-  // Use a dummy type since type is mandatory but not used with passthrough
-  return Property({ type: () => Object, passthrough: true });
+  return Property({ passthrough: true });
 }
 
 export const StringifiableProperty = <
@@ -458,3 +457,62 @@ export const SerializableProperty = <
       return type().parse(value) as InstanceOfCtorLike<C>;
     },
   });
+
+/**
+ * Helper decorator for discriminated entity properties.
+ * The entity type is determined at runtime using a discriminator property.
+ * Unlike EntityProperty, this does not require the type parameter upfront.
+ *
+ * @param options - Configuration for the discriminated property
+ *
+ * @example
+ * ```typescript
+ * // Define entity types
+ * @Entity({ name: 'Circle' })
+ * class Circle {
+ *   @StringProperty() readonly type = 'Circle';
+ *   @NumberProperty() radius!: number;
+ *   constructor(data: Partial<Circle>) { Object.assign(this, data); }
+ * }
+ *
+ * @Entity({ name: 'Rectangle' })
+ * class Rectangle {
+ *   @StringProperty() readonly type = 'Rectangle';
+ *   @NumberProperty() width!: number;
+ *   @NumberProperty() height!: number;
+ *   constructor(data: Partial<Rectangle>) { Object.assign(this, data); }
+ * }
+ *
+ * // Use discriminated property
+ * @Entity()
+ * class Drawing {
+ *   @DiscriminatedEntityProperty()
+ *   shape!: Circle | Rectangle;
+ *
+ *   @DiscriminatedEntityProperty({ discriminatorProperty: 'entityType' })
+ *   item!: BaseItem;
+ * }
+ *
+ * // When serialized, the discriminator is included inline:
+ * // { shape: { __type: 'Circle', radius: 5 } }
+ *
+ * // When deserialized, the discriminator is used to determine the type:
+ * const drawing = await EntityUtils.parse(Drawing, {
+ *   shape: { __type: 'Circle', radius: 5 }
+ * });
+ * // drawing.shape is a Circle instance
+ * ```
+ */
+export function DiscriminatedEntityProperty(
+  options?: Omit<PropertyOptions<any, any>, 'type' | 'discriminated'> & {
+    discriminatorProperty?: string;
+  },
+): PropertyDecorator {
+  const discriminatorProperty = options?.discriminatorProperty ?? '__type';
+
+  return Property({
+    ...options,
+    discriminated: true,
+    discriminatorProperty,
+  });
+}
