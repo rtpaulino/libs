@@ -1,3 +1,14 @@
+## 0.23.0 (2026-02-03)
+
+### 🚀 Features
+
+- add support for discriminated entity properties ([d78ee34](https://github.com/rtpaulino/libs/commit/d78ee34))
+- add soft validation tests for CollectionEntity and enhance validation handling ([67a94b6](https://github.com/rtpaulino/libs/commit/67a94b6))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.22.0 (2026-02-01)
 
 ### 🚀 Features
