@@ -1,3 +1,13 @@
+## 0.23.1 (2026-02-04)
+
+### 🚀 Features
+
+- enhance validation handling for stringifiable entities and improve error reporting ([191fe88](https://github.com/rtpaulino/libs/commit/191fe88))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.23.0 (2026-02-03)
 
 ### 🚀 Features
