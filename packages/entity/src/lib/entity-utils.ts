@@ -20,10 +20,9 @@ import { isEqualWith } from 'lodash-es';
 import { ValidationError } from './validation-error.js';
 import { Problem } from './problem.js';
 import {
-  prependPropertyPath,
   prependArrayIndex,
+  prependPropertyPath,
   createValidationError,
-  combinePropertyPaths,
 } from './validation-utils.js';
 import {
   isPrimitiveConstructor,
@@ -184,6 +183,23 @@ export class EntityUtils {
     const options = this.getEntityOptions(entityOrClass);
 
     return options.stringifiable === true;
+  }
+
+  /**
+   * Gets the "wrapper" property name for entities that act as transparent wrappers.
+   * When set, this property name is excluded from error paths during validation.
+   *
+   * @param entityOrClass - The entity instance or class to check
+   * @returns The wrapper property name, or undefined if not a wrapper entity
+   * @private
+   */
+  private static getWrapperPropertyName(
+    entityOrClass: unknown,
+  ): string | undefined {
+    if (!this.isEntity(entityOrClass)) {
+      return undefined;
+    }
+    return this.getEntityOptions(entityOrClass).wrapperProperty;
   }
 
   static sameEntity(a: object, b: object): boolean {
@@ -568,10 +584,10 @@ export class EntityUtils {
       skipMissing?: boolean;
     } = {},
   ): Promise<{ data: Record<string, unknown>; hardProblems: Problem[] }> {
-    if (this.isStringifiable(entityClass)) {
-      plainObject = { value: plainObject };
-    } else if (this.isCollectionEntity(entityClass)) {
-      plainObject = { collection: plainObject };
+    const wrapperPropertyName = this.getWrapperPropertyName(entityClass);
+
+    if (wrapperPropertyName) {
+      plainObject = { [wrapperPropertyName]: plainObject };
     }
     if (plainObject == null) {
       throw createValidationError(
@@ -653,12 +669,17 @@ export class EntityUtils {
         });
       } catch (error) {
         if (error instanceof ValidationError) {
-          const problems = prependPropertyPath(key, error);
-          hardProblems.push(...problems);
+          const isWrapperProperty = wrapperPropertyName === key;
+          if (isWrapperProperty) {
+            hardProblems.push(...error.problems);
+          } else {
+            const problems = prependPropertyPath(key, error.problems);
+            hardProblems.push(...problems);
+          }
         } else if (error instanceof Error) {
           hardProblems.push(
             new Problem({
-              property: key,
+              property: wrapperPropertyName === key ? '' : key,
               message: error.message,
             }),
           );
@@ -1272,14 +1293,12 @@ export class EntityUtils {
     if (validators) {
       for (const validator of validators) {
         const validatorProblems = await validator({ value });
-        // Prepend propertyPath to all problems
-        for (const problem of validatorProblems) {
-          problems.push(
-            new Problem({
-              property: combinePropertyPaths(propertyPath, problem.property),
-              message: problem.message,
-            }),
+        if (validatorProblems.length > 0) {
+          const prepended = prependPropertyPath(
+            propertyPath,
+            validatorProblems,
           );
+          problems.push(...prepended);
         }
       }
     }
@@ -1291,14 +1310,24 @@ export class EntityUtils {
           ? existingProblems
           : await EntityUtils.validate(value);
 
-      const prependedProblems = prependPropertyPath(
-        propertyPath,
-        new ValidationError(nestedProblems),
-      );
-      problems.push(...prependedProblems);
+      if (nestedProblems.length > 0) {
+        const prepended = prependPropertyPath(propertyPath, nestedProblems);
+        problems.push(...prepended);
+      }
     }
 
     return problems;
+  }
+
+  /**
+   * Checks if an array contains any entity elements
+   * @private
+   */
+  private static hasEntityElements(value: unknown): boolean {
+    if (!Array.isArray(value)) {
+      return false;
+    }
+    return value.some((element) => this.isEntity(element));
   }
 
   /**
@@ -1327,18 +1356,14 @@ export class EntityUtils {
       const arrayValidators = options.arrayValidators || [];
       for (const validator of arrayValidators) {
         const validatorProblems = await validator({ value });
-        for (const problem of validatorProblems) {
-          problems.push(
-            new Problem({
-              property: combinePropertyPaths(key, problem.property),
-              message: problem.message,
-            }),
-          );
+        if (validatorProblems.length > 0) {
+          const prepended = prependPropertyPath(key, validatorProblems);
+          problems.push(...prepended);
         }
       }
 
       const validators = options.validators || [];
-      if (validators.length > 0) {
+      if (validators.length > 0 || this.hasEntityElements(value)) {
         for (let i = 0; i < value.length; i++) {
           const element = value[i];
           if (element !== null && element !== undefined) {
@@ -1367,14 +1392,16 @@ export class EntityUtils {
   ): Promise<Problem[]> {
     const problems: Problem[] = [];
     const keys = Object.keys(dataOrInstance);
+    const wrapperProperty = this.getWrapperPropertyName(dataOrInstance);
 
     for (const key of keys) {
       const options = this.getPropertyOptions(prototype, key);
       if (options) {
         const value = (dataOrInstance as any)[key];
         if (value != null) {
+          const propertyPath = wrapperProperty === key ? '' : key;
           const validationProblems = await this.runPropertyValidators(
-            key,
+            propertyPath,
             value,
             options,
           );

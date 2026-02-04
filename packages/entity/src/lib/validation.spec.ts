@@ -11,6 +11,7 @@ import {
 import { EntityUtils } from './entity-utils.js';
 import { ValidationError } from './validation-error.js';
 import { Problem } from './problem.js';
+import { TestEmail } from './test-entities.js';
 
 describe('Validation System', () => {
   describe('ValidationError', () => {
@@ -1006,6 +1007,31 @@ describe('Validation System', () => {
       expect(problems).toHaveLength(1);
       expect(problems[0].property).toBe('raw');
       expect(problems[0].message).toBe('Must be an object');
+    });
+  });
+
+  describe('Stringifiable Entity Validation', () => {
+    it('should validate stringifiable entity and return problems without "value" prefix', async () => {
+      const invalidEmail = new TestEmail({ value: 'not-an-email' });
+
+      const problems = await EntityUtils.validate(invalidEmail);
+
+      expect(problems).toHaveLength(1);
+      expect(problems[0].property).toBe('');
+      expect(problems[0].message).toContain('pattern');
+    });
+
+    it('should return problems without "value" prefix when using getProblems()', async () => {
+      const invalidEmail = await EntityUtils.parse(TestEmail, 'invalid-email', {
+        strict: false,
+      });
+
+      const problems = EntityUtils.getProblems(invalidEmail);
+
+      expect(problems).toHaveLength(1);
+
+      expect(problems[0].property).toBe('');
+      expect(problems[0].message).toContain('pattern');
     });
   });
 });

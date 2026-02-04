@@ -512,4 +512,80 @@ describe('Stringifiable', () => {
       expect(result.name).toBe('John');
     });
   });
+
+  describe('Stringifiable Entity Validation with Pattern', () => {
+    @Stringifiable()
+    class Email {
+      @StringProperty({
+        pattern: /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i,
+      })
+      readonly value!: string;
+
+      constructor(data: { value: string }) {
+        Object.assign(this, data);
+      }
+    }
+
+    @Entity()
+    class User {
+      @StringProperty()
+      name!: string;
+
+      @EntityProperty(() => Email)
+      email!: Email;
+
+      constructor(data: Partial<User>) {
+        Object.assign(this, data);
+      }
+    }
+
+    it('should validate pattern on stringifiable entity directly', async () => {
+      const email = new Email({ value: 'INVALID' });
+      const problems = await EntityUtils.validate(email);
+
+      expect(problems).toHaveLength(1);
+      expect(problems[0].property).toBe('');
+      expect(problems[0].message).toContain('pattern');
+    });
+
+    it('should pass validation with valid email', async () => {
+      const email = new Email({ value: 'test@example.com' });
+      const problems = await EntityUtils.validate(email);
+
+      expect(problems).toHaveLength(0);
+    });
+
+    it('should strip wrapper property when validating NESTED stringifiable entity', async () => {
+      // This demonstrates where stripWrapperPrefix is still needed
+      const user = new User({
+        name: 'John',
+        email: new Email({ value: 'INVALID' }),
+      });
+      const problems = await EntityUtils.validate(user);
+
+      expect(problems).toHaveLength(1);
+      // The problem should be "email", NOT "email.value"
+      // because "value" is the internal wrapper property
+      expect(problems[0].property).toBe('email');
+      expect(problems[0].message).toContain('pattern');
+    });
+
+    it('should strip wrapper property when PARSING entity with nested stringifiable', async () => {
+      // This demonstrates where prependPropertyPathAndUnwrap is still needed
+      const result = await EntityUtils.safeParse(
+        User,
+        {
+          name: 'John',
+          email: 'INVALID', // Will be parsed as Email
+        },
+        { strict: false },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.problems).toHaveLength(1);
+      // The problem should be "email", NOT "email.value"
+      expect(result.problems[0].property).toBe('email');
+      expect(result.problems[0].message).toContain('pattern');
+    });
+  });
 });

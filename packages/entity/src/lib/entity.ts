@@ -29,6 +29,12 @@ export interface EntityOptions {
    * When deserialized from a string, the string is wrapped in { value: "..." }.
    */
   stringifiable?: boolean;
+  /**
+   * The name of the single "wrapper" property for entities that act as transparent wrappers.
+   * When set, this property name is excluded from error paths during validation.
+   * Used by @CollectionEntity ('collection') and @Stringifiable ('value').
+   */
+  wrapperProperty?: string;
 }
 
 /**
@@ -117,7 +123,11 @@ export function Entity(options: EntityOptions = {}): ClassDecorator {
 export function CollectionEntity(
   options: Pick<EntityOptions, 'name'> = {},
 ): ClassDecorator {
-  return Entity({ collection: true, ...options });
+  return Entity({
+    collection: true,
+    wrapperProperty: 'collection',
+    ...options,
+  });
 }
 
 /**
@@ -163,7 +173,7 @@ export function CollectionEntity(
 export function Stringifiable(
   options: Pick<EntityOptions, 'name'> = {},
 ): ClassDecorator {
-  return Entity({ stringifiable: true, ...options });
+  return Entity({ stringifiable: true, wrapperProperty: 'value', ...options });
 }
 
 /**

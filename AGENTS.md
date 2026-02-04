@@ -2,3 +2,4 @@
 - To run tests: `nx test <project> --no-tui`
 - To typecheck: `nx typecheck <project> --no-tui`
 - Do not use `timeout` when running `nx` commands
+- **NEVER use dynamic imports** - all imports must be static at the top of the file

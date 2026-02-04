@@ -53,23 +53,23 @@ export function createValidationError(message: string): ValidationError {
 }
 
 /**
- * Prepends a property path to all problems in a ValidationError.
+ * Prepends a property path to all problems.
  * Problems with empty property names get the path directly.
  * Problems starting with '[' get the path without a dot separator.
  * Other problems get the path with a dot separator.
  *
  * @param propertyPath - The property path to prepend (e.g., 'user', 'items[0]')
- * @param error - The ValidationError containing problems to process
+ * @param problems - The array of Problems to process
  * @returns Array of Problems with the property path prepended
  *
  * @example
  * ```typescript
- * const error = new ValidationError([
+ * const problems = [
  *   new Problem({ property: '', message: 'Invalid type' }),
  *   new Problem({ property: 'name', message: 'Required' }),
  *   new Problem({ property: '[0]', message: 'Invalid element' })
- * ]);
- * const problems = prependPropertyPath('user', error);
+ * ];
+ * const result = prependPropertyPath('user', problems);
  * // [
  * //   { property: 'user', message: 'Invalid type' },
  * //   { property: 'user.name', message: 'Required' },
@@ -79,9 +79,9 @@ export function createValidationError(message: string): ValidationError {
  */
 export function prependPropertyPath(
   propertyPath: string,
-  error: ValidationError,
+  problems: Problem[],
 ): Problem[] {
-  return error.problems.map((problem) => {
+  return problems.map((problem) => {
     return new Problem({
       property: combinePropertyPaths(propertyPath, problem.property),
       message: problem.message,

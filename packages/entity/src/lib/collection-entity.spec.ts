@@ -505,7 +505,7 @@ describe('CollectionEntity', () => {
           { strict: true },
         ),
       ).rejects.toThrow(
-        'Validation failed with 1 error(s): myCollection.collection: Expects an array but received string',
+        'Validation failed with 1 error(s): myCollection: Expects an array but received string',
       );
     });
 
@@ -605,10 +605,10 @@ describe('CollectionEntity', () => {
     // collected and displayed. This is a known limitation that should be addressed.
     // The validation system needs to be enhanced to:
     // 1. Validate nested entities within collection items during parse
-    // 2. Collect and prepend proper property paths (e.g., 'addresses.collection[0].street')
+    // 2. Collect and prepend proper property paths (e.g., 'addresses[0].street') - `MUST NOT INCLUDE ".collection"
     // 3. Expose these problems via getProblems() and safeParse() result
 
-    it.skip('should collect soft validation problems from collection items in non-strict mode', async () => {
+    it('should collect soft validation problems from collection items in non-strict mode', async () => {
       // Parse with soft validation problems (street too short)
       const result = await EntityUtils.safeParse(
         User3,
@@ -625,18 +625,16 @@ describe('CollectionEntity', () => {
 
       // Should have soft problems
       expect(result.problems).toHaveLength(1);
-      expect(result.problems[0].property).toBe(
-        'addresses.collection[0].street',
-      );
-      expect(result.problems[0].message).toContain('at least 10 characters');
+      expect(result.problems[0].property).toBe('addresses[0].street');
+      expect(result.problems[0].message).toContain('minimum length 10');
     });
 
-    it.skip('should retrieve soft problems from collection using getProblems()', async () => {
+    it('should retrieve soft problems from collection using getProblems()', async () => {
       // Parse in non-strict mode with validation problems
       const user = await EntityUtils.parse(
         User3,
         {
-          addresses: [{ street: 'Short' }, { street: 'Also Short' }],
+          addresses: [{ street: 'Short' }, { street: 'TooShort' }],
         },
         { strict: false },
       );
@@ -645,13 +643,13 @@ describe('CollectionEntity', () => {
       const problems = EntityUtils.getProblems(user);
 
       expect(problems).toHaveLength(2);
-      expect(problems[0].property).toBe('addresses.collection[0].street');
-      expect(problems[0].message).toContain('at least 10 characters');
-      expect(problems[1].property).toBe('addresses.collection[1].street');
-      expect(problems[1].message).toContain('at least 10 characters');
+      expect(problems[0].property).toBe('addresses[0].street');
+      expect(problems[0].message).toContain('minimum length 10');
+      expect(problems[1].property).toBe('addresses[1].street');
+      expect(problems[1].message).toContain('minimum length 10');
     });
 
-    it.skip('should throw in strict mode when collection items have validation problems', async () => {
+    it('should throw in strict mode when collection items have validation problems', async () => {
       const result = await EntityUtils.safeParse(
         User3,
         {
@@ -663,10 +661,10 @@ describe('CollectionEntity', () => {
       expect(result.success).toBe(false);
       expect(result.data).toBeUndefined();
       expect(result.problems.length).toBeGreaterThan(0);
-      expect(result.problems[0].property).toContain('addresses.collection');
+      expect(result.problems[0].property).toContain('addresses[');
     });
 
-    it.skip('should handle multiple validation problems across collection items', async () => {
+    it('should handle multiple validation problems across collection items', async () => {
       const result = await EntityUtils.safeParse(
         Order1,
         {
@@ -687,15 +685,15 @@ describe('CollectionEntity', () => {
 
       // Check that problems reference correct items
       const problemPaths = problems.map((p) => p.property);
-      expect(
-        problemPaths.some((p) => p.includes('products.collection[0].name')),
-      ).toBe(true);
-      expect(
-        problemPaths.some((p) => p.includes('products.collection[0].price')),
-      ).toBe(true);
-      expect(
-        problemPaths.some((p) => p.includes('products.collection[2].price')),
-      ).toBe(true);
+      expect(problemPaths.some((p) => p.includes('products[0].name'))).toBe(
+        true,
+      );
+      expect(problemPaths.some((p) => p.includes('products[0].price'))).toBe(
+        true,
+      );
+      expect(problemPaths.some((p) => p.includes('products[2].price'))).toBe(
+        true,
+      );
     });
 
     it('should handle empty collections without validation problems', async () => {
@@ -710,7 +708,7 @@ describe('CollectionEntity', () => {
       expect(result.problems).toEqual([]);
     });
 
-    it.skip('should display problems correctly when directly parsing a CollectionEntity', async () => {
+    it('should display problems correctly when directly parsing a CollectionEntity', async () => {
       // Directly parse the collection (not nested in another entity)
       const result = await EntityUtils.safeParse(
         TaskCollection1,
@@ -727,10 +725,10 @@ describe('CollectionEntity', () => {
 
       const problems = result.problems;
       expect(problems.length).toBe(2);
-      expect(problems[0].property).toBe('collection[1].title');
-      expect(problems[0].message).toContain('at least 5 characters');
-      expect(problems[1].property).toBe('collection[2].title');
-      expect(problems[1].message).toContain('at least 5 characters');
+      expect(problems[0].property).toBe('[1].title');
+      expect(problems[0].message).toContain('minimum length 5');
+      expect(problems[1].property).toBe('[2].title');
+      expect(problems[1].message).toContain('minimum length 5');
     });
   });
 
