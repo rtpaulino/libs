@@ -1,3 +1,14 @@
+## 0.24.0 (2026-02-05)
+
+### 🚀 Features
+
+- implement property options helpers for entity schema validation ([70b8d2c](https://github.com/rtpaulino/libs/commit/70b8d2c))
+- add entity definition schema and related tests ([50add45](https://github.com/rtpaulino/libs/commit/50add45))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.23.1 (2026-02-04)
 
 ### 🚀 Features
