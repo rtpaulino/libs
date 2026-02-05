@@ -33,6 +33,38 @@ function zodIssuesToProblems(issues: z.core.$ZodIssue[]): Problem[] {
 }
 
 /**
+ * Creates property options for a Zod schema property
+ * Used internally by ZodProperty decorator and EntityProps.Zod helper
+ */
+export function zodPropertyOptions<T = any>(
+  schema: z.ZodTypeAny,
+  options?: Omit<
+    PropertyOptions<T, any>,
+    'type' | 'deserialize' | 'serialize' | 'passthrough' | 'validators'
+  > & {
+    validators?: PropertyValidator<T>[];
+  },
+): PropertyOptions<T, any> {
+  return {
+    ...options,
+    default: options?.default as any,
+    type: () => Object,
+    serialize: (value: any) => value,
+    deserialize: (value: unknown): any => {
+      const result = schema.safeParse(value);
+
+      if (result.success) {
+        return result.data as T;
+      } else {
+        const problems = zodIssuesToProblems(result.error.issues);
+        throw new ValidationError(problems);
+      }
+    },
+    validators: options?.validators as any,
+  };
+}
+
+/**
  * Helper decorator for Zod schema properties.
  * Validates values using a Zod schema during deserialization.
  * Validation failures throw ValidationError (hard errors).
@@ -71,21 +103,5 @@ export function ZodProperty<T = any>(
     validators?: PropertyValidator<T>[];
   },
 ): PropertyDecorator {
-  return Property({
-    ...options,
-    default: options?.default as any,
-    type: () => Object,
-    serialize: (value: any) => value,
-    deserialize: (value: unknown): any => {
-      const result = schema.safeParse(value);
-
-      if (result.success) {
-        return result.data as T;
-      } else {
-        const problems = zodIssuesToProblems(result.error.issues);
-        throw new ValidationError(problems);
-      }
-    },
-    validators: options?.validators as any,
-  });
+  return Property(zodPropertyOptions(schema, options));
 }

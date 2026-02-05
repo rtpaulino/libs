@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, beforeEach } from 'vitest';
-import { EntitySchema } from './entity-definition.js';
+import { EntitySchema, EntityProps } from './entity-definition.js';
 import { EntityUtils } from './entity-utils.js';
 import { EntityRegistry } from './entity-registry.js';
 import { Problem } from './problem.js';
+import type { AnyCtor } from './types.js';
 
 describe('EntitySchema.define', () => {
   beforeEach(() => {
@@ -500,5 +501,266 @@ describe('EntitySchema', () => {
 
     const entityName = EntityUtils.getEntityName(UserSchema.entityClass);
     expect(entityName).toBe('SchemaUser');
+  });
+});
+
+describe('Props helpers', () => {
+  beforeEach(() => {
+    const registry = (EntityRegistry as any).registry as Map<string, Function>;
+    registry.clear();
+  });
+
+  it('should work with EntityProps.String helper', async () => {
+    const UserSchema = EntitySchema.define({
+      name: 'User',
+      properties: {
+        name: EntityProps.String({ minLength: 2, maxLength: 50 }),
+        email: EntityProps.String({ pattern: /^.+@.+\..+$/, optional: true }),
+      },
+    });
+
+    // Valid case
+    const user = await UserSchema.parse({
+      name: 'John',
+      email: 'john@example.com',
+    });
+    expect(user.name).toBe('John');
+    expect(user.email).toBe('john@example.com');
+
+    // Invalid: too short
+    const result = await UserSchema.safeParse({ name: 'J' });
+    expect(result.success).toBe(true); // safeParse always returns success: true (non-strict mode)
+    expect(result.problems.length).toBeGreaterThan(0);
+  });
+
+  it('should work with EntityProps.Enum helper', async () => {
+    enum Status {
+      Active = 'active',
+      Inactive = 'inactive',
+    }
+
+    const UserSchema = EntitySchema.define({
+      name: 'User',
+      properties: {
+        name: EntityProps.String(),
+        status: EntityProps.Enum(Status),
+      },
+    });
+
+    // Valid case
+    const user = await UserSchema.parse({
+      name: 'John',
+      status: 'active',
+    });
+    expect(user.status).toBe('active');
+
+    // Invalid: wrong enum value
+    const result = await UserSchema.safeParse({
+      name: 'John',
+      status: 'pending',
+    });
+    expect(result.success).toBe(true); // safeParse always returns success: true (non-strict mode)
+    expect(result.problems.length).toBeGreaterThan(0);
+  });
+
+  it('should work with EntityProps.Number and EntityProps.Int helpers', async () => {
+    const ProductSchema = EntitySchema.define({
+      name: 'Product',
+      properties: {
+        price: EntityProps.Number({ min: 0 }),
+        quantity: EntityProps.Int({ min: 0, max: 1000 }),
+        rating: EntityProps.Number({ min: 0, max: 5, optional: true }),
+      },
+    });
+
+    // Valid case
+    const product = await ProductSchema.parse({
+      price: 29.99,
+      quantity: 100,
+      rating: 4.5,
+    });
+    expect(product.price).toBe(29.99);
+    expect(product.quantity).toBe(100);
+    expect(product.rating).toBe(4.5);
+
+    // Invalid: quantity not an integer
+    const result1 = await ProductSchema.safeParse({
+      price: 29.99,
+      quantity: 100.5,
+    });
+    expect(result1.success).toBe(true); // safeParse always returns success: true (non-strict mode)
+    expect(result1.problems.length).toBeGreaterThan(0);
+
+    // Invalid: price below min
+    const result2 = await ProductSchema.safeParse({
+      price: -5,
+      quantity: 100,
+    });
+    expect(result2.success).toBe(true); // safeParse always returns success: true (non-strict mode)
+    expect(result2.problems.length).toBeGreaterThan(0);
+  });
+
+  it('should work with EntityProps.Boolean, EntityProps.Date, and EntityProps.BigInt helpers', async () => {
+    const EventSchema = EntitySchema.define({
+      name: 'Event',
+      properties: {
+        title: EntityProps.String(),
+        isPublic: EntityProps.Boolean(),
+        scheduledAt: EntityProps.Date(),
+        attendeeCount: EntityProps.BigInt({ optional: true }),
+      },
+    });
+
+    const date = new Date('2026-12-31');
+    const event = await EventSchema.parse({
+      title: 'Conference',
+      isPublic: true,
+      scheduledAt: date,
+      attendeeCount: 1000n,
+    });
+
+    expect(event.title).toBe('Conference');
+    expect(event.isPublic).toBe(true);
+    expect(event.scheduledAt).toEqual(date);
+    expect(event.attendeeCount).toBe(1000n);
+  });
+
+  it('should work with EntityProps.Entity for nested entities', async () => {
+    const AddressSchema = EntitySchema.define({
+      name: 'Address',
+      properties: {
+        street: EntityProps.String(),
+        city: EntityProps.String(),
+      },
+    });
+
+    const UserSchema = EntitySchema.define({
+      name: 'User',
+      properties: {
+        name: EntityProps.String(),
+        address: EntityProps.Entity(
+          () =>
+            AddressSchema.entityClass as AnyCtor<any> & {
+              new (data: any): any;
+            },
+        ),
+      },
+    });
+
+    const user = await UserSchema.parse({
+      name: 'John',
+      address: {
+        street: '123 Main St',
+        city: 'Springfield',
+      },
+    });
+
+    expect(user.name).toBe('John');
+    expect(user.address).toBeInstanceOf(AddressSchema.entityClass);
+    expect(user.address.street).toBe('123 Main St');
+  });
+
+  it('should work with EntityProps.Array helper', async () => {
+    const AddressSchema = EntitySchema.define({
+      name: 'Address',
+      properties: {
+        street: EntityProps.String(),
+        city: EntityProps.String(),
+      },
+    });
+
+    const UserSchema = EntitySchema.define({
+      name: 'User',
+      properties: {
+        name: EntityProps.String(),
+        tags: EntityProps.Array(() => String),
+        addresses: EntityProps.Array(() => AddressSchema.entityClass),
+      },
+    });
+
+    const user = await UserSchema.parse({
+      name: 'John',
+      tags: ['admin', 'user'],
+      addresses: [
+        { street: '123 Main St', city: 'Springfield' },
+        { street: '456 Oak Ave', city: 'Shelbyville' },
+      ],
+    });
+
+    expect(user.tags).toEqual(['admin', 'user']);
+    expect(user.addresses).toHaveLength(2);
+    expect(user.addresses[0]).toBeInstanceOf(AddressSchema.entityClass);
+  });
+
+  it('should work with EntityProps.Passthrough helper', async () => {
+    const ConfigSchema = EntitySchema.define({
+      name: 'Config',
+      properties: {
+        name: EntityProps.String(),
+        metadata: EntityProps.Passthrough({ optional: true }),
+      },
+    });
+
+    const config = await ConfigSchema.parse({
+      name: 'MyConfig',
+      metadata: {
+        nested: { deeply: { value: 123 } },
+        arbitrary: 'data',
+      },
+    });
+
+    expect(config.name).toBe('MyConfig');
+    expect(config.metadata).toEqual({
+      nested: { deeply: { value: 123 } },
+      arbitrary: 'data',
+    });
+  });
+
+  it('should work with EntityProps.Zod helper', async () => {
+    // Import z dynamically since it's an optional dependency
+    const { z } = await import('zod');
+
+    const UserDataSchema = z.object({
+      name: z.string().min(3),
+      age: z.number().int().min(0),
+      email: z.string().email(),
+    });
+
+    const UserSchema = EntitySchema.define({
+      name: 'User',
+      properties: {
+        id: EntityProps.String(),
+        data: EntityProps.Zod(UserDataSchema),
+      },
+    });
+
+    // Valid case
+    const user = await UserSchema.parse({
+      id: '123',
+      data: {
+        name: 'John Doe',
+        age: 30,
+        email: 'john@example.com',
+      },
+    });
+
+    expect(user.id).toBe('123');
+    expect(user.data).toEqual({
+      name: 'John Doe',
+      age: 30,
+      email: 'john@example.com',
+    });
+
+    // Test that Zod validation throws on invalid data
+    await expect(
+      UserSchema.parse({
+        id: '456',
+        data: {
+          name: 'Jo', // Too short
+          age: 25,
+          email: 'invalid-email', // Invalid email
+        },
+      }),
+    ).rejects.toThrow();
   });
 });

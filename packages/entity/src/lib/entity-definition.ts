@@ -12,6 +12,20 @@ import { EntityOptions } from './entity.js';
 import { EntityRegistry } from './entity-registry.js';
 import { EntityUtils } from './entity-utils.js';
 import { Problem } from './problem.js';
+import {
+  stringPropertyOptions,
+  enumPropertyOptions,
+  numberPropertyOptions,
+  intPropertyOptions,
+  booleanPropertyOptions,
+  datePropertyOptions,
+  bigIntPropertyOptions,
+  entityPropertyOptions,
+  arrayPropertyOptions,
+  passthroughPropertyOptions,
+  discriminatedEntityPropertyOptions,
+} from './property.js';
+import { zodPropertyOptions } from './zod-property.js';
 
 /**
  * Configuration for defining an entity schema
@@ -305,3 +319,164 @@ export class EntitySchema {
     return wrapper;
   }
 }
+
+/**
+ * Property definition helpers for EntitySchema
+ * These mirror the decorator-based property helpers but return PropertyOptions objects
+ */
+export const EntityProps = {
+  /**
+   * String property with optional validation
+   * @example
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     name: EntityProps.String({ minLength: 2, maxLength: 50 }),
+   *     email: EntityProps.String({ pattern: /^.+@.+\..+$/ }),
+   *   }
+   * })
+   */
+  String: stringPropertyOptions,
+
+  /**
+   * Enum property (validates string against enum values)
+   * @example
+   * enum Status { Active = 'active', Inactive = 'inactive' }
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     status: EntityProps.Enum(Status),
+   *   }
+   * })
+   */
+  Enum: enumPropertyOptions,
+
+  /**
+   * Number property with optional min/max validation
+   * @example
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     age: EntityProps.Number({ min: 0, max: 150 }),
+   *     score: EntityProps.Number({ optional: true }),
+   *   }
+   * })
+   */
+  Number: numberPropertyOptions,
+
+  /**
+   * Integer property (number that must be an integer)
+   * @example
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     age: EntityProps.Int({ min: 0 }),
+   *   }
+   * })
+   */
+  Int: intPropertyOptions,
+
+  /**
+   * Boolean property
+   * @example
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     isActive: EntityProps.Boolean(),
+   *     emailVerified: EntityProps.Boolean({ optional: true }),
+   *   }
+   * })
+   */
+  Boolean: booleanPropertyOptions,
+
+  /**
+   * Date property
+   * @example
+   * EntitySchema.define({
+   *   name: 'Event',
+   *   properties: {
+   *     createdAt: EntityProps.Date(),
+   *     scheduledFor: EntityProps.Date({ optional: true }),
+   *   }
+   * })
+   */
+  Date: datePropertyOptions,
+
+  /**
+   * BigInt property
+   * @example
+   * EntitySchema.define({
+   *   name: 'Transaction',
+   *   properties: {
+   *     amount: EntityProps.BigInt(),
+   *   }
+   * })
+   */
+  BigInt: bigIntPropertyOptions,
+
+  /**
+   * Entity property (nested entity)
+   * @example
+   * const AddressSchema = EntitySchema.define({ ... });
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     address: EntityProps.Entity(() => AddressSchema.entityClass),
+   *   }
+   * })
+   */
+  Entity: entityPropertyOptions,
+
+  /**
+   * Array property
+   * @example
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     tags: EntityProps.Array(() => String),
+   *     addresses: EntityProps.Array(() => AddressSchema.entityClass),
+   *   }
+   * })
+   */
+  Array: arrayPropertyOptions,
+
+  /**
+   * Passthrough property (no deserialization/validation)
+   * @example
+   * EntitySchema.define({
+   *   name: 'Config',
+   *   properties: {
+   *     metadata: EntityProps.Passthrough(),
+   *   }
+   * })
+   */
+  Passthrough: passthroughPropertyOptions,
+
+  /**
+   * Zod schema property (validates using Zod schema)
+   * @example
+   * import { z } from 'zod';
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     data: EntityProps.Zod(z.object({
+   *       name: z.string().min(3),
+   *       age: z.number().int().min(0)
+   *     })),
+   *   }
+   * })
+   */
+  Zod: zodPropertyOptions,
+
+  /**
+   * Discriminated entity property (for polymorphic entities with discriminator)
+   * @example
+   * EntitySchema.define({
+   *   name: 'Shape',
+   *   properties: {
+   *     shape: EntityProps.DiscriminatedEntity({ discriminatorProperty: 'type' }),
+   *   }
+   * })
+   */
+  DiscriminatedEntity: discriminatedEntityPropertyOptions,
+};

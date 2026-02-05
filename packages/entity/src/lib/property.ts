@@ -135,14 +135,18 @@ export function Property<T, C extends CtorLike<T>>(
  *   slug!: string;
  * }
  */
-export function StringProperty(
+/**
+ * Creates property options for a string property with optional validation
+ * Used internally by StringProperty decorator and Props.String helper
+ */
+export function stringPropertyOptions(
   options?: Omit<PropertyOptions<string, StringConstructor>, 'type'> & {
     minLength?: number;
     maxLength?: number;
     pattern?: RegExp;
     patternMessage?: string;
   },
-): PropertyDecorator {
+): PropertyOptions<string, StringConstructor> {
   const validators = [...(options?.validators || [])];
 
   if (options?.minLength !== undefined) {
@@ -161,11 +165,54 @@ export function StringProperty(
   const { minLength, maxLength, pattern, patternMessage, ...restOptions } =
     options || {};
 
-  return Property({
+  return {
     ...restOptions,
     type: () => String,
     validators: validators.length > 0 ? validators : undefined,
-  });
+  };
+}
+
+/**
+ * Helper decorator for string properties
+ * @example
+ * class User {
+ *   @StringProperty()
+ *   name!: string;
+ *
+ *   @StringProperty({ optional: true })
+ *   nickname?: string;
+ *
+ *   @StringProperty({ minLength: 2, maxLength: 50 })
+ *   username!: string;
+ *
+ *   @StringProperty({ pattern: /^[a-z]+$/, patternMessage: 'Must be lowercase letters only' })
+ *   slug!: string;
+ * }
+ */
+export function StringProperty(
+  options?: Omit<PropertyOptions<string, StringConstructor>, 'type'> & {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    patternMessage?: string;
+  },
+): PropertyDecorator {
+  return Property(stringPropertyOptions(options));
+}
+
+/**
+ * Creates property options for an enum property
+ * Used internally by EnumProperty decorator and Props.Enum helper
+ */
+export function enumPropertyOptions<T extends Record<string, string>>(
+  enumType: T,
+  options?: Omit<PropertyOptions<string, StringConstructor>, 'type'>,
+): PropertyOptions<string, StringConstructor> {
+  const validators = options?.validators
+    ? [enumValidator(enumType), ...options.validators]
+    : [enumValidator(enumType)];
+
+  return { ...options, type: () => String, validators };
 }
 
 /**
@@ -191,11 +238,36 @@ export function EnumProperty<T extends Record<string, string>>(
   enumType: T,
   options?: Omit<PropertyOptions<string, StringConstructor>, 'type'>,
 ): PropertyDecorator {
-  const validators = options?.validators
-    ? [enumValidator(enumType), ...options.validators]
-    : [enumValidator(enumType)];
+  return Property(enumPropertyOptions(enumType, options));
+}
 
-  return Property({ ...options, type: () => String, validators });
+/**
+ * Creates property options for a number property
+ * Used internally by NumberProperty decorator and Props.Number helper
+ */
+export function numberPropertyOptions(
+  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
+    min?: number;
+    max?: number;
+  },
+): PropertyOptions<number, NumberConstructor> {
+  const validators = [...(options?.validators || [])];
+
+  if (options?.min !== undefined) {
+    validators.unshift(minValidator(options.min));
+  }
+  if (options?.max !== undefined) {
+    validators.unshift(maxValidator(options.max));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { min, max, ...restOptions } = options || {};
+
+  return {
+    ...restOptions,
+    type: () => Number,
+    validators: validators.length > 0 ? validators : undefined,
+  };
 }
 
 /**
@@ -218,6 +290,19 @@ export function NumberProperty(
     max?: number;
   },
 ): PropertyDecorator {
+  return Property(numberPropertyOptions(options));
+}
+
+/**
+ * Creates property options for an integer property
+ * Used internally by IntProperty decorator and Props.Int helper
+ */
+export function intPropertyOptions(
+  options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
+    min?: number;
+    max?: number;
+  },
+): PropertyOptions<number, NumberConstructor> {
   const validators = [...(options?.validators || [])];
 
   if (options?.min !== undefined) {
@@ -227,14 +312,16 @@ export function NumberProperty(
     validators.unshift(maxValidator(options.max));
   }
 
+  validators.unshift(intValidator());
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { min, max, ...restOptions } = options || {};
 
-  return Property({
+  return {
     ...restOptions,
     type: () => Number,
     validators: validators.length > 0 ? validators : undefined,
-  });
+  };
 }
 
 /**
@@ -258,25 +345,17 @@ export function IntProperty(
     max?: number;
   },
 ): PropertyDecorator {
-  const validators = [...(options?.validators || [])];
+  return Property(intPropertyOptions(options));
+}
 
-  if (options?.min !== undefined) {
-    validators.unshift(minValidator(options.min));
-  }
-  if (options?.max !== undefined) {
-    validators.unshift(maxValidator(options.max));
-  }
-
-  validators.unshift(intValidator());
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { min, max, ...restOptions } = options || {};
-
-  return Property({
-    ...restOptions,
-    type: () => Number,
-    validators: validators.length > 0 ? validators : undefined,
-  });
+/**
+ * Creates property options for a boolean property
+ * Used internally by BooleanProperty decorator and Props.Boolean helper
+ */
+export function booleanPropertyOptions(
+  options?: Omit<PropertyOptions<boolean, BooleanConstructor>, 'type'>,
+): PropertyOptions<boolean, BooleanConstructor> {
+  return { ...options, type: () => Boolean };
 }
 
 /**
@@ -293,7 +372,17 @@ export function IntProperty(
 export function BooleanProperty(
   options?: Omit<PropertyOptions<boolean, BooleanConstructor>, 'type'>,
 ): PropertyDecorator {
-  return Property({ ...options, type: () => Boolean });
+  return Property(booleanPropertyOptions(options));
+}
+
+/**
+ * Creates property options for a Date property
+ * Used internally by DateProperty decorator and Props.Date helper
+ */
+export function datePropertyOptions(
+  options?: Omit<PropertyOptions<Date, DateConstructor>, 'type'>,
+): PropertyOptions<Date, DateConstructor> {
+  return { ...options, type: () => Date };
 }
 
 /**
@@ -310,7 +399,17 @@ export function BooleanProperty(
 export function DateProperty(
   options?: Omit<PropertyOptions<Date, DateConstructor>, 'type'>,
 ): PropertyDecorator {
-  return Property({ ...options, type: () => Date });
+  return Property(datePropertyOptions(options));
+}
+
+/**
+ * Creates property options for a BigInt property
+ * Used internally by BigIntProperty decorator and Props.BigInt helper
+ */
+export function bigIntPropertyOptions(
+  options?: Omit<PropertyOptions<bigint, BigIntConstructor>, 'type'>,
+): PropertyOptions<bigint, BigIntConstructor> {
+  return { ...options, type: () => BigInt };
 }
 
 /**
@@ -327,7 +426,21 @@ export function DateProperty(
 export function BigIntProperty(
   options?: Omit<PropertyOptions<bigint, BigIntConstructor>, 'type'>,
 ): PropertyDecorator {
-  return Property({ ...options, type: () => BigInt });
+  return Property(bigIntPropertyOptions(options));
+}
+
+/**
+ * Creates property options for an entity property
+ * Used internally by EntityProperty decorator and Props.Entity helper
+ */
+export function entityPropertyOptions<
+  T,
+  C extends AnyCtor<T> & { new (data: any): T },
+>(
+  type: () => C,
+  options?: Omit<PropertyOptions<T, C>, 'type'>,
+): PropertyOptions<T, C> {
+  return { ...options, type };
 }
 
 /**
@@ -348,7 +461,38 @@ export function EntityProperty<
   type: () => C,
   options?: Omit<PropertyOptions<T, C>, 'type'>,
 ): PropertyDecorator {
-  return Property<T, C>({ ...options, type });
+  return Property<T, C>(entityPropertyOptions(type, options));
+}
+
+/**
+ * Creates property options for an array property
+ * Used internally by ArrayProperty decorator and Props.Array helper
+ */
+export function arrayPropertyOptions<T, C extends CtorLike<T>>(
+  type: () => C,
+  options?: Omit<PropertyOptions<T, C>, 'type' | 'array'> & {
+    minLength?: number;
+    maxLength?: number;
+  },
+): PropertyOptions<T, C> {
+  const validators = [...(options?.arrayValidators || [])];
+
+  if (options?.minLength !== undefined) {
+    validators.unshift(arrayMinLengthValidator(options.minLength));
+  }
+  if (options?.maxLength !== undefined) {
+    validators.unshift(arrayMaxLengthValidator(options.maxLength));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { minLength, maxLength, ...restOptions } = options || {};
+
+  return {
+    ...restOptions,
+    type,
+    array: true,
+    arrayValidators: validators.length > 0 ? validators : undefined,
+  };
 }
 
 /**
@@ -399,6 +543,16 @@ export function ArrayProperty<T, C extends CtorLike<T>>(
 }
 
 /**
+ * Creates property options for a passthrough property
+ * Used internally by PassthroughProperty decorator and Props.Passthrough helper
+ */
+export function passthroughPropertyOptions(
+  options?: Omit<PropertyOptions, 'type' | 'passthrough'>,
+): PropertyOptions {
+  return { ...options, type: () => Object, passthrough: true };
+}
+
+/**
  * Helper decorator for passthrough properties that bypass type validation.
  * Use this for generic types like Record<string, unknown>, any, or custom objects.
  * @example
@@ -411,7 +565,7 @@ export function ArrayProperty<T, C extends CtorLike<T>>(
  * }
  */
 export function PassthroughProperty(): PropertyDecorator {
-  return Property({ passthrough: true });
+  return Property(passthroughPropertyOptions());
 }
 
 export const StringifiableProperty = <
@@ -503,16 +657,28 @@ export const SerializableProperty = <
  * // drawing.shape is a Circle instance
  * ```
  */
+/**
+ * Creates property options for a discriminated entity property
+ * Used internally by DiscriminatedEntityProperty decorator and EntityProps.DiscriminatedEntity helper
+ */
+export function discriminatedEntityPropertyOptions(
+  options?: Omit<PropertyOptions<any, any>, 'type' | 'discriminated'> & {
+    discriminatorProperty?: string;
+  },
+): PropertyOptions<any, any> {
+  const discriminatorProperty = options?.discriminatorProperty ?? '__type';
+
+  return {
+    ...options,
+    discriminated: true,
+    discriminatorProperty,
+  };
+}
+
 export function DiscriminatedEntityProperty(
   options?: Omit<PropertyOptions<any, any>, 'type' | 'discriminated'> & {
     discriminatorProperty?: string;
   },
 ): PropertyDecorator {
-  const discriminatorProperty = options?.discriminatorProperty ?? '__type';
-
-  return Property({
-    ...options,
-    discriminated: true,
-    discriminatorProperty,
-  });
+  return Property(discriminatedEntityPropertyOptions(options));
 }
