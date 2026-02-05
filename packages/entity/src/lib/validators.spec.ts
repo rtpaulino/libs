@@ -245,7 +245,7 @@ describe('validators', () => {
     });
 
     it('should work with email pattern', () => {
-      const validator = patternValidator(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/);
+      const validator = patternValidator(/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/);
       expect(validator({ value: 'test@example.com' })).toEqual([]);
       const result = validator({ value: 'invalid-email' }) as Problem[];
       expect(result).toHaveLength(1);

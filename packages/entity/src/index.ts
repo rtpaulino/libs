@@ -13,3 +13,4 @@ export * from './lib/primitive-deserializers.js';
 export * from './lib/validators.js';
 export * from './lib/zod-property.js';
 export * from './lib/injected-property.js';
+export * from './lib/entity-definition.js';
