@@ -1,3 +1,13 @@
+## 0.24.2 (2026-02-06)
+
+### 🚀 Features
+
+- add Stringifiable property options for types with toString() and static parse() ([0c9d363](https://github.com/rtpaulino/libs/commit/0c9d363))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.24.1 (2026-02-06)
 
 ### 🚀 Features
