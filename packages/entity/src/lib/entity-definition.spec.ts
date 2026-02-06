@@ -54,7 +54,22 @@ describe('EntitySchema.define', () => {
     const User = UserSchema.entityClass;
 
     expect(EntityUtils.getEntityName(User)).toBe('CustomUser');
-    expect(EntityRegistry.has('CustomUser')).toBe(true);
+    expect(EntityRegistry.has('CustomUser')).toBe(false);
+  });
+
+  it('should support explicit registration when register: true', () => {
+    const UserSchema = EntitySchema.define({
+      name: 'RegisteredUser',
+      properties: {
+        name: { type: () => String },
+      },
+      register: true,
+    });
+
+    const User = UserSchema.entityClass;
+
+    expect(EntityUtils.getEntityName(User)).toBe('RegisteredUser');
+    expect(EntityRegistry.has('RegisteredUser')).toBe(true);
   });
 
   it('should support entity options', () => {

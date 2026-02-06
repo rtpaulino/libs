@@ -35,6 +35,12 @@ export interface EntityOptions {
    * Used by @CollectionEntity ('collection') and @Stringifiable ('value').
    */
   wrapperProperty?: string;
+  /**
+   * Whether to register this entity in the EntityRegistry.
+   * Set to false for dynamic entities to prevent memory leaks.
+   * Defaults to true.
+   */
+  register?: boolean;
 }
 
 /**
@@ -71,8 +77,11 @@ export function Entity(options: EntityOptions = {}): ClassDecorator {
     // Determine the entity name - use provided name or fall back to class name
     const entityName = options.name ?? target.name;
 
-    // Register the entity in the global registry
-    EntityRegistry.register(entityName, target);
+    // Register the entity in the global registry (unless explicitly disabled)
+    const shouldRegister = options.register !== false;
+    if (shouldRegister) {
+      EntityRegistry.register(entityName, target);
+    }
 
     // Store the name in options for later retrieval
     const optionsWithName = { ...options, name: entityName };

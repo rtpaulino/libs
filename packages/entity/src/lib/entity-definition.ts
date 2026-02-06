@@ -48,6 +48,12 @@ export interface EntitySchemaConfig<T = any> {
    * Each function receives the entity instance and returns problems
    */
   validators?: Array<(instance: T) => Problem[] | Promise<Problem[]>>;
+  /**
+   * Whether to register this entity in the EntityRegistry.
+   * For dynamic schemas, defaults to false to prevent memory leaks.
+   * Set to true if you need discriminated entity deserialization.
+   */
+  register?: boolean;
 }
 
 /**
@@ -159,8 +165,10 @@ function defineEntity<T>(
     entityClass,
   );
 
-  // 3. Register in EntityRegistry
-  EntityRegistry.register(entityName, entityClass);
+  // 3. Register in EntityRegistry if enabled
+  if (config.register) {
+    EntityRegistry.register(entityName, entityClass);
+  }
 
   // 4. Set property keys
   const propertyKeys = Object.keys(config.properties);
@@ -246,6 +254,7 @@ export class EntitySchema {
       options: config.options,
       properties: config.properties,
       validators: config.validators,
+      register: config.register ?? false, // Default to false for dynamic schemas to prevent memory leaks
     });
 
     // Create wrapper with EntityUtils methods
