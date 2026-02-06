@@ -1,3 +1,13 @@
+## 0.24.1 (2026-02-06)
+
+### 🚀 Features
+
+- add support for optional entity registration in EntitySchema and Entity decorator ([2736af1](https://github.com/rtpaulino/libs/commit/2736af1))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.24.0 (2026-02-05)
 
 ### 🚀 Features
