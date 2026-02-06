@@ -24,6 +24,7 @@ import {
   arrayPropertyOptions,
   passthroughPropertyOptions,
   discriminatedEntityPropertyOptions,
+  stringifiablePropertyOptions,
 } from './property.js';
 import { zodPropertyOptions } from './zod-property.js';
 
@@ -488,4 +489,21 @@ export const EntityProps = {
    * })
    */
   DiscriminatedEntity: discriminatedEntityPropertyOptions,
+
+  /**
+   * Stringifiable property (for types with toString() and static parse())
+   * @example
+   * class CustomId {
+   *   constructor(public value: string) {}
+   *   toString() { return this.value; }
+   *   static parse(str: string) { return new CustomId(str); }
+   * }
+   * EntitySchema.define({
+   *   name: 'User',
+   *   properties: {
+   *     id: EntityProps.Stringifiable(() => CustomId),
+   *   }
+   * })
+   */
+  Stringifiable: stringifiablePropertyOptions,
 };

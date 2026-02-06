@@ -568,6 +568,34 @@ export function PassthroughProperty(): PropertyDecorator {
   return Property(passthroughPropertyOptions());
 }
 
+/**
+ * Property options for stringifiable types (types with toString() and static parse())
+ * Used internally by StringifiableProperty decorator and EntityProps.Stringifiable helper
+ */
+export function stringifiablePropertyOptions<
+  T extends { equals?(other: T): boolean; toString(): string },
+  C extends CtorLike<T> & { parse(value: string): T },
+>(
+  type: () => C,
+  options?: Omit<
+    PropertyOptions<T, C>,
+    'serialize' | 'deserialize' | 'passthrough' | 'type' | 'equals'
+  >,
+): PropertyOptions<T, C> {
+  return {
+    ...options,
+    type,
+    equals: (a, b) => (a.equals ? a.equals(b) : a.toString() === b.toString()),
+    serialize: (value) => value.toString(),
+    deserialize: (value) => {
+      if (typeof value === 'string') {
+        return type().parse(value) as InstanceOfCtorLike<C>;
+      }
+      throw new Error(`Invalid value ${type().name}: ${String(value)}`);
+    },
+  };
+}
+
 export const StringifiableProperty = <
   T extends { equals?(other: T): boolean; toString(): string },
   C extends CtorLike<T> & { parse(value: string): T },
@@ -578,18 +606,7 @@ export const StringifiableProperty = <
     'serialize' | 'deserialize' | 'passthrough' | 'type' | 'equals'
   > = {},
 ): PropertyDecorator =>
-  Property<T, C>({
-    ...data,
-    type,
-    equals: (a, b) => (a.equals ? a.equals(b) : a.toString() === b.toString()),
-    serialize: (value) => value.toString(),
-    deserialize: (value) => {
-      if (typeof value === 'string') {
-        return type().parse(value) as InstanceOfCtorLike<C>;
-      }
-      throw new Error(`Invalid value ${type().name}: ${String(value)}`);
-    },
-  });
+  Property<T, C>(stringifiablePropertyOptions(type, data));
 
 export const SerializableProperty = <
   T extends { equals?(other: T): boolean; toJSON(): unknown },
