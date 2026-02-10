@@ -33,6 +33,20 @@ export const ENTITY_VALIDATOR_METADATA_KEY = Symbol(
 );
 
 /**
+ * Metadata key used to store polymorphic discriminator property information
+ */
+export const POLYMORPHIC_PROPERTY_METADATA_KEY = Symbol(
+  'polymorphic:property:metadata',
+);
+
+/**
+ * Metadata key used to store polymorphic variant information
+ */
+export const POLYMORPHIC_VARIANT_METADATA_KEY = Symbol(
+  'polymorphic:variant:metadata',
+);
+
+/**
  * Metadata key used to store injected property information
  */
 export const INJECTED_PROPERTY_METADATA_KEY = Symbol(
@@ -268,6 +282,25 @@ export interface PropertyOptions<
    * item!: BaseItem;
    */
   discriminatorProperty?: string;
+
+  /**
+   * Indicates this property is a polymorphic discriminator.
+   * The property value determines which subclass variant to instantiate during parsing.
+   * Used for class hierarchies where the discriminator is part of the class definition.
+   * @example
+   * @PolymorphicProperty(SchemaPropertyType)
+   * type!: SchemaPropertyType;
+   */
+  polymorphicDiscriminator?: boolean;
+
+  /**
+   * The enum or union type for the polymorphic discriminator.
+   * Used for validation and schema generation (e.g., Zod enums).
+   * @example
+   * @PolymorphicProperty(SchemaPropertyType)
+   * type!: SchemaPropertyType;
+   */
+  polymorphicEnumType?: any;
 }
 
 /**

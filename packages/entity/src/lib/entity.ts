@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import {
   ENTITY_METADATA_KEY,
   ENTITY_OPTIONS_METADATA_KEY,
   ENTITY_VALIDATOR_METADATA_KEY,
+  POLYMORPHIC_VARIANT_METADATA_KEY,
 } from './types.js';
 import { EntityRegistry } from './entity-registry.js';
+import { PolymorphicRegistry } from './polymorphic-registry.js';
 
 /**
  * Options for Entity decorator
@@ -226,6 +229,83 @@ export function EntityValidator(): MethodDecorator {
     Reflect.defineMetadata(
       ENTITY_VALIDATOR_METADATA_KEY,
       existingValidators,
+      target,
+    );
+  };
+}
+
+/**
+ * Decorator that registers a class as a polymorphic variant of a base class.
+ *
+ * Used for class hierarchies where an abstract base class has multiple concrete implementations,
+ * and a discriminator property determines which variant to instantiate during parsing.
+ *
+ * @param baseClass - The base class this variant extends (must have a @PolymorphicProperty)
+ * @param discriminatorValue - The value of the discriminator property that identifies this variant
+ *
+ * @example
+ * ```typescript
+ * enum SchemaPropertyType {
+ *   STRING = 'string',
+ *   NUMBER = 'number',
+ * }
+ *
+ * @Entity()
+ * abstract class SchemaProperty {
+ *   @StringProperty({ minLength: 1 })
+ *   name!: string;
+ *
+ *   @PolymorphicProperty(SchemaPropertyType)
+ *   type!: SchemaPropertyType;
+ * }
+ *
+ * @Entity()
+ * @PolymorphicVariant(SchemaProperty, SchemaPropertyType.STRING)
+ * class StringSchemaProperty extends SchemaProperty {
+ *   readonly type = SchemaPropertyType.STRING;
+ *
+ *   @IntProperty({ optional: true })
+ *   minLength?: number;
+ *
+ *   constructor(data: { name: string; minLength?: number }) {
+ *     super({ ...data, type: SchemaPropertyType.STRING });
+ *     this.minLength = data.minLength;
+ *   }
+ * }
+ *
+ * @Entity()
+ * @PolymorphicVariant(SchemaProperty, SchemaPropertyType.NUMBER)
+ * class NumberSchemaProperty extends SchemaProperty {
+ *   readonly type = SchemaPropertyType.NUMBER;
+ *
+ *   @NumberProperty({ optional: true })
+ *   min?: number;
+ *
+ *   constructor(data: { name: string; min?: number }) {
+ *     super({ ...data, type: SchemaPropertyType.NUMBER });
+ *     this.min = data.min;
+ *   }
+ * }
+ *
+ * // Parsing automatically selects the correct variant based on 'type'
+ * const data = { name: 'age', type: 'number', min: 0 };
+ * const prop = await EntityUtils.parse(SchemaProperty, data);
+ * // prop is NumberSchemaProperty instance
+ * ```
+ */
+export function PolymorphicVariant<T extends Function>(
+  baseClass: T,
+  discriminatorValue: unknown,
+): ClassDecorator {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  return function (target: Function) {
+    // Register the variant in the registry
+    PolymorphicRegistry.registerVariant(baseClass, discriminatorValue, target);
+
+    // Store metadata on the class for introspection
+    Reflect.defineMetadata(
+      POLYMORPHIC_VARIANT_METADATA_KEY,
+      { baseClass, discriminatorValue },
       target,
     );
   };

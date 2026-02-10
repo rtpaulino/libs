@@ -30,6 +30,7 @@ import {
 } from './primitive-deserializers.js';
 import { ok } from 'assert';
 import { EntityRegistry } from './entity-registry.js';
+import { PolymorphicRegistry } from './polymorphic-registry.js';
 
 /**
  * WeakMap to store validation problems for entity instances
@@ -583,7 +584,11 @@ export class EntityUtils {
       skipDefaults?: boolean;
       skipMissing?: boolean;
     } = {},
-  ): Promise<{ data: Record<string, unknown>; hardProblems: Problem[] }> {
+  ): Promise<{
+    data: Record<string, unknown>;
+    hardProblems: Problem[];
+    entityClass: new (data: any) => T;
+  }> {
     const wrapperPropertyName = this.getWrapperPropertyName(entityClass);
 
     if (wrapperPropertyName) {
@@ -600,6 +605,45 @@ export class EntityUtils {
     if (typeof plainObject !== 'object') {
       throw createValidationError(
         `Expects an object but received ${typeof plainObject}`,
+      );
+    }
+
+    // Check for polymorphic base class - resolve to concrete variant if found
+    const discriminatorProperty =
+      PolymorphicRegistry.getDiscriminatorProperty(entityClass);
+
+    if (discriminatorProperty) {
+      const discriminatorValue = (plainObject as Record<string, unknown>)[
+        discriminatorProperty
+      ];
+
+      if (discriminatorValue === undefined) {
+        throw createValidationError(
+          `Missing polymorphic discriminator property '${discriminatorProperty}' ` +
+            `for base class '${entityClass.name}'. ` +
+            `The discriminator property is required to determine the correct variant class.`,
+        );
+      }
+
+      const variantClass = PolymorphicRegistry.getVariant(
+        entityClass,
+        discriminatorValue,
+      );
+
+      if (!variantClass) {
+        throw createValidationError(
+          `Unknown polymorphic variant '${String(discriminatorValue)}' ` +
+            `for base class '${entityClass.name}'. ` +
+            `Discriminator property: '${discriminatorProperty}'. ` +
+            `Ensure the variant class is decorated with @PolymorphicVariant.`,
+        );
+      }
+
+      // Recursively parse as the concrete variant class
+      return this._parseInternal(
+        variantClass as new (data: any) => T,
+        plainObject,
+        options,
       );
     }
 
@@ -689,7 +733,7 @@ export class EntityUtils {
       }
     }
 
-    return { data, hardProblems };
+    return { data, hardProblems, entityClass };
   }
 
   /**
@@ -743,19 +787,19 @@ export class EntityUtils {
   ): Promise<T> {
     const strict = parseOptions?.strict ?? false;
 
-    const { data, hardProblems } = await this._parseInternal(
-      entityClass,
-      plainObject,
-      { strict },
-    );
+    const {
+      data,
+      hardProblems,
+      entityClass: resolvedEntityClass,
+    } = await this._parseInternal(entityClass, plainObject, { strict });
 
     if (hardProblems.length > 0) {
       throw new ValidationError(hardProblems);
     }
 
-    await this.addInjectedDependencies(data, entityClass.prototype);
+    await this.addInjectedDependencies(data, resolvedEntityClass.prototype);
 
-    const instance = new entityClass(data);
+    const instance = new resolvedEntityClass(data);
 
     rawInputStorage.set(instance, plainObject as Record<string, unknown>);
 

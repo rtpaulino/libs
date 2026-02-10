@@ -7,6 +7,7 @@ import {
   type InstanceOfCtorLike,
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
+  POLYMORPHIC_PROPERTY_METADATA_KEY,
   PropertyOptions,
 } from './types.js';
 import {
@@ -20,6 +21,7 @@ import {
   arrayMinLengthValidator,
   arrayMaxLengthValidator,
 } from './validators.js';
+import { PolymorphicRegistry } from './polymorphic-registry.js';
 
 /**
  * Property decorator that marks class properties with metadata.
@@ -698,4 +700,102 @@ export function DiscriminatedEntityProperty(
   },
 ): PropertyDecorator {
   return Property(discriminatedEntityPropertyOptions(options));
+}
+
+/**
+ * Decorator that marks a property as a polymorphic discriminator.
+ *
+ * Used for class hierarchies where an abstract base class has multiple concrete implementations,
+ * and the discriminator property value determines which subclass to instantiate.
+ *
+ * The discriminator is a regular class property (not injected during serialization like @DiscriminatedEntityProperty).
+ *
+ * This decorator can be used standalone (it will treat the property as a string) or combined
+ * with another type decorator for more specific typing.
+ *
+ * @param enumType - Optional enum or union type for the discriminator (used for validation and schema generation)
+ *
+ * @example
+ * ```typescript
+ * enum SchemaPropertyType {
+ *   STRING = 'string',
+ *   NUMBER = 'number',
+ * }
+ *
+ * @Entity()
+ * abstract class SchemaProperty {
+ *   @StringProperty({ minLength: 1 })
+ *   name!: string;
+ *
+ *   @PolymorphicProperty(SchemaPropertyType)
+ *   type!: SchemaPropertyType;
+ * }
+ *
+ * @Entity()
+ * @PolymorphicVariant(SchemaProperty, SchemaPropertyType.STRING)
+ * class StringSchemaProperty extends SchemaProperty {
+ *   type = SchemaPropertyType.STRING;
+ *
+ *   @IntProperty({ optional: true })
+ *   minLength?: number;
+ * }
+ *
+ * // Parsing automatically instantiates the correct subclass
+ * const data = { name: 'age', type: 'string', minLength: 5 };
+ * const prop = await EntityUtils.parse(SchemaProperty, data);
+ * // prop is StringSchemaProperty instance
+ * ```
+ */
+export function PolymorphicProperty(enumType?: any): PropertyDecorator {
+  return (target: object, propertyKey: string | symbol): void => {
+    if (typeof propertyKey !== 'string') {
+      return;
+    }
+
+    // Store the polymorphic property metadata
+    Reflect.defineMetadata(
+      POLYMORPHIC_PROPERTY_METADATA_KEY,
+      propertyKey,
+      target.constructor,
+    );
+
+    // Register in PolymorphicRegistry
+    PolymorphicRegistry.setDiscriminatorProperty(
+      target.constructor,
+      propertyKey,
+    );
+
+    // Check if property already has options (from another decorator)
+    const existingOptions: PropertyOptions | undefined = Reflect.getOwnMetadata(
+      PROPERTY_OPTIONS_METADATA_KEY,
+      target,
+      propertyKey,
+    );
+
+    if (existingOptions) {
+      // Update existing options to add polymorphic flags
+      const updatedOptions: PropertyOptions = {
+        ...existingOptions,
+        polymorphicDiscriminator: true,
+        polymorphicEnumType: enumType,
+      };
+
+      Reflect.defineMetadata(
+        PROPERTY_OPTIONS_METADATA_KEY,
+        updatedOptions,
+        target,
+        propertyKey,
+      );
+    } else {
+      // No existing decorator - apply Property decorator with string type
+      // (enum discriminators are typically strings)
+      const options: PropertyOptions = {
+        type: () => String,
+        polymorphicDiscriminator: true,
+        polymorphicEnumType: enumType,
+      };
+
+      Property(options)(target, propertyKey);
+    }
+  };
 }
