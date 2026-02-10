@@ -1,3 +1,13 @@
+## 0.25.0 (2026-02-10)
+
+### 🚀 Features
+
+- implement polymorphic entity support with decorators and registry ([ff55858](https://github.com/rtpaulino/libs/commit/ff55858))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.24.2 (2026-02-06)
 
 ### 🚀 Features
