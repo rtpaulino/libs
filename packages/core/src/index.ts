@@ -11,3 +11,4 @@ export * from './lib/hash.js';
 export * from './lib/type.js';
 export * from './lib/string.js';
 export * from './lib/enum.js';
+export * from './lib/sync.js';
