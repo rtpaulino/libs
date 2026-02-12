@@ -1,3 +1,14 @@
+## 0.13.1 (2026-02-12)
+
+### 🚀 Features
+
+- export sync module from core package ([584212f](https://github.com/rtpaulino/libs/commit/584212f))
+- add truncateWithEllipsis and extractBetween functions with tests ([3ce30bd](https://github.com/rtpaulino/libs/commit/3ce30bd))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.13.0 (2026-01-21)
 
 ### 🚀 Features

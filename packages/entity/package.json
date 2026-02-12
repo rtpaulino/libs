@@ -1,6 +1,6 @@
 {
   "name": "@rtpaulino/entity",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -47,7 +47,7 @@
     }
   },
   "dependencies": {
-    "@rtpaulino/core": "^0.13.0",
+    "@rtpaulino/core": "^0.13.1",
     "@swc/helpers": "~0.5.18",
     "lodash-es": "^4.17.22"
   },
