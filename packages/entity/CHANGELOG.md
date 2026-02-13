@@ -1,3 +1,13 @@
+## 0.26.0 (2026-02-13)
+
+### 🚀 Features
+
+- enhance PolymorphicProperty to support stringifiable types ([7694a7e](https://github.com/rtpaulino/libs/commit/7694a7e))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.25.1 (2026-02-12)
 
 ### 🧱 Updated Dependencies
