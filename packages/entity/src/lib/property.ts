@@ -713,10 +713,11 @@ export function DiscriminatedEntityProperty(
  * This decorator can be used standalone (it will treat the property as a string) or combined
  * with another type decorator for more specific typing.
  *
- * @param enumType - Optional enum or union type for the discriminator (used for validation and schema generation)
+ * @param enumType - Optional enum, union type, or stringifiable type for the discriminator (used for validation and schema generation)
  *
  * @example
  * ```typescript
+ * // With regular enum
  * enum SchemaPropertyType {
  *   STRING = 'string',
  *   NUMBER = 'number',
@@ -740,13 +741,36 @@ export function DiscriminatedEntityProperty(
  *   minLength?: number;
  * }
  *
+ * // With stringifiable type
+ * class Status {
+ *   static ACTIVE = new Status('active');
+ *   static INACTIVE = new Status('inactive');
+ *
+ *   constructor(private value: string) {}
+ *   toString() { return this.value; }
+ *   static parse(value: string) {
+ *     if (value === 'active') return Status.ACTIVE;
+ *     if (value === 'inactive') return Status.INACTIVE;
+ *     throw new Error('Invalid status');
+ *   }
+ * }
+ *
+ * @Entity()
+ * abstract class Record {
+ *   @PolymorphicProperty(() => Status)
+ *   status!: Status;
+ * }
+ *
  * // Parsing automatically instantiates the correct subclass
  * const data = { name: 'age', type: 'string', minLength: 5 };
  * const prop = await EntityUtils.parse(SchemaProperty, data);
  * // prop is StringSchemaProperty instance
  * ```
  */
-export function PolymorphicProperty(enumType?: any): PropertyDecorator {
+export function PolymorphicProperty<
+  T extends { equals?(other: T): boolean; toString(): string },
+  C extends CtorLike<T> & { parse(value: string): T },
+>(enumTypeOrFactory?: Record<string, string> | (() => C)): PropertyDecorator {
   return (target: object, propertyKey: string | symbol): void => {
     if (typeof propertyKey !== 'string') {
       return;
@@ -777,7 +801,7 @@ export function PolymorphicProperty(enumType?: any): PropertyDecorator {
       const updatedOptions: PropertyOptions = {
         ...existingOptions,
         polymorphicDiscriminator: true,
-        polymorphicEnumType: enumType,
+        polymorphicEnumType: enumTypeOrFactory,
       };
 
       Reflect.defineMetadata(
@@ -787,15 +811,31 @@ export function PolymorphicProperty(enumType?: any): PropertyDecorator {
         propertyKey,
       );
     } else {
-      // No existing decorator - apply Property decorator with string type
-      // (enum discriminators are typically strings)
-      const options: PropertyOptions = {
-        type: () => String,
-        polymorphicDiscriminator: true,
-        polymorphicEnumType: enumType,
-      };
+      // No existing decorator - check if it's a stringifiable type or enum
+      const isStringifiable = typeof enumTypeOrFactory === 'function';
 
-      Property(options)(target, propertyKey);
+      if (isStringifiable) {
+        // Apply StringifiableProperty decorator with polymorphic flags
+        const stringifiableOpts = stringifiablePropertyOptions(
+          enumTypeOrFactory as () => C,
+        );
+        const options: PropertyOptions = {
+          ...stringifiableOpts,
+          polymorphicDiscriminator: true,
+          polymorphicEnumType: enumTypeOrFactory,
+        };
+
+        Property(options)(target, propertyKey);
+      } else {
+        // Apply Property decorator with string type (for enum discriminators)
+        const options: PropertyOptions = {
+          type: () => String,
+          polymorphicDiscriminator: true,
+          polymorphicEnumType: enumTypeOrFactory,
+        };
+
+        Property(options)(target, propertyKey);
+      }
     }
   };
 }

@@ -558,4 +558,157 @@ describe('Polymorphic Entity', () => {
       expect(variants.map((v) => v.discriminatorValue)).toContain('inactive');
     });
   });
+
+  describe('Stringifiable discriminator types', () => {
+    // Define a stringifiable type similar to the Capability class
+    class Priority {
+      static readonly HIGH = new Priority('high', 'High Priority');
+      static readonly MEDIUM = new Priority('medium', 'Medium Priority');
+      static readonly LOW = new Priority('low', 'Low Priority');
+
+      readonly value: string;
+      readonly label: string;
+
+      private constructor(value: string, label: string) {
+        this.value = value;
+        this.label = label;
+      }
+
+      static values(): Priority[] {
+        return [Priority.HIGH, Priority.MEDIUM, Priority.LOW];
+      }
+
+      static valuesMap(): Map<string, Priority> {
+        const map = new Map<string, Priority>();
+        for (const priority of Priority.values()) {
+          map.set(priority.value, priority);
+        }
+        return map;
+      }
+
+      static parse(value: string): Priority {
+        const priority = Priority.valuesMap().get(value);
+        if (!priority) {
+          throw new Error(`Invalid Priority value: ${value}`);
+        }
+        return priority;
+      }
+
+      toString(): string {
+        return this.value;
+      }
+
+      equals(other: Priority): boolean {
+        return this.value === other.value;
+      }
+    }
+
+    @Entity()
+    abstract class Task {
+      @StringProperty()
+      title!: string;
+
+      @PolymorphicProperty(() => Priority)
+      priority!: Priority;
+
+      constructor(data: { title: string; priority: Priority }) {
+        this.title = data.title;
+        this.priority = data.priority;
+      }
+    }
+
+    @Entity()
+    @PolymorphicVariant(Task, Priority.HIGH.value)
+    class HighPriorityTask extends Task {
+      override readonly priority = Priority.HIGH;
+
+      @StringProperty()
+      escalationContact!: string;
+
+      constructor(data: { title: string; escalationContact: string }) {
+        super({ ...data, priority: Priority.HIGH });
+        this.escalationContact = data.escalationContact;
+      }
+    }
+
+    @Entity()
+    @PolymorphicVariant(Task, Priority.LOW.value)
+    class LowPriorityTask extends Task {
+      override readonly priority = Priority.LOW;
+
+      @IntProperty({ optional: true })
+      deferDays?: number;
+
+      constructor(data: { title: string; deferDays?: number }) {
+        super({ ...data, priority: Priority.LOW });
+        this.deferDays = data.deferDays;
+      }
+    }
+
+    it('should parse high priority variant with stringifiable discriminator', async () => {
+      const data = {
+        title: 'Critical bug fix',
+        priority: 'high',
+        escalationContact: 'john@example.com',
+      };
+
+      const task = await EntityUtils.parse(Task, data);
+
+      expect(task).toBeInstanceOf(HighPriorityTask);
+      expect(task.title).toBe('Critical bug fix');
+      expect(task.priority).toBe(Priority.HIGH);
+      expect(task.priority.label).toBe('High Priority');
+      expect((task as HighPriorityTask).escalationContact).toBe(
+        'john@example.com',
+      );
+    });
+
+    it('should parse low priority variant with stringifiable discriminator', async () => {
+      const data = {
+        title: 'Update documentation',
+        priority: 'low',
+        deferDays: 7,
+      };
+
+      const task = await EntityUtils.parse(Task, data);
+
+      expect(task).toBeInstanceOf(LowPriorityTask);
+      expect(task.title).toBe('Update documentation');
+      expect(task.priority).toBe(Priority.LOW);
+      expect(task.priority.label).toBe('Low Priority');
+      expect((task as LowPriorityTask).deferDays).toBe(7);
+    });
+
+    it('should serialize and deserialize with stringifiable discriminator', async () => {
+      const original = new HighPriorityTask({
+        title: 'Security vulnerability',
+        escalationContact: 'security@example.com',
+      });
+
+      const json = EntityUtils.toJSON(original);
+
+      expect(json).toEqual({
+        title: 'Security vulnerability',
+        priority: 'high',
+        escalationContact: 'security@example.com',
+      });
+
+      const parsed = await EntityUtils.parse(Task, json);
+
+      expect(parsed).toBeInstanceOf(HighPriorityTask);
+      expect(parsed.priority).toBe(Priority.HIGH);
+      expect(parsed.priority.equals(Priority.HIGH)).toBe(true);
+    });
+
+    it('should throw error for invalid stringifiable discriminator value', async () => {
+      const data = {
+        title: 'Some task',
+        priority: 'invalid',
+      };
+
+      await expect(EntityUtils.parse(Task, data)).rejects.toThrow(
+        /Unknown polymorphic variant 'invalid'/,
+      );
+    });
+  });
 });
