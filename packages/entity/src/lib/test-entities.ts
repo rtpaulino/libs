@@ -890,3 +890,22 @@ export class ComplexEntity {
 export function resetFactoryCallCount(): void {
   factoryCallCount = 0;
 }
+
+// ============================================================================
+// ENTITIES FOR parseBigInt TESTING
+// ============================================================================
+
+/**
+ * Entity with NumberProperty and IntProperty configured with parseBigInt: true
+ * Features: coercion from bigint / integer string to number
+ */
+@Entity()
+export class EntityWithParseBigInt {
+  @NumberProperty({ parseBigInt: true }) amount!: number;
+  @IntProperty({ parseBigInt: true }) count!: number;
+
+  constructor(data: { amount: number; count: number }) {
+    this.amount = data.amount;
+    this.count = data.count;
+  }
+}

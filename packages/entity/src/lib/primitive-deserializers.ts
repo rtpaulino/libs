@@ -32,13 +32,40 @@ function deserializeString(value: unknown): string {
 /**
  * Deserializes a number value
  */
-function deserializeNumber(value: unknown): number {
+export function deserializeNumber(value: unknown): number {
   if (typeof value !== 'number') {
     throw createValidationError(
       `Expects a number but received ${typeof value}`,
     );
   }
   return value;
+}
+
+/**
+ * Deserializes a number from a `bigint` or an integer-formatted string.
+ *
+ * Accepts:
+ * - `number` — returned as-is (delegates to `deserializeNumber`)
+ * - `bigint` — converted via `Number(value)`
+ * - `string` — must consist solely of an optional leading `-` followed by digits;
+ *   parsed as a bigint first and then converted to a number
+ *
+ * @warning Information may be lost if the `BigInt` value exceeds the safe integer
+ * range for `number` (`Number.MAX_SAFE_INTEGER` / `Number.MIN_SAFE_INTEGER`).
+ */
+export function deserializeNumberFromBigInt(value: unknown): number {
+  if (typeof value === 'number') {
+    return deserializeNumber(value);
+  }
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  if (typeof value === 'string' && /^-?\d+$/.test(value)) {
+    return Number(BigInt(value));
+  }
+  throw createValidationError(
+    `Expects a number, bigint, or integer string but received ${typeof value === 'string' ? `string '${value}'` : typeof value}`,
+  );
 }
 
 /**

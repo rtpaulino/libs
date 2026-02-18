@@ -22,6 +22,7 @@ import {
   arrayMaxLengthValidator,
 } from './validators.js';
 import { PolymorphicRegistry } from './polymorphic-registry.js';
+import { deserializeNumberFromBigInt } from './primitive-deserializers.js';
 
 /**
  * Property decorator that marks class properties with metadata.
@@ -251,6 +252,15 @@ export function numberPropertyOptions(
   options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
     min?: number;
     max?: number;
+
+    /**
+     * When `true`, `bigint` values and integer-formatted strings (e.g. `"-42"`) will
+     * be coerced to `number` during deserialization.
+     *
+     * @warning Information may be lost if the `BigInt` value exceeds the safe integer
+     * range for `number` (`Number.MAX_SAFE_INTEGER` / `Number.MIN_SAFE_INTEGER`).
+     */
+    parseBigInt?: boolean;
   },
 ): PropertyOptions<number, NumberConstructor> {
   const validators = [...(options?.validators || [])];
@@ -263,12 +273,15 @@ export function numberPropertyOptions(
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { min, max, ...restOptions } = options || {};
+  const { min, max, parseBigInt, ...restOptions } = options || {};
+
+  const deserialize = parseBigInt ? deserializeNumberFromBigInt : undefined;
 
   return {
     ...restOptions,
     type: () => Number,
     validators: validators.length > 0 ? validators : undefined,
+    ...(deserialize ? { serialize: (v: number) => v, deserialize } : {}),
   };
 }
 
@@ -290,6 +303,14 @@ export function NumberProperty(
   options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
     min?: number;
     max?: number;
+    /**
+     * When `true`, `bigint` values and integer-formatted strings (e.g. `"-42"`) will
+     * be coerced to `number` during deserialization.
+     *
+     * @warning Information may be lost if the `BigInt` value exceeds the safe integer
+     * range for `number` (`Number.MAX_SAFE_INTEGER` / `Number.MIN_SAFE_INTEGER`).
+     */
+    parseBigInt?: boolean;
   },
 ): PropertyDecorator {
   return Property(numberPropertyOptions(options));
@@ -303,6 +324,14 @@ export function intPropertyOptions(
   options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
     min?: number;
     max?: number;
+    /**
+     * When `true`, `bigint` values and integer-formatted strings (e.g. `"-42"`) will
+     * be coerced to `number` during deserialization.
+     *
+     * @warning Information may be lost if the `BigInt` value exceeds the safe integer
+     * range for `number` (`Number.MAX_SAFE_INTEGER` / `Number.MIN_SAFE_INTEGER`).
+     */
+    parseBigInt?: boolean;
   },
 ): PropertyOptions<number, NumberConstructor> {
   const validators = [...(options?.validators || [])];
@@ -317,12 +346,15 @@ export function intPropertyOptions(
   validators.unshift(intValidator());
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { min, max, ...restOptions } = options || {};
+  const { min, max, parseBigInt, ...restOptions } = options || {};
+
+  const deserialize = parseBigInt ? deserializeNumberFromBigInt : undefined;
 
   return {
     ...restOptions,
     type: () => Number,
     validators: validators.length > 0 ? validators : undefined,
+    ...(deserialize ? { serialize: (v: number) => v, deserialize } : {}),
   };
 }
 
@@ -345,6 +377,14 @@ export function IntProperty(
   options?: Omit<PropertyOptions<number, NumberConstructor>, 'type'> & {
     min?: number;
     max?: number;
+    /**
+     * When `true`, `bigint` values and integer-formatted strings (e.g. `"-42"`) will
+     * be coerced to `number` during deserialization.
+     *
+     * @warning Information may be lost if the `BigInt` value exceeds the safe integer
+     * range for `number` (`Number.MAX_SAFE_INTEGER` / `Number.MIN_SAFE_INTEGER`).
+     */
+    parseBigInt?: boolean;
   },
 ): PropertyDecorator {
   return Property(intPropertyOptions(options));

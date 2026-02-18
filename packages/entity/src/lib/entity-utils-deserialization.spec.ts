@@ -25,6 +25,7 @@ import {
   EntityWithDI,
   LOGGER_TOKEN,
   ILogger,
+  EntityWithParseBigInt,
 } from './test-entities.js';
 
 describe('EntityUtils.parse', () => {
@@ -411,6 +412,64 @@ describe('EntityUtils.parse', () => {
 
       // Clean up
       EntityDI.configure({ providers: [] });
+    });
+  });
+
+  describe('parseBigInt coercion', () => {
+    it('should coerce bigint values to number', async () => {
+      const entity = await EntityUtils.parse(EntityWithParseBigInt, {
+        amount: 9007199254740991n,
+        count: 42n,
+      });
+
+      expect(entity.amount).toBe(9007199254740991);
+      expect(entity.count).toBe(42);
+    });
+
+    it('should coerce integer strings to number', async () => {
+      const entity = await EntityUtils.parse(EntityWithParseBigInt, {
+        amount: '1234567890',
+        count: '-7',
+      });
+
+      expect(entity.amount).toBe(1234567890);
+      expect(entity.count).toBe(-7);
+    });
+
+    it('should accept plain numbers as-is', async () => {
+      const entity = await EntityUtils.parse(EntityWithParseBigInt, {
+        amount: 3.14,
+        count: 5,
+      });
+
+      expect(entity.amount).toBe(3.14);
+      expect(entity.count).toBe(5);
+    });
+
+    it('should reject non-integer strings', async () => {
+      await expect(
+        EntityUtils.parse(EntityWithParseBigInt, {
+          amount: 'not-a-number',
+          count: 1,
+        }),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it('should enforce int validation when using IntProperty with parseBigInt', async () => {
+      // count is IntProperty — a decimal number should fail validation
+      const entity = await EntityUtils.parse(
+        EntityWithParseBigInt,
+        { amount: 1, count: 1 },
+        { strict: true },
+      );
+      expect(entity.count).toBe(1);
+
+      const result = await EntityUtils.safeParse(
+        EntityWithParseBigInt,
+        { amount: 1, count: 1 },
+        { strict: true },
+      );
+      expect(result.success).toBe(true);
     });
   });
 
