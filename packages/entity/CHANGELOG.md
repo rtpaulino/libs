@@ -1,3 +1,13 @@
+## 0.26.1 (2026-02-18)
+
+### 🚀 Features
+
+- add support for bigint coercion in number properties ([1a1dad5](https://github.com/rtpaulino/libs/commit/1a1dad5))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.26.0 (2026-02-13)
 
 ### 🚀 Features
