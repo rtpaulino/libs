@@ -7,7 +7,9 @@ import {
   ParseOptions,
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
+  PropertyDeserializeContext,
   PropertyOptions,
+  PropertySerializeContext,
   SafeOperationResult,
 } from './types.js';
 import type { EntityOptions } from './entity.js';
@@ -476,7 +478,11 @@ export class EntityUtils {
       }
 
       const options = this.getPropertyOptions(entity, key);
-      result[key] = this.serializeValue(value, options);
+      const serializeContext: PropertySerializeContext = {
+        propertyName: key,
+        entity: entity as Record<string, unknown>,
+      };
+      result[key] = this.serializeValue(value, options, serializeContext);
     }
 
     return result;
@@ -489,6 +495,7 @@ export class EntityUtils {
   private static serializeValue(
     value: unknown,
     options?: PropertyOptions,
+    context?: PropertySerializeContext,
   ): unknown {
     if (value === null) {
       return null;
@@ -506,13 +513,13 @@ export class EntityUtils {
     if (Array.isArray(value)) {
       if (options?.serialize) {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return value.map((item) => options.serialize!(item as any));
+        return value.map((item) => options.serialize!(item as any, context!));
       }
-      return value.map((item) => this.serializeValue(item, options));
+      return value.map((item) => this.serializeValue(item, options, context));
     }
 
     if (options?.serialize) {
-      return options.serialize(value as any);
+      return options.serialize(value as any, context!);
     }
 
     if (value instanceof Date) {
@@ -707,10 +714,17 @@ export class EntityUtils {
       }
 
       try {
+        const deserializeContext: PropertyDeserializeContext = {
+          propertyName: key,
+          rawObject: plainObject as Record<string, unknown>,
+        };
         // Only pass strict to nested deserialization, not skipDefaults/skipMissing
-        data[key] = await this.deserializeValue(value, propertyOptions, {
-          strict,
-        });
+        data[key] = await this.deserializeValue(
+          value,
+          propertyOptions,
+          { strict },
+          deserializeContext,
+        );
       } catch (error) {
         if (error instanceof ValidationError) {
           const isWrapperProperty = wrapperPropertyName === key;
@@ -1163,6 +1177,7 @@ export class EntityUtils {
     value: unknown,
     options: PropertyOptions,
     parseOptions: ParseOptions,
+    context?: PropertyDeserializeContext,
   ): Promise<unknown> {
     const isArray = options.array === true;
     const isSparse = options.sparse === true;
@@ -1193,7 +1208,7 @@ export class EntityUtils {
         } else {
           try {
             if (options.deserialize) {
-              result.push(options.deserialize(item));
+              result.push(options.deserialize(item, context!));
             } else if (isDiscriminated) {
               result.push(
                 await this.deserializeDiscriminatedValue(item, options),
@@ -1228,7 +1243,7 @@ export class EntityUtils {
     }
 
     if (options.deserialize) {
-      return options.deserialize(value);
+      return options.deserialize(value, context!);
     }
 
     if (isDiscriminated) {

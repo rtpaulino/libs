@@ -100,6 +100,26 @@ export type InstanceOfCtorLike<C> = C extends StringConstructor
               : never;
 
 /**
+ * Context passed to a custom serialize callback.
+ */
+export interface PropertySerializeContext {
+  /** The property key being serialized */
+  propertyName: string;
+  /** The full entity instance being serialized */
+  entity: Record<string, unknown>;
+}
+
+/**
+ * Context passed to a custom deserialize callback.
+ */
+export interface PropertyDeserializeContext {
+  /** The property key being deserialized */
+  propertyName: string;
+  /** The original raw input object (JSON) */
+  rawObject: Record<string, unknown>;
+}
+
+/**
  * Options for the Property decorator
  */
 export interface PropertyOptions<
@@ -208,7 +228,10 @@ export interface PropertyOptions<
    * })
    * myProperty!: MyClass;
    */
-  serialize?: (value: InstanceOfCtorLike<C>) => unknown;
+  serialize?: (
+    value: InstanceOfCtorLike<C>,
+    context: PropertySerializeContext,
+  ) => unknown;
 
   /**
    * Custom deserialization function to convert JSON data back to the property type.
@@ -222,7 +245,10 @@ export interface PropertyOptions<
    * })
    * myProperty!: MyClass;
    */
-  deserialize?: (serialized: unknown) => InstanceOfCtorLike<C>;
+  deserialize?: (
+    serialized: unknown,
+    context: PropertyDeserializeContext,
+  ) => InstanceOfCtorLike<C>;
 
   /**
    * Array of validator functions for this property.

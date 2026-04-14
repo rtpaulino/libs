@@ -16,6 +16,7 @@ import {
   TestEmail,
   EntityWithStringifiable,
   EntityWithCustomSerialization,
+  EntityWithContextSerialization,
   EntityWithPassthrough,
   OptionalFieldsEntity,
   CustomValue,
@@ -389,6 +390,18 @@ describe('EntityUtils.toJSON', () => {
         name: 'Point Entity',
         position: { x: 10, y: 20 },
       });
+    });
+
+    it('should pass propertyName and entity to the serialize context', () => {
+      const entity = new EntityWithContextSerialization({
+        id: 'ent-1',
+        label: 'hello',
+      });
+
+      const json = EntityUtils.toJSON(entity) as Record<string, unknown>;
+
+      // serialize: (v, ctx) => `${ctx.propertyName}:${v}:${ctx.entity['id']}`
+      expect(json['label']).toBe('label:hello:ent-1');
     });
   });
 

@@ -11,11 +11,23 @@ import {
 import {
   PROPERTY_METADATA_KEY,
   PROPERTY_OPTIONS_METADATA_KEY,
+  type PropertyDeserializeContext,
   type PropertyOptions,
+  type PropertySerializeContext,
 } from './types.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyPropertyOptions = PropertyOptions<any, any>;
+
+const stubSerializeContext: PropertySerializeContext = {
+  propertyName: 'test',
+  entity: {},
+};
+
+const stubDeserializeContext: PropertyDeserializeContext = {
+  propertyName: 'test',
+  rawObject: {},
+};
 
 class Capability {
   static readonly ELEVATED_ACCESS = new Capability({
@@ -116,8 +128,12 @@ describe('StringifiableProperty', () => {
     );
 
     const serialize = options['capability'].serialize!;
-    expect(serialize(Capability.ELEVATED_ACCESS)).toBe('ELEVATED_ACCESS');
-    expect(serialize(Capability.READ_ONLY)).toBe('READ_ONLY');
+    expect(serialize(Capability.ELEVATED_ACCESS, stubSerializeContext)).toBe(
+      'ELEVATED_ACCESS',
+    );
+    expect(serialize(Capability.READ_ONLY, stubSerializeContext)).toBe(
+      'READ_ONLY',
+    );
   });
 
   it('should deserialize string to capability', () => {
@@ -132,8 +148,12 @@ describe('StringifiableProperty', () => {
     );
 
     const deserialize = options['capability'].deserialize!;
-    expect(deserialize('ELEVATED_ACCESS')).toBe(Capability.ELEVATED_ACCESS);
-    expect(deserialize('READ_ONLY')).toBe(Capability.READ_ONLY);
+    expect(deserialize('ELEVATED_ACCESS', stubDeserializeContext)).toBe(
+      Capability.ELEVATED_ACCESS,
+    );
+    expect(deserialize('READ_ONLY', stubDeserializeContext)).toBe(
+      Capability.READ_ONLY,
+    );
   });
 
   it('should throw error when deserializing invalid string', () => {
@@ -148,7 +168,9 @@ describe('StringifiableProperty', () => {
     );
 
     const deserialize = options['capability'].deserialize!;
-    expect(() => deserialize('INVALID')).toThrow('Invalid Capability value');
+    expect(() => deserialize('INVALID', stubDeserializeContext)).toThrow(
+      'Invalid Capability value',
+    );
   });
 
   it('should throw error when deserializing non-string value', () => {
@@ -163,7 +185,9 @@ describe('StringifiableProperty', () => {
     );
 
     const deserialize = options['capability'].deserialize!;
-    expect(() => deserialize(123)).toThrow('Invalid value');
+    expect(() => deserialize(123, stubDeserializeContext)).toThrow(
+      'Invalid value',
+    );
   });
 
   it('should compare capabilities using equals', () => {
@@ -352,12 +376,12 @@ describe('SerializableProperty', () => {
     );
 
     const serialize = options['permission'].serialize!;
-    expect(serialize(Permission.ADMIN)).toEqual({
+    expect(serialize(Permission.ADMIN, stubSerializeContext)).toEqual({
       id: 'admin',
       level: 10,
       description: 'Administrator access',
     });
-    expect(serialize(Permission.USER)).toEqual({
+    expect(serialize(Permission.USER, stubSerializeContext)).toEqual({
       id: 'user',
       level: 1,
       description: 'User access',
@@ -377,14 +401,16 @@ describe('SerializableProperty', () => {
 
     const deserialize = options['permission'].deserialize!;
     expect(
-      deserialize({
-        id: 'admin',
-        level: 10,
-        description: 'Administrator access',
-      }),
+      deserialize(
+        { id: 'admin', level: 10, description: 'Administrator access' },
+        stubDeserializeContext,
+      ),
     ).toBe(Permission.ADMIN);
     expect(
-      deserialize({ id: 'user', level: 1, description: 'User access' }),
+      deserialize(
+        { id: 'user', level: 1, description: 'User access' },
+        stubDeserializeContext,
+      ),
     ).toBe(Permission.USER);
   });
 
@@ -400,9 +426,9 @@ describe('SerializableProperty', () => {
     );
 
     const deserialize = options['permission'].deserialize!;
-    expect(() => deserialize({ id: 'invalid' })).toThrow(
-      'Invalid Permission id',
-    );
+    expect(() =>
+      deserialize({ id: 'invalid' }, stubDeserializeContext),
+    ).toThrow('Invalid Permission id');
   });
 
   it('should throw error when deserializing non-object value', () => {
@@ -417,7 +443,9 @@ describe('SerializableProperty', () => {
     );
 
     const deserialize = options['permission'].deserialize!;
-    expect(() => deserialize('invalid')).toThrow('Invalid Permission value');
+    expect(() => deserialize('invalid', stubDeserializeContext)).toThrow(
+      'Invalid Permission value',
+    );
   });
 
   it('should compare permissions using equals', () => {

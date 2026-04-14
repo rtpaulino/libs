@@ -20,6 +20,7 @@ import {
   TestEmail,
   EntityWithStringifiable,
   EntityWithCustomSerialization,
+  EntityWithContextSerialization,
   CustomValue,
   EntityWithPassthrough,
   EntityWithDI,
@@ -488,6 +489,18 @@ describe('EntityUtils.parse', () => {
       expect(entity.position).toBeInstanceOf(CustomValue);
       expect(entity.position.x).toBe(10);
       expect(entity.position.y).toBe(20);
+    });
+
+    it('should pass propertyName and rawObject to the deserialize context', async () => {
+      const json = { id: 'ent-1', label: 'hello' };
+
+      const entity = await EntityUtils.parse(
+        EntityWithContextSerialization,
+        json,
+      );
+
+      // deserialize: (raw, ctx) => `${raw}-from-${ctx.rawObject['id']}`
+      expect(entity.label).toBe('hello-from-ent-1');
     });
   });
 

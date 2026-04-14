@@ -612,6 +612,29 @@ export class EntityWithCustomSerialization {
 }
 
 /**
+ * Entity to verify serialize/deserialize context is passed correctly
+ * Features: Context-aware serialization using propertyName and sibling values
+ */
+@Entity()
+export class EntityWithContextSerialization {
+  @StringProperty() id!: string;
+
+  @Property({
+    type: () => String,
+    serialize: (v: string, context) =>
+      `${context.propertyName}:${v}:${context.entity['id']}`,
+    deserialize: (raw: unknown, context) =>
+      `${raw}-from-${context.rawObject['id']}`,
+  })
+  label!: string;
+
+  constructor(data: { id: string; label: string }) {
+    this.id = data.id;
+    this.label = data.label;
+  }
+}
+
+/**
  * Custom class with equals method
  */
 export class CustomPoint {
