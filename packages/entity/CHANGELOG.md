@@ -1,3 +1,7 @@
+## 0.27.0 (2026-04-14)
+
+This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
+
 ## 0.26.1 (2026-02-18)
 
 ### 🚀 Features
