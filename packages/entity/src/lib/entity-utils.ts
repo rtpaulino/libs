@@ -1083,14 +1083,20 @@ export class EntityUtils {
     }
 
     // Apply updates, respecting preventUpdates flag
+    // Properties with an `undefined` value in the updates object are ignored;
+    // use `null` to explicitly clear a property.
     for (const key of keys) {
       if (key in updates) {
+        const updateValue = (updates as any)[key];
+        if (updateValue === undefined) {
+          continue;
+        }
         const propertyOptions = this.getPropertyOptions(instance, key);
         if (propertyOptions && propertyOptions.preventUpdates === true) {
           // Skip updating this property
           continue;
         }
-        data[key] = (updates as any)[key];
+        data[key] = updateValue;
       }
     }
 

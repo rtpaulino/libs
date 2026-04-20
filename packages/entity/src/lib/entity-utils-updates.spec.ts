@@ -290,7 +290,7 @@ describe('EntityUtils.update', () => {
       expect(updated.requiredField).toBe('required');
     });
 
-    it('should clear optional fields with undefined', async () => {
+    it('should ignore undefined values and leave the field unchanged', async () => {
       const entity = new OptionalFieldsEntity({
         requiredField: 'required',
         optionalField: 'initial',
@@ -301,7 +301,21 @@ describe('EntityUtils.update', () => {
         optionalField: undefined,
       });
 
-      expect(updated.optionalField).toBeUndefined();
+      expect(updated.optionalField).toBe('initial');
+    });
+
+    it('should clear optional fields with null', async () => {
+      const entity = new OptionalFieldsEntity({
+        requiredField: 'required',
+        optionalField: 'initial',
+        requiredBoolean: true,
+      });
+
+      const updated = await EntityUtils.update(entity, {
+        optionalField: null as any,
+      });
+
+      expect(updated.optionalField).toBeNull();
     });
   });
 
