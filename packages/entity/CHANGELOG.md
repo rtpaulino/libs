@@ -1,3 +1,14 @@
+## 0.28.0 (2026-04-20)
+
+### 🚀 Features
+
+- **entity:** ignore undefined properties in EntityUtils.update ([0a397f3](https://github.com/rtpaulino/libs/commit/0a397f3))
+
+### ❤️ Thank You
+
+- Copilot @Copilot
+- Rafael Paulino
+
 ## 0.27.0 (2026-04-14)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
