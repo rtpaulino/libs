@@ -5,15 +5,6 @@ export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/packages/entity',
   plugins: [],
-  esbuild: {
-    target: 'es2022',
-    tsconfigRaw: {
-      compilerOptions: {
-        experimentalDecorators: true,
-        emitDecoratorMetadata: true,
-      },
-    },
-  },
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [],
