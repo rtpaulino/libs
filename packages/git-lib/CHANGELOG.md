@@ -1,3 +1,14 @@
+## 0.10.3 (2026-06-12)
+
+### 🩹 Fixes
+
+- **git-lib:** update @rtpaulino/core dependency to ^0.13.3 ([f3091ea](https://github.com/rtpaulino/libs/commit/f3091ea))
+
+### ❤️ Thank You
+
+- Claude Sonnet 4.6
+- Rafael Paulino
+
 ## 0.10.2 (2025-12-31)
 
 ### 🚀 Features
