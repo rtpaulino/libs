@@ -1,3 +1,14 @@
+## 0.28.1 (2026-06-12)
+
+### 🩹 Fixes
+
+- **entity:** remove unused @rtpaulino/core dependency ([1c5901a](https://github.com/rtpaulino/libs/commit/1c5901a))
+
+### ❤️ Thank You
+
+- Claude Sonnet 4.6
+- Rafael Paulino
+
 ## 0.28.0 (2026-04-20)
 
 ### 🚀 Features
