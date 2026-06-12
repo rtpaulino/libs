@@ -17,10 +17,7 @@ export function findDuplicates(arr: string[]): string[] {
  * @param maxLength - The maximum length (default: 80)
  * @returns The truncated string with ellipsis if it was shortened
  */
-export function truncateWithEllipsis(
-  text: string,
-  maxLength: number = 80,
-): string {
+export function truncateWithEllipsis(text: string, maxLength = 80): string {
   // Remove newlines and replace with spaces
   const cleanedText = text.replace(/\n/g, ' ').trim();
 
