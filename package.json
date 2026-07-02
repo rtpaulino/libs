@@ -16,7 +16,7 @@
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.8",
     "@swc/helpers": "~0.5.18",
-    "@types/node": "^24.10.1",
+    "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "eslint": "^10.4.1",
@@ -36,5 +36,9 @@
   "nx": {
     "includedScripts": [],
     "targets": {}
+  },
+  "allowScripts": {
+    "@swc/core@1.15.43": true,
+    "nx@22.7.6": true
   }
 }
