@@ -1,3 +1,9 @@
+## 0.10.5 (2026-07-02)
+
+### 🧱 Updated Dependencies
+
+- Updated @rtpaulino/core to 0.13.5
+
 ## 0.10.4 (2026-07-02)
 
 ### 🧱 Updated Dependencies

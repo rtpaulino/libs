@@ -1,3 +1,7 @@
+## 0.13.5 (2026-07-02)
+
+This was a version bump only for @rtpaulino/core to align it with other projects, there were no code changes.
+
 ## 0.13.4 (2026-07-02)
 
 This was a version bump only for @rtpaulino/core to align it with other projects, there were no code changes.
