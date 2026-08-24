@@ -12,5 +12,8 @@
     {
       "path": "./packages/entity"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0"
+  }
 }
