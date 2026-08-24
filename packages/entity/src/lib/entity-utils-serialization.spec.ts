@@ -20,6 +20,7 @@ import {
   EntityWithPassthrough,
   OptionalFieldsEntity,
   CustomValue,
+  EntityWithSerializedKey,
 } from './test-entities.js';
 
 describe('EntityUtils.toJSON', () => {
@@ -503,6 +504,38 @@ describe('EntityUtils.toJSON', () => {
         salary: 95000,
       });
       expect(typeof json.hireDate).toBe('string');
+    });
+  });
+
+  describe('serializedKey', () => {
+    it('should serialize using the serializedKey instead of the property name', () => {
+      const entity = new EntityWithSerializedKey({
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+        age: 36,
+      });
+
+      const json = EntityUtils.toJSON(entity);
+
+      expect(json).toEqual({
+        first_name: 'Ada',
+        last_name: 'Lovelace',
+        age: 36,
+      });
+    });
+
+    it('should omit an undefined optional serializedKey property', () => {
+      const entity = new EntityWithSerializedKey({
+        firstName: 'Ada',
+        age: 36,
+      });
+
+      const json = EntityUtils.toJSON(entity);
+
+      expect(json).toEqual({
+        first_name: 'Ada',
+        age: 36,
+      });
     });
   });
 });

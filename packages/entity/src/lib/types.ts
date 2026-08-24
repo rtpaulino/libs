@@ -300,6 +300,16 @@ export interface PropertyOptions<
   discriminated?: boolean;
 
   /**
+   * The key to use for this property in the serialized JSON representation.
+   * Defaults to the property's own name. Use this to map a property to a
+   * differently-named field on the wire (e.g. camelCase in code, snake_case in JSON).
+   * @example
+   * @Property({ type: () => String, serializedKey: 'first_name' })
+   * firstName!: string;
+   */
+  serializedKey?: string;
+
+  /**
    * The property name to use as the discriminator for discriminated entity properties.
    * Defaults to '__type' if not specified.
    * Only applicable when discriminated is true.

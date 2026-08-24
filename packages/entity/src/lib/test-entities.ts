@@ -203,6 +203,28 @@ export class OptionalFieldsEntity {
   }
 }
 
+/**
+ * Entity with properties whose serialized JSON key differs from the property name
+ * Features: serializedKey option, optional property with serializedKey
+ */
+@Entity()
+export class EntityWithSerializedKey {
+  @StringProperty({ serializedKey: 'first_name' })
+  firstName!: string;
+
+  @StringProperty({ serializedKey: 'last_name', optional: true })
+  lastName?: string;
+
+  @NumberProperty()
+  age!: number;
+
+  constructor(data: { firstName: string; lastName?: string; age: number }) {
+    this.firstName = data.firstName;
+    this.lastName = data.lastName;
+    this.age = data.age;
+  }
+}
+
 // ============================================================================
 // ENTITIES WITH DEFAULT VALUES
 // ============================================================================

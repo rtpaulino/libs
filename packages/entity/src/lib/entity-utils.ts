@@ -482,7 +482,11 @@ export class EntityUtils {
         propertyName: key,
         entity: entity as Record<string, unknown>,
       };
-      result[key] = this.serializeValue(value, options, serializeContext);
+      result[options?.serializedKey ?? key] = this.serializeValue(
+        value,
+        options,
+        serializeContext,
+      );
     }
 
     return result;
@@ -677,7 +681,8 @@ export class EntityUtils {
         continue;
       }
 
-      const value = (plainObject as Record<string, unknown>)[key];
+      const serializedKey = propertyOptions.serializedKey ?? key;
+      const value = (plainObject as Record<string, unknown>)[serializedKey];
 
       if (propertyOptions.passthrough === true) {
         data[key] = value;
@@ -686,7 +691,7 @@ export class EntityUtils {
 
       const isOptional = propertyOptions.optional === true;
 
-      if (!(key in plainObject) || value == null) {
+      if (!(serializedKey in plainObject) || value == null) {
         if (skipMissing) {
           continue;
         }

@@ -27,6 +27,7 @@ import {
   LOGGER_TOKEN,
   ILogger,
   EntityWithParseBigInt,
+  EntityWithSerializedKey,
 } from './test-entities.js';
 
 describe('EntityUtils.parse', () => {
@@ -679,6 +680,47 @@ describe('EntityUtils.safeParse', () => {
       if (result.success) {
         expect(result.problems.length).toBeGreaterThan(0);
       }
+    });
+  });
+
+  describe('serializedKey', () => {
+    it('should deserialize by reading the serializedKey from the input', async () => {
+      const json = {
+        first_name: 'Ada',
+        last_name: 'Lovelace',
+        age: 36,
+      };
+
+      const entity = await EntityUtils.parse(EntityWithSerializedKey, json);
+
+      expect(entity.firstName).toBe('Ada');
+      expect(entity.lastName).toBe('Lovelace');
+      expect(entity.age).toBe(36);
+    });
+
+    it('should report a missing required property using the serializedKey input', async () => {
+      const json = { age: 36 };
+
+      const result = await EntityUtils.safeParse(
+        EntityWithSerializedKey,
+        json,
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.problems.some((p) => p.property === 'firstName')).toBe(
+          true,
+        );
+      }
+    });
+
+    it('should leave an unset optional serializedKey property undefined', async () => {
+      const json = { first_name: 'Ada', age: 36 };
+
+      const entity = await EntityUtils.parse(EntityWithSerializedKey, json);
+
+      expect(entity.firstName).toBe('Ada');
+      expect(entity.lastName).toBeUndefined();
     });
   });
 });
