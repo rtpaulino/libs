@@ -68,7 +68,8 @@ export type BuiltinCtors =
   | BooleanConstructor
   | BigIntConstructor
   | SymbolConstructor
-  | DateConstructor;
+  | DateConstructor
+  | BufferConstructor;
 
 /**
  * Type constructors for primitive types that can be deserialized
@@ -79,7 +80,8 @@ export type PrimitiveConstructor =
   | NumberConstructor
   | BooleanConstructor
   | BigIntConstructor
-  | DateConstructor;
+  | DateConstructor
+  | BufferConstructor;
 
 export type CtorLike<T> = AnyCtor<T> | BuiltinCtors;
 
@@ -95,9 +97,11 @@ export type InstanceOfCtorLike<C> = C extends StringConstructor
           ? symbol
           : C extends DateConstructor
             ? Date
-            : C extends AnyCtor<infer T>
-              ? T
-              : never;
+            : C extends BufferConstructor
+              ? Buffer
+              : C extends AnyCtor<infer T>
+                ? T
+                : never;
 
 /**
  * Context passed to a custom serialize callback.
@@ -383,11 +387,7 @@ export interface Type<T = any> extends Function {
 }
 
 export type EntityDIToken<T = any> =
-  | string
-  | symbol
-  | Function
-  | AnyCtor<T>
-  | Type<T>;
+  string | symbol | Function | AnyCtor<T> | Type<T>;
 
 export type EntityDIProvider<T = any> =
   | {

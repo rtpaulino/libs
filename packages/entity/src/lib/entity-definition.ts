@@ -20,6 +20,7 @@ import {
   booleanPropertyOptions,
   datePropertyOptions,
   bigIntPropertyOptions,
+  bufferPropertyOptions,
   entityPropertyOptions,
   arrayPropertyOptions,
   passthroughPropertyOptions,
@@ -196,8 +197,7 @@ function defineEntity<T>(
 
       // Attach validator as instance method that uses 'this'
       (entityClass.prototype as any)[methodName] = function ():
-        | Problem[]
-        | Promise<Problem[]> {
+        Problem[] | Promise<Problem[]> {
         return validatorFn(this);
       };
     });
@@ -423,6 +423,19 @@ export const EntityProps = {
    * })
    */
   BigInt: bigIntPropertyOptions,
+
+  /**
+   * Buffer property (serialized as base64)
+   * @example
+   * EntitySchema.define({
+   *   name: 'Document',
+   *   properties: {
+   *     content: EntityProps.Buffer(),
+   *     thumbnail: EntityProps.Buffer({ optional: true }),
+   *   }
+   * })
+   */
+  Buffer: bufferPropertyOptions,
 
   /**
    * Entity property (nested entity)

@@ -472,6 +472,35 @@ export function BigIntProperty(
 }
 
 /**
+ * Creates property options for a Buffer property
+ * Used internally by BufferProperty decorator and Props.Buffer helper
+ */
+export function bufferPropertyOptions(
+  options?: Omit<PropertyOptions<Buffer, BufferConstructor>, 'type'>,
+): PropertyOptions<Buffer, BufferConstructor> {
+  return { ...options, type: () => Buffer };
+}
+
+/**
+ * Helper decorator for Buffer properties.
+ * Serialized to JSON as a base64 string; deserialized from a base64 string,
+ * a Buffer or a Uint8Array.
+ * @example
+ * class Document {
+ *   @BufferProperty()
+ *   content!: Buffer;
+ *
+ *   @BufferProperty({ optional: true })
+ *   thumbnail?: Buffer;
+ * }
+ */
+export function BufferProperty(
+  options?: Omit<PropertyOptions<Buffer, BufferConstructor>, 'type'>,
+): PropertyDecorator {
+  return Property(bufferPropertyOptions(options));
+}
+
+/**
  * Creates property options for an entity property
  * Used internally by EntityProperty decorator and Props.Entity helper
  */

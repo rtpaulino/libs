@@ -7,7 +7,7 @@ A TypeScript entity framework with decorators for metadata-driven serialization 
 - **Type-safe decorators** for entity properties
 - **Serialization** via `EntityUtils.toJSON()`
 - **Deserialization** via `EntityUtils.parse()`
-- **Helper decorators** for common types (String, Number, Boolean, Date, BigInt, Entity, Array)
+- **Helper decorators** for common types (String, Number, Boolean, Date, BigInt, Buffer, Entity, Array)
 - **Nested entities** with automatic recursive handling
 - **Optional properties** with null/undefined support
 - **Sparse arrays** for arrays with null/undefined elements
@@ -84,6 +84,9 @@ class Example {
 
   @BigIntProperty()
   largeNumber!: bigint;
+
+  @BufferProperty()
+  payload!: Buffer; // serialized as a base64 string
 }
 ```
 
@@ -203,7 +206,7 @@ class BadExample {
 }
 
 // This will throw:
-// "Property 'value' has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, and @Entity() classes."
+// "Property 'value' has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, Buffer, and @Entity() classes."
 ```
 
 ## Advanced Patterns
@@ -254,7 +257,7 @@ Serializes an entity to a plain JavaScript object.
 
 - Throws error for properties with unknown types (unless `passthrough: true`)
 - Handles nested entities recursively
-- Converts Date to ISO string, BigInt to string
+- Converts Date to ISO string, BigInt to string, Buffer to base64 string
 - Preserves null/undefined for optional properties
 
 ### `EntityUtils.parse<T>(entityClass, plainObject)`
@@ -265,7 +268,7 @@ Deserializes a plain object to an entity instance.
 - Validates property types match metadata
 - Throws error for unknown types (unless `passthrough: true`)
 - Handles nested entities recursively
-- Converts ISO strings back to Date, strings back to BigInt
+- Converts ISO strings back to Date, strings back to BigInt, base64 strings back to Buffer
 
 ### Property Options
 

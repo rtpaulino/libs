@@ -13,7 +13,8 @@ export function isPrimitiveConstructor(
     constructor === Number ||
     constructor === Boolean ||
     constructor === BigInt ||
-    constructor === Date
+    constructor === Date ||
+    (typeof Buffer !== 'undefined' && constructor === Buffer)
   );
 }
 
@@ -118,18 +119,42 @@ function deserializeDate(value: unknown): Date {
   );
 }
 
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}(?:==)?|[A-Za-z0-9+/]{3}=?)?$/;
+
+/**
+ * Deserializes a Buffer value (accepts Buffer, Uint8Array or a base64 string)
+ */
+function deserializeBuffer(value: unknown): Buffer {
+  if (Buffer.isBuffer(value)) {
+    return value;
+  }
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value);
+  }
+  if (typeof value === 'string') {
+    if (!BASE64_PATTERN.test(value)) {
+      throw createValidationError('Cannot parse value as a base64 string');
+    }
+    return Buffer.from(value, 'base64');
+  }
+  throw createValidationError(
+    `Expects a Buffer or base64 string but received ${typeof value}`,
+  );
+}
+
 /**
  * Deserializes a primitive value based on its type constructor
  *
  * @param value - The value to deserialize
- * @param typeConstructor - The primitive type constructor (String, Number, Boolean, BigInt, Date)
+ * @param typeConstructor - The primitive type constructor (String, Number, Boolean, BigInt, Date, Buffer)
  * @returns The deserialized value
  * @throws ValidationError with empty property if type mismatch or parse error
  */
 export function deserializePrimitive(
   value: unknown,
   typeConstructor: PrimitiveConstructor,
-): string | number | boolean | bigint | Date {
+): string | number | boolean | bigint | Date | Buffer {
   if (typeConstructor === String) {
     return deserializeString(value);
   }
@@ -144,6 +169,9 @@ export function deserializePrimitive(
   }
   if (typeConstructor === Date) {
     return deserializeDate(value);
+  }
+  if (typeof Buffer !== 'undefined' && typeConstructor === Buffer) {
+    return deserializeBuffer(value);
   }
 
   throw createValidationError(`Unknown primitive type constructor`);

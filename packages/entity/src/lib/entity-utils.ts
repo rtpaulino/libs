@@ -534,6 +534,10 @@ export class EntityUtils {
       return value.toString();
     }
 
+    if (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) {
+      return value.toString('base64');
+    }
+
     if (this.isEntity(value)) {
       const serialized = this.toJSON(value);
 
@@ -1293,7 +1297,7 @@ export class EntityUtils {
     }
 
     throw createValidationError(
-      `Has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, and @Entity() classes. Use passthrough: true to explicitly allow unknown types.`,
+      `Has unknown type constructor. Supported types are: String, Number, Boolean, Date, BigInt, Buffer, and @Entity() classes. Use passthrough: true to explicitly allow unknown types.`,
     );
   }
 
