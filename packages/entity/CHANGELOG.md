@@ -1,3 +1,7 @@
+## 0.28.4 (2026-10-19)
+
+This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
+
 ## 0.28.3 (2026-08-24)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
