@@ -34,6 +34,7 @@
     "packages/*"
   ],
   "overrides": {
+    "minimatch": "^11.0.8",
     "undici": "^7.30.1"
   },
   "nx": {
