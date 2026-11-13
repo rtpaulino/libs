@@ -122,3 +122,22 @@ export function prependArrayIndex(
     });
   });
 }
+
+/**
+ * Message used in place of any problem message for sensitive properties.
+ */
+export const REDACTED_MESSAGE = 'Invalid value [REDACTED]';
+
+/**
+ * Replaces the message of every problem with a redacted placeholder,
+ * keeping the property path. Used for properties marked `sensitive`.
+ *
+ * @param problems - The problems to redact
+ * @returns New problems with redacted messages
+ */
+export function redactProblems(problems: Problem[]): Problem[] {
+  return problems.map(
+    (problem) =>
+      new Problem({ property: problem.property, message: REDACTED_MESSAGE }),
+  );
+}

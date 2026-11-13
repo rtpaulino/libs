@@ -193,6 +193,18 @@ export interface PropertyOptions<
   passthrough?: boolean;
 
   /**
+   * Whether this property holds sensitive data (e.g. a password hash).
+   * When true, the message of every problem reported for this property during
+   * parse, update or validation is replaced with a redacted placeholder so
+   * the value cannot leak through error messages. The property path is kept.
+   * Defaults to false.
+   * @example
+   * @Property({ type: () => String, sensitive: true })
+   * passwordHash!: string;
+   */
+  sensitive?: boolean;
+
+  /**
    * Whether to prevent this property from being updated via EntityUtils.update().
    * When true, this property cannot be modified through update operations.
    * Defaults to false, allowing the property to be updated.

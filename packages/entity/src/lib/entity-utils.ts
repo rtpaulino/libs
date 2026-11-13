@@ -25,6 +25,8 @@ import {
   prependArrayIndex,
   prependPropertyPath,
   createValidationError,
+  redactProblems,
+  REDACTED_MESSAGE,
 } from './validation-utils.js';
 import {
   isPrimitiveConstructor,
@@ -735,19 +737,23 @@ export class EntityUtils {
           deserializeContext,
         );
       } catch (error) {
+        const isSensitive = propertyOptions.sensitive === true;
         if (error instanceof ValidationError) {
           const isWrapperProperty = wrapperPropertyName === key;
+          const errorProblems = isSensitive
+            ? redactProblems(error.problems)
+            : error.problems;
           if (isWrapperProperty) {
-            hardProblems.push(...error.problems);
+            hardProblems.push(...errorProblems);
           } else {
-            const problems = prependPropertyPath(key, error.problems);
+            const problems = prependPropertyPath(key, errorProblems);
             hardProblems.push(...problems);
           }
         } else if (error instanceof Error) {
           hardProblems.push(
             new Problem({
               property: wrapperPropertyName === key ? '' : key,
-              message: error.message,
+              message: isSensitive ? REDACTED_MESSAGE : error.message,
             }),
           );
         } else {
@@ -1361,6 +1367,7 @@ export class EntityUtils {
     propertyPath: string,
     value: unknown,
     validators: PropertyOptions['validators'],
+    sensitive = false,
   ): Promise<Problem[]> {
     const problems: Problem[] = [];
 
@@ -1370,7 +1377,7 @@ export class EntityUtils {
         if (validatorProblems.length > 0) {
           const prepended = prependPropertyPath(
             propertyPath,
-            validatorProblems,
+            sensitive ? redactProblems(validatorProblems) : validatorProblems,
           );
           problems.push(...prepended);
         }
@@ -1422,6 +1429,7 @@ export class EntityUtils {
         key,
         value,
         options.validators,
+        options.sensitive === true,
       );
       problems.push(...valueProblems);
     } else {
@@ -1431,7 +1439,12 @@ export class EntityUtils {
       for (const validator of arrayValidators) {
         const validatorProblems = await validator({ value });
         if (validatorProblems.length > 0) {
-          const prepended = prependPropertyPath(key, validatorProblems);
+          const prepended = prependPropertyPath(
+            key,
+            options.sensitive === true
+              ? redactProblems(validatorProblems)
+              : validatorProblems,
+          );
           problems.push(...prepended);
         }
       }
@@ -1446,6 +1459,7 @@ export class EntityUtils {
               elementPath,
               element,
               validators,
+              options.sensitive === true,
             );
             problems.push(...elementProblems);
           }
