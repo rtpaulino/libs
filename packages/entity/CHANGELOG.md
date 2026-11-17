@@ -1,3 +1,13 @@
+## 0.28.6 (2026-11-17)
+
+### 🩹 Fixes
+
+- **entity:** reject invalid Date values ([62ec42c](https://github.com/rtpaulino/libs/commit/62ec42c))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.28.5 (2026-11-13)
 
 This was a version bump only for @rtpaulino/entity to align it with other projects, there were no code changes.
