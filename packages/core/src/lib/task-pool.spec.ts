@@ -209,6 +209,211 @@ describe('TaskPool', () => {
 
       expect(pool.hasCapacity).toBe(false);
     });
+
+    it('continues to reflect changes to size on a pool without queueing', async () => {
+      const handler = vi.fn().mockResolvedValue(undefined);
+      const pool = new TaskPool({ size: 1, handler });
+
+      pool.execute('first');
+      expect(pool.hasCapacity).toBe(false);
+
+      pool.config.size = 2;
+      expect(pool.hasCapacity).toBe(true);
+      pool.execute('second');
+      expect(pool.active).toBe(2);
+
+      await vi.runAllTimersAsync();
+    });
+  });
+
+  describe('queue', () => {
+    it.each([-1, 0.5, NaN, Infinity])(
+      'rejects invalid queue capacity %s',
+      (queueCapacity) => {
+        const handler = vi.fn().mockResolvedValue(undefined);
+        expect(() => new TaskPool({ size: 2, queueCapacity, handler })).toThrow(
+          'Task pool queue capacity must be a non-negative integer',
+        );
+      },
+    );
+
+    it('runs two tasks and queues eight in submission order', async () => {
+      const handler = vi.fn(async (task: number) => {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, task === 1 ? 1000 : 2000);
+        });
+      });
+      const pool = new TaskPool({ size: 2, queueCapacity: 8, handler });
+
+      for (let task = 1; task <= 10; task++) {
+        pool.execute(task);
+      }
+
+      expect(pool.active).toBe(2);
+      expect(pool.pending).toBe(8);
+      expect(pool.hasCapacity).toBe(false);
+      expect(handler.mock.calls).toEqual([[1], [2]]);
+      expect(() => pool.execute(11)).toThrow(TaskPoolFullError);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(handler.mock.calls).toEqual([[1], [2], [3]]);
+      expect(pool.active).toBe(2);
+      expect(pool.pending).toBe(7);
+      expect(pool.hasCapacity).toBe(false);
+
+      pool.execute(11);
+      expect(pool.pending).toBe(8);
+      await vi.runAllTimersAsync();
+
+      expect(handler.mock.calls).toEqual(
+        Array.from({ length: 11 }, (_, index) => [index + 1]),
+      );
+      expect(pool.active).toBe(0);
+      expect(pool.pending).toBe(0);
+    });
+
+    it('keeps its original execution limit when config.size changes', async () => {
+      const handler = vi.fn(async (task: string) => {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, task === 'first' ? 1000 : 2000);
+        });
+      });
+      const pool = new TaskPool({ size: 2, queueCapacity: 2, handler });
+
+      pool.execute('first');
+      pool.execute('second');
+      pool.execute('third');
+
+      pool.config.size = 3;
+      pool.execute('fourth');
+      expect(handler.mock.calls).toEqual([['first'], ['second']]);
+      expect(pool.pending).toBe(2);
+      expect(pool.idle).toBe(0);
+      expect(() => pool.execute('overflow')).toThrow(
+        expect.objectContaining({ poolSize: 2 }),
+      );
+
+      pool.config.size = 1;
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(handler.mock.calls).toEqual([['first'], ['second'], ['third']]);
+      expect(pool.active).toBe(2);
+      expect(pool.idle).toBe(0);
+
+      await vi.runAllTimersAsync();
+      expect(handler.mock.calls).toEqual([
+        ['first'],
+        ['second'],
+        ['third'],
+        ['fourth'],
+      ]);
+      expect(pool.idle).toBe(2);
+    });
+
+    it('drains accepted work when blocked and waits for it to finish', async () => {
+      const handler = vi.fn(
+        () => new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+      );
+      const pool = new TaskPool({ size: 1, queueCapacity: 1, handler });
+      const onIdle = vi.fn();
+
+      pool.execute('running');
+      pool.execute('queued');
+      pool.block();
+      expect(() => pool.execute('rejected')).toThrow(TaskPoolBlockedError);
+      const drained = pool.waitUntilIdle().then(onIdle);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(handler.mock.calls).toEqual([['running'], ['queued']]);
+      expect(onIdle).not.toHaveBeenCalled();
+
+      await vi.runAllTimersAsync();
+      await drained;
+      expect(onIdle).toHaveBeenCalledOnce();
+      expect(pool.active).toBe(0);
+      expect(pool.pending).toBe(0);
+    });
+
+    it('advances after both rejected promises and synchronous throws', async () => {
+      const rejection = new Error('rejected');
+      const thrown = new Error('thrown');
+      const handler = vi
+        .fn<(data: string) => Promise<void>>()
+        .mockRejectedValueOnce(rejection)
+        .mockImplementationOnce(() => {
+          throw thrown;
+        })
+        .mockResolvedValueOnce(undefined);
+      const onError = vi.fn();
+      const onSuccess = vi.fn();
+      const pool = new TaskPool({
+        size: 1,
+        queueCapacity: 2,
+        handler,
+        onError,
+        onSuccess,
+      });
+
+      pool.execute('reject');
+      pool.execute('throw');
+      pool.execute('success');
+      await vi.runAllTimersAsync();
+
+      expect(onError.mock.calls).toEqual([
+        [rejection, 'reject'],
+        [thrown, 'throw'],
+      ]);
+      expect(onSuccess.mock.calls).toEqual([['success']]);
+      expect(pool.active).toBe(0);
+      expect(pool.pending).toBe(0);
+    });
+
+    it('starts heartbeats at execution and tracks duplicate payloads independently', async () => {
+      const handler = vi
+        .fn<(data: string) => Promise<void>>()
+        .mockImplementationOnce(
+          () => new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+        )
+        .mockImplementation(
+          () => new Promise<void>((resolve) => setTimeout(resolve, 3500)),
+        );
+      const onHeartbeat = vi.fn().mockResolvedValue(undefined);
+      const pool = new TaskPool({
+        size: 2,
+        queueCapacity: 1,
+        handler,
+        heartbeat: {
+          enabled: true,
+          interval: Duration.seconds(1),
+          onHeartbeat,
+        },
+      });
+
+      pool.execute('duplicate');
+      pool.execute('duplicate');
+      pool.execute('queued');
+
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(onHeartbeat.mock.calls).toEqual([
+        ['duplicate'],
+        ['duplicate'],
+        ['duplicate'],
+      ]);
+
+      await vi.advanceTimersByTimeAsync(500);
+      expect(onHeartbeat).toHaveBeenLastCalledWith('queued');
+
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(onHeartbeat.mock.calls).toEqual([
+        ['duplicate'],
+        ['duplicate'],
+        ['duplicate'],
+        ['queued'],
+        ['duplicate'],
+        ['queued'],
+        ['queued'],
+      ]);
+      expect(vi.getTimerCount()).toBe(0);
+    });
   });
 
   describe('blocking', () => {
