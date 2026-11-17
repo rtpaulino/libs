@@ -96,6 +96,25 @@ describe('EntityUtils.parse', () => {
       expect(entity.timestamp).toBe(date);
     });
 
+    it.each([new Date('nope'), 'nope'])(
+      'should reject invalid date input %s with a property-specific error',
+      async (timestamp) => {
+        const result = EntityUtils.parse(EntityWithSpecialTypes, {
+          timestamp,
+          largeNumber: '9007199254740991',
+          label: 'test',
+        });
+
+        await expect(result).rejects.toBeInstanceOf(ValidationError);
+        await expect(result).rejects.toMatchObject({
+          problems: [{ property: 'timestamp', message: 'Expects a valid Date' }],
+        });
+        await expect(result).rejects.toThrow('timestamp: Expects a valid Date');
+        await expect(result).rejects.not.toThrow('nope');
+        await expect(result).rejects.not.toThrow('Invalid Date');
+      },
+    );
+
     it('should parse BigInt from string', async () => {
       const json = {
         timestamp: new Date(),

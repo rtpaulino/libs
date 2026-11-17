@@ -105,12 +105,15 @@ function deserializeBigInt(value: unknown): bigint {
  */
 function deserializeDate(value: unknown): Date {
   if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw createValidationError('Expects a valid Date');
+    }
     return value;
   }
   if (typeof value === 'string') {
     const date = new Date(value);
     if (isNaN(date.getTime())) {
-      throw createValidationError(`Cannot parse '${value}' as Date`);
+      throw createValidationError('Expects a valid Date');
     }
     return date;
   }
