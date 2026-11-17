@@ -1,3 +1,13 @@
+## 0.13.4 (2026-11-17)
+
+### 🚀 Features
+
+- **core:** add bounded queue to TaskPool ([6d8818f](https://github.com/rtpaulino/libs/commit/6d8818f))
+
+### ❤️ Thank You
+
+- Rafael Paulino
+
 ## 0.13.3 (2026-06-12)
 
 This was a version bump only for @rtpaulino/core to align it with other projects, there were no code changes.
