@@ -1,6 +1,6 @@
 {
   "name": "@rtpaulino/git-lib",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -48,6 +48,6 @@
   },
   "dependencies": {
     "@swc/helpers": "~0.5.18",
-    "@rtpaulino/core": "^0.13.4"
+    "@rtpaulino/core": "^0.13.5"
   }
 }
